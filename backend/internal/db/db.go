@@ -251,7 +251,7 @@ func CreateCard(conn *sql.DB, listID int64, title, description string) (int64, e
 
 func ListCardsByBoard(conn *sql.DB, boardID int64) ([]models.Card, error) {
 	rows, err := conn.Query(`
-		SELECT c.id, c.list_id, c.title, c.description, c.position, c.created_at
+		SELECT c.id, c.list_id, c.title, c.description, c.position, c.created_at, COALESCE(c.due_date, '')
 		FROM cards c
 		JOIN lists l ON l.id = c.list_id
 		WHERE l.board_id = ?
@@ -265,7 +265,15 @@ func ListCardsByBoard(conn *sql.DB, boardID int64) ([]models.Card, error) {
 	out := []models.Card{}
 	for rows.Next() {
 		var c models.Card
-		if err := rows.Scan(&c.ID, &c.ListID, &c.Title, &c.Description, &c.Position, &c.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&c.ID,
+			&c.ListID,
+			&c.Title,
+			&c.Description,
+			&c.Position,
+			&c.CreatedAt,
+			&c.DueDate,
+		); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -373,14 +381,11 @@ func UpdateCardAll(conn *sql.DB, cardID int64, title, description, dueDate strin
 
 // ---------- Subtasks
 
-func CreateSubtask(conn *sql.DB, cardID int64, title string) (int64, error) {
-	var nextPos int64
-	_ = conn.QueryRow(`SELECT COALESCE(MAX(position), -1) + 1 FROM card_subtasks WHERE card_id = ?`, cardID).Scan(&nextPos)
-
-	res, err := conn.Exec(`
-		INSERT INTO card_subtasks (card_id, title, position)
-		VALUES (?, ?, ?)
-	`, cardID, title, nextPos)
+func CreateSubtask(conn *sql.DB, cardID int64, title string, dueDate string) (int64, error) {
+	res, err := conn.Exec(
+		`INSERT INTO card_subtasks (card_id, title, is_done, due_date) VALUES (?, ?, 0, ?)`,
+		cardID, title, dueDate,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -389,7 +394,7 @@ func CreateSubtask(conn *sql.DB, cardID int64, title string) (int64, error) {
 
 func ListSubtasks(conn *sql.DB, cardID int64) ([]models.CardSubtask, error) {
 	rows, err := conn.Query(`
-		SELECT id, card_id, title, is_done, position, created_at
+		SELECT id, card_id, title, is_done, COALESCE(due_date,''), position, created_at
 		FROM card_subtasks
 		WHERE card_id = ?
 		ORDER BY position ASC
@@ -403,7 +408,7 @@ func ListSubtasks(conn *sql.DB, cardID int64) ([]models.CardSubtask, error) {
 	for rows.Next() {
 		var s models.CardSubtask
 		var doneInt int
-		if err := rows.Scan(&s.ID, &s.CardID, &s.Title, &doneInt, &s.Position, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.CardID, &s.Title, &doneInt, &s.DueDate, &s.Position, &s.CreatedAt); err != nil {
 			return nil, err
 		}
 		s.IsDone = doneInt == 1

@@ -64,6 +64,7 @@ type CardSubtask struct {
 	CardID    int64  `json:"card_id"`
 	Title     string `json:"title"`
 	IsDone    bool   `json:"is_done"`
+	DueDate   string `json:"due_date"`
 	Position  int64  `json:"position"`
 	CreatedAt string `json:"created_at"`
 }

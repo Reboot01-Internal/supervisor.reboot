@@ -102,6 +102,7 @@ ar.Post("/card/subtasks/delete", api.AdminDeleteSubtask)
 
 ar.Post("/card/assignees/add", api.AdminAddAssignee)
 ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
+
 	})
 	
 

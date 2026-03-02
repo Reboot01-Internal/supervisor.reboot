@@ -301,6 +301,7 @@ func (a *API) AdminGetCardFull(w http.ResponseWriter, r *http.Request) {
 type createSubtaskReq struct {
 	CardID int64  `json:"card_id"`
 	Title  string `json:"title"`
+	DueDate string `json:"due_date"`
 }
 
 func (a *API) AdminCreateSubtask(w http.ResponseWriter, r *http.Request) {
@@ -311,12 +312,14 @@ func (a *API) AdminCreateSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Title = strings.TrimSpace(req.Title)
+	req.DueDate = strings.TrimSpace(req.DueDate)
+
 	if req.CardID == 0 || req.Title == "" {
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id and title required"})
 		return
 	}
 
-	id, err := db.CreateSubtask(a.conn, req.CardID, req.Title)
+	id, err := db.CreateSubtask(a.conn, req.CardID, req.Title, req.DueDate)
 	if err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
@@ -324,7 +327,6 @@ func (a *API) AdminCreateSubtask(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": id})
 }
-
 type toggleSubtaskReq struct {
 	SubtaskID int64 `json:"subtask_id"`
 	IsDone    bool  `json:"is_done"`
@@ -367,6 +369,30 @@ func (a *API) AdminDeleteSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.DeleteSubtask(a.conn, req.SubtaskID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+type updateSubtaskDueReq struct {
+	SubtaskID int64  `json:"subtask_id"`
+	DueDate   string `json:"due_date"`
+}
+
+func (a *API) AdminUpdateSubtaskDue(w http.ResponseWriter, r *http.Request) {
+	var req updateSubtaskDueReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+
+	if req.SubtaskID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "subtask_id required"})
+		return
+	}
+
+	if err := db.UpdateSubtaskDueDate(a.conn, req.SubtaskID, req.DueDate); err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
 		return
 	}

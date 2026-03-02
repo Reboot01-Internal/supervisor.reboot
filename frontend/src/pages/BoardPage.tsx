@@ -24,7 +24,14 @@ import { CSS } from "@dnd-kit/utilities";
 import CardModal from "../components/CardModal";
 
 type List = { id: number; board_id: number; title: string; position: number };
-type Card = { id: number; list_id: number; title: string; description: string; position: number };
+type Card = {
+  id: number;
+  list_id: number;
+  title: string;
+  description: string;
+  position: number;
+  due_date?: string;
+};
 
 type BoardFull = {
   board_id: number;
@@ -34,11 +41,47 @@ type BoardFull = {
   cards: Card[];
 };
 
+type CardPreview = {
+  card_id: number;
+  done: number;
+  total: number;
+  assignees: { user_id: number; full_name: string }[];
+};
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
+}
+
+function ClockIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" strokeWidth="2" opacity="0.9" />
+      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function isDateOverdue(due: string) {
+  const today = new Date();
+  const dueD = new Date(due + "T00:00:00");
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return dueD < t;
+}
+function isDateToday(due: string) {
+  const today = new Date();
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dueD = new Date(due + "T00:00:00");
+  return dueD.getFullYear() === t.getFullYear() && dueD.getMonth() === t.getMonth() && dueD.getDate() === t.getDate();
+}
+
 function CardItem({
   card,
+  preview,
   onOpen,
 }: {
   card: Card;
+  preview?: CardPreview;
   onOpen: (cardId: number) => void;
 }) {
   const sortable = useSortable({
@@ -52,40 +95,75 @@ function CardItem({
     opacity: sortable.isDragging ? 0.7 : 1,
   };
 
+  const progressPct =
+    preview && preview.total > 0 ? Math.round((preview.done / preview.total) * 100) : 0;
+
+  const due = card.due_date || "";
+
   return (
-    <div ref={sortable.setNodeRef} style={style} className="glass">
-      <div style={{ padding: 12, borderRadius: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
-        {/* Drag handle */}
-        <div
-          {...sortable.attributes}
-          {...sortable.listeners}
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 10,
-            border: "1px solid var(--border)",
-            background: "rgba(255,255,255,0.06)",
-            display: "grid",
-            placeItems: "center",
-            cursor: "grab",
-            flex: "0 0 auto",
-          }}
-          title="Drag"
-        >
-          <span style={{ opacity: 0.7, fontSize: 14 }}>⋮⋮</span>
+    <div ref={sortable.setNodeRef} style={style} className="tCard">
+      <div className="tCardInner">
+        <div className="cardTopRow">
+          <div className="dragHandle" {...sortable.attributes} {...sortable.listeners} title="Drag">
+            <span style={{ opacity: 0.7, fontSize: 14 }}>⋮⋮</span>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0, cursor: "default" }}>
+            <div
+              className="cardTitle"
+              onDoubleClick={() => onOpen(card.id)}
+              title="Double click to open"
+            >
+              {card.title}
+            </div>
+
+            {preview && preview.total > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div className="progressBar">
+                  <div className="progressFill" style={{ width: `${progressPct}%` }} />
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 8 }} className="cardMetaRow">
+              <div className="metaLeft">
+                {preview && preview.total > 0 && (
+                  <span className="miniTag">
+                    {preview.done}/{preview.total}
+                  </span>
+                )}
+
+                {due && (
+                  <span
+                    className={`pill ${
+                      isDateOverdue(due) ? "clockPillOverdue" : isDateToday(due) ? "clockPillSoon" : ""
+                    }`}
+                    title={`Due ${due}`}
+                  >
+                    <ClockIcon />
+                    {due}
+                  </span>
+                )}
+              </div>
+
+              <div className="avatars">
+                {(preview?.assignees ?? []).slice(0, 3).map((a) => (
+                  <div key={a.user_id} className="avatarDot" title={a.full_name}>
+                    {initials(a.full_name)}
+                  </div>
+                ))}
+                {(preview?.assignees?.length ?? 0) > 3 && (
+                  <div className="avatarDot" title="More">
+                    +{(preview!.assignees.length - 3)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Clickable content */}
-        <div
-          style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
-          onClick={() => onOpen(card.id)}
-        >
-          <div style={{ fontWeight: 900 }}>{card.title}</div>
-          {card.description && (
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              {card.description}
-            </div>
-          )}
+        <div style={{ color: "var(--muted2)", fontSize: 11 }}>
+          Double click to open
         </div>
       </div>
     </div>
@@ -95,11 +173,13 @@ function CardItem({
 function ListColumn({
   list,
   cards,
+  previews,
   onAddCard,
   onOpenCard,
 }: {
   list: List;
   cards: Card[];
+  previews: Record<number, CardPreview | undefined>;
   onAddCard: (listId: number) => void;
   onOpenCard: (cardId: number) => void;
 }) {
@@ -109,41 +189,18 @@ function ListColumn({
   });
 
   return (
-    <div
-      className="glass"
-      style={{
-        minWidth: 320,
-        maxWidth: 320,
-        padding: 14,
-        borderRadius: 18,
-        flex: "0 0 auto",
-        border: drop.isOver ? "1px solid rgba(34,211,238,0.55)" : undefined,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <div style={{ fontWeight: 950 }}>{list.title}</div>
+    <div className="column" style={{ borderColor: drop.isOver ? "rgba(34,211,238,0.35)" : undefined }}>
+      <div className="columnHeader">
+        <div className="columnTitle">{list.title}</div>
         <button className="btn" onClick={() => onAddCard(list.id)}>
           + Card
         </button>
       </div>
 
-      <div style={{ height: 12 }} />
-
-      <div
-        ref={drop.setNodeRef}
-        style={{
-          display: "grid",
-          gap: 10,
-          minHeight: 60,
-          paddingBottom: 6,
-        }}
-      >
-        <SortableContext
-          items={cards.map((c) => `card:${c.id}`)}
-          strategy={verticalListSortingStrategy}
-        >
+      <div ref={drop.setNodeRef} className="columnBody">
+        <SortableContext items={cards.map((c) => `card:${c.id}`)} strategy={verticalListSortingStrategy}>
           {cards.map((c) => (
-            <CardItem key={c.id} card={c} onOpen={onOpenCard} />
+            <CardItem key={c.id} card={c} preview={previews[c.id]} onOpen={onOpenCard} />
           ))}
         </SortableContext>
 
@@ -171,9 +228,10 @@ export default function BoardPage() {
 
   const [activeCardId, setActiveCardId] = useState<number | null>(null);
 
-  // modal
   const [openCardId, setOpenCardId] = useState<number | null>(null);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+
+  const [previews, setPreviews] = useState<Record<number, CardPreview | undefined>>({});
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -190,11 +248,36 @@ export default function BoardPage() {
     }
   }
 
+  async function loadPreviews(cards: Card[]) {
+    const next: Record<number, CardPreview> = {};
+    for (const c of cards) {
+      try {
+        const full = await apiFetch(`/admin/card/full?card_id=${c.id}`);
+        const done = (full.subtasks ?? []).filter((s: any) => s.is_done).length;
+        const total = (full.subtasks ?? []).length;
+        const assignees = (full.assignees ?? []).map((a: any) => ({
+          user_id: a.user_id,
+          full_name: a.full_name,
+        }));
+        next[c.id] = { card_id: c.id, done, total, assignees };
+      } catch {
+        // ignore
+      }
+    }
+    setPreviews((prev) => ({ ...prev, ...next }));
+  }
+
   useEffect(() => {
     if (!boardID) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardID]);
+
+  useEffect(() => {
+    if (!data) return;
+    loadPreviews(data.cards);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.board_id]);
 
   const listsSorted = useMemo(() => {
     if (!data) return [];
@@ -210,9 +293,7 @@ export default function BoardPage() {
       if (!map[c.list_id]) map[c.list_id] = [];
       map[c.list_id].push(c);
     }
-    for (const k of Object.keys(map)) {
-      map[Number(k)].sort((a, b) => a.position - b.position);
-    }
+    for (const k of Object.keys(map)) map[Number(k)].sort((a, b) => a.position - b.position);
     return map;
   }, [data]);
 
@@ -237,7 +318,6 @@ export default function BoardPage() {
   }
 
   async function createCard(listId: number) {
-    // For now: create a draft card quickly, then open modal to edit
     try {
       const res = await apiFetch("/admin/cards", {
         method: "POST",
@@ -281,7 +361,6 @@ export default function BoardPage() {
 
     const fromListId = activeCard.list_id;
 
-    // Drop over a card
     if (overId.startsWith("card:")) {
       const overCardId = Number(overId.split(":")[1]);
       const overCard = findCard(overCardId);
@@ -289,7 +368,6 @@ export default function BoardPage() {
 
       const toListId = overCard.list_id;
 
-      // reorder within same list
       if (toListId === fromListId) {
         const current = cardsByList[fromListId] ?? [];
         const fromIndex = current.findIndex((c) => c.id === cardId);
@@ -307,7 +385,6 @@ export default function BoardPage() {
         return;
       }
 
-      // move to another list at overCard index
       const target = cardsByList[toListId] ?? [];
       const toPos = target.findIndex((c) => c.id === overCardId);
       const position = toPos < 0 ? 0 : toPos;
@@ -321,7 +398,6 @@ export default function BoardPage() {
       return;
     }
 
-    // Drop over list empty area
     if (overId.startsWith("list:")) {
       const toListId = Number(overId.split(":")[1]);
       const endPos = cardsByList[toListId]?.length ?? 0;
@@ -341,7 +417,7 @@ export default function BoardPage() {
   return (
     <AppShell
       title={data ? data.name : `Board #${boardID}`}
-      subtitle="Drag cards between columns"
+      subtitle="Double click a card to open"
       showLogout
       right={
         <>
@@ -350,67 +426,77 @@ export default function BoardPage() {
         </>
       }
     >
-      <CardModal
-        open={isCardModalOpen}
-        cardId={openCardId}
-        onClose={() => setIsCardModalOpen(false)}
-        onSaved={load}
-      />
+      <div className="container">
+        <CardModal
+          open={isCardModalOpen}
+          cardId={openCardId}
+          onClose={() => setIsCardModalOpen(false)}
+          onSaved={async () => {
+            await load();
+            if (data) await loadPreviews(data.cards);
+          }}
+        />
 
-      {err && <div className="noteBad" style={{ marginBottom: 12 }}>{err}</div>}
-      {loading && <div style={{ color: "var(--muted)" }}>Loading board...</div>}
+        {err && <div className="noteBad" style={{ marginBottom: 12 }}>{err}</div>}
+        {loading && <div style={{ color: "var(--muted)" }}>Loading board...</div>}
 
-      {!loading && data && (
-        <>
-          <div className="glass" style={{ padding: 14, marginBottom: 14 }}>
-            <form onSubmit={createList} style={{ display: "flex", gap: 10 }}>
-              <input
-                className="input"
-                placeholder="Add a new list (e.g. To Do)"
-                value={newListTitle}
-                onChange={(e) => setNewListTitle(e.target.value)}
-              />
-              <button className="btn primary" disabled={creatingList}>
-                {creatingList ? "..." : "Add List"}
-              </button>
-            </form>
-          </div>
-
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-          >
-            <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12 }}>
-              {listsSorted.map((l) => (
-                <ListColumn
-                  key={l.id}
-                  list={l}
-                  cards={cardsByList[l.id] ?? []}
-                  onAddCard={createCard}
-                  onOpenCard={onOpenCard}
+        {!loading && data && (
+          <div className="boardWrap">
+            <div className="glass" style={{ padding: 14 }}>
+              <form onSubmit={createList} style={{ display: "flex", gap: 10 }}>
+                <input
+                  className="input"
+                  placeholder="Add a list (To Do, Doing, Done...)"
+                  value={newListTitle}
+                  onChange={(e) => setNewListTitle(e.target.value)}
                 />
-              ))}
+                <button className="btn primary" disabled={creatingList}>
+                  {creatingList ? "..." : "Add"}
+                </button>
+              </form>
+            </div>
 
-              {listsSorted.length === 0 && (
-                <div className="glass" style={{ minWidth: 320, padding: 18, borderRadius: 18 }}>
-                  <div style={{ fontWeight: 900 }}>No lists yet</div>
-                  <div style={{ marginTop: 8, color: "var(--muted)", fontSize: 13 }}>
-                    Add your first list above (To Do, Doing, Done).
-                  </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            >
+              <div className="boardScroller">
+                <div className="columnsRow">
+                  {listsSorted.map((l) => (
+                    <ListColumn
+                      key={l.id}
+                      list={l}
+                      cards={cardsByList[l.id] ?? []}
+                      previews={previews}
+                      onAddCard={createCard}
+                      onOpenCard={onOpenCard}
+                    />
+                  ))}
+
+                  {listsSorted.length === 0 && (
+                    <div className="column">
+                      <div className="columnHeader">
+                        <div className="columnTitle">No lists yet</div>
+                      </div>
+                      <div style={{ color: "var(--muted2)", fontSize: 13, padding: 10 }}>
+                        Add your first list above.
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </DndContext>
+              </div>
+            </DndContext>
 
-          {activeCardId && (
-            <div style={{ marginTop: 10, color: "var(--muted2)", fontSize: 12 }}>
-              Moving card #{activeCardId}
-            </div>
-          )}
-        </>
-      )}
+            {activeCardId && (
+              <div style={{ color: "var(--muted2)", fontSize: 12 }}>
+                Moving card #{activeCardId}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </AppShell>
   );
 }

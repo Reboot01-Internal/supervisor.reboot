@@ -4,3 +4,42 @@
 button, input, select {
   font: inherit;
 }
+/* micro animations */
+@keyframes pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@keyframes donePulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes overduePulse {
+  0% { box-shadow: 0 0 0 rgba(244,63,94,0); }
+  50% { box-shadow: 0 0 18px rgba(244,63,94,0.28); }
+  100% { box-shadow: 0 0 0 rgba(244,63,94,0); }
+}
+
+.animPop { animation: pop 220ms ease; }
+.animDone { animation: donePulse 260ms ease; }
+.dropdownAnim { animation: fadeUp 160ms ease; }
+
+.pill {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  font-size: 12px;
+  color: rgba(255,255,255,0.88);
+}
+
+.clockPillOverdue { border-color: rgba(244,63,94,0.55); animation: overduePulse 1.4s ease-in-out infinite; }
+.clockPillSoon { border-color: rgba(34,211,238,0.35); }
