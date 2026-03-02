@@ -1,9 +1,14 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"taskflow/internal/auth"
 	"taskflow/internal/db"
@@ -241,4 +246,336 @@ func (a *API) AdminSearchStudents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusOK, users)
+}
+type createLabelReq struct {
+	BoardID int64  `json:"board_id"`
+	Name    string `json:"name"`
+	Color   string `json:"color"`
+}
+
+func (a *API) AdminCreateLabel(w http.ResponseWriter, r *http.Request) {
+	var req createLabelReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	req.Color = strings.TrimSpace(strings.ToLower(req.Color))
+
+	if req.BoardID == 0 || req.Name == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "board_id and name required"})
+		return
+	}
+
+	id, err := db.CreateLabel(a.conn, req.BoardID, req.Name, req.Color)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "failed to create label (maybe duplicate?)"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": id})
+}
+
+func (a *API) AdminListLabels(w http.ResponseWriter, r *http.Request) {
+	boardIDStr := r.URL.Query().Get("board_id")
+	if boardIDStr == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "board_id required"})
+		return
+	}
+	boardID, err := strconv.ParseInt(boardIDStr, 10, 64)
+	if err != nil || boardID <= 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid board_id"})
+		return
+	}
+
+	labels, err := db.ListLabelsByBoard(a.conn, boardID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+		return
+	}
+	utils.WriteJSON(w, http.StatusOK, labels)
+}
+
+type cardLabelReq struct {
+	CardID  int64 `json:"card_id"`
+	LabelID int64 `json:"label_id"`
+}
+
+func (a *API) AdminAddCardLabel(w http.ResponseWriter, r *http.Request) {
+	var req cardLabelReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	if req.CardID == 0 || req.LabelID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id and label_id required"})
+		return
+	}
+	if err := db.AddLabelToCard(a.conn, req.CardID, req.LabelID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+	actor := middleware.UserID(r)
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "label_added", "label_id="+strconv.FormatInt(req.LabelID,10))
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (a *API) AdminRemoveCardLabel(w http.ResponseWriter, r *http.Request) {
+	var req cardLabelReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	if req.CardID == 0 || req.LabelID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id and label_id required"})
+		return
+	}
+	if err := db.RemoveLabelFromCard(a.conn, req.CardID, req.LabelID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+	actor := middleware.UserID(r)
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "label_removed", "label_id="+strconv.FormatInt(req.LabelID,10))
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+type addCommentReq struct {
+	CardID int64  `json:"card_id"`
+	Body   string `json:"body"`
+}
+
+func (a *API) AdminAddComment(w http.ResponseWriter, r *http.Request) {
+	var req addCommentReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	req.Body = strings.TrimSpace(req.Body)
+	if req.CardID == 0 || req.Body == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id and body required"})
+		return
+	}
+
+	actor := middleware.UserID(r)
+	id, err := db.CreateCardComment(a.conn, req.CardID, actor, req.Body)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "comment_added", "comment_id="+strconv.FormatInt(id,10))
+	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": id})
+}
+
+type updateCommentReq struct {
+	CommentID int64  `json:"comment_id"`
+	Body      string `json:"body"`
+	CardID    int64  `json:"card_id"`
+}
+
+func (a *API) AdminUpdateComment(w http.ResponseWriter, r *http.Request) {
+	var req updateCommentReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	req.Body = strings.TrimSpace(req.Body)
+	if req.CommentID == 0 || req.Body == "" || req.CardID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "comment_id, card_id, body required"})
+		return
+	}
+	if err := db.UpdateCardComment(a.conn, req.CommentID, req.Body); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+	actor := middleware.UserID(r)
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "comment_updated", "comment_id="+strconv.FormatInt(req.CommentID,10))
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+type deleteCommentReq struct {
+	CommentID int64 `json:"comment_id"`
+	CardID    int64 `json:"card_id"`
+}
+
+func (a *API) AdminDeleteComment(w http.ResponseWriter, r *http.Request) {
+	var req deleteCommentReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	if req.CommentID == 0 || req.CardID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "comment_id and card_id required"})
+		return
+	}
+	if err := db.DeleteCardComment(a.conn, req.CommentID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+	actor := middleware.UserID(r)
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "comment_deleted", "comment_id="+strconv.FormatInt(req.CommentID,10))
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+func (a *API) AdminUploadAttachment(w http.ResponseWriter, r *http.Request) {
+	// multipart/form-data: card_id, file
+	if err := r.ParseMultipartForm(20 << 20); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad multipart form"})
+		return
+	}
+
+	cardIDStr := r.FormValue("card_id")
+	cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
+	if err != nil || cardID <= 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid card_id"})
+		return
+	}
+
+	f, hdr, err := r.FormFile("file")
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "file required"})
+		return
+	}
+	defer f.Close()
+
+	_ = os.MkdirAll("./uploads", 0755)
+
+	ext := filepath.Ext(hdr.Filename)
+	stored := fmt.Sprintf("card_%d_%d%s", cardID, time.Now().UnixNano(), ext)
+	dstPath := filepath.Join("./uploads", stored)
+
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to save file"})
+		return
+	}
+	defer dst.Close()
+
+	n, err := io.Copy(dst, f)
+	if err != nil {
+		_ = os.Remove(dstPath)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to write file"})
+		return
+	}
+
+	mime := hdr.Header.Get("Content-Type")
+	if strings.TrimSpace(mime) == "" {
+		mime = "application/octet-stream"
+	}
+
+	actor := middleware.UserID(r)
+	attID, err := db.InsertAttachment(a.conn, cardID, actor, hdr.Filename, stored, mime, n)
+	if err != nil {
+		_ = os.Remove(dstPath)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db insert failed"})
+		return
+	}
+
+	_ = db.InsertCardActivity(a.conn, cardID, actor, "attachment_added", "attachment_id="+strconv.FormatInt(attID,10))
+	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": attID})
+}
+
+func (a *API) AdminDownloadAttachment(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("attachment_id")
+	attID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || attID <= 0 {
+		http.Error(w, "invalid attachment_id", http.StatusBadRequest)
+		return
+	}
+
+	att, err := db.GetAttachment(a.conn, attID)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	p := filepath.Join("./uploads", att.StoredName)
+	// security: ensure file is under uploads
+	if !strings.HasPrefix(filepath.Clean(p), filepath.Clean("./uploads")) {
+		http.Error(w, "bad path", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", att.MimeType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, att.OriginalName))
+	http.ServeFile(w, r, p)
+}
+
+type deleteAttachmentReq struct {
+	AttachmentID int64 `json:"attachment_id"`
+	CardID       int64 `json:"card_id"`
+}
+
+func (a *API) AdminDeleteAttachment(w http.ResponseWriter, r *http.Request) {
+	var req deleteAttachmentReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	if req.AttachmentID == 0 || req.CardID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "attachment_id and card_id required"})
+		return
+	}
+
+	att, err := db.GetAttachment(a.conn, req.AttachmentID)
+	if err == nil {
+		_ = os.Remove(filepath.Join("./uploads", att.StoredName))
+	}
+
+	if err := db.DeleteAttachment(a.conn, req.AttachmentID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+	actor := middleware.UserID(r)
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "attachment_deleted", "attachment_id="+strconv.FormatInt(req.AttachmentID,10))
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+type createReminderReq struct {
+	CardID   int64  `json:"card_id"`
+	RemindAt string `json:"remind_at"` // ISO string (frontend sends)
+}
+
+func (a *API) AdminCreateReminder(w http.ResponseWriter, r *http.Request) {
+	var req createReminderReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	req.RemindAt = strings.TrimSpace(req.RemindAt)
+	if req.CardID == 0 || req.RemindAt == "" {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id and remind_at required"})
+		return
+	}
+	userID := middleware.UserID(r)
+
+	id, err := db.CreateReminder(a.conn, req.CardID, userID, req.RemindAt)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "failed"})
+		return
+	}
+
+	_ = db.InsertCardActivity(a.conn, req.CardID, userID, "reminder_added", "remind_at="+req.RemindAt)
+	utils.WriteJSON(w, http.StatusCreated, map[string]any{"id": id})
+}
+
+type deleteReminderReq struct {
+	ReminderID int64 `json:"reminder_id"`
+	CardID     int64 `json:"card_id"`
+}
+
+func (a *API) AdminDeleteReminder(w http.ResponseWriter, r *http.Request) {
+	var req deleteReminderReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "bad json"})
+		return
+	}
+	if req.ReminderID == 0 || req.CardID == 0 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "reminder_id and card_id required"})
+		return
+	}
+	if err := db.DeleteReminder(a.conn, req.ReminderID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed"})
+		return
+	}
+	actor := middleware.UserID(r)
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "reminder_deleted", "reminder_id="+strconv.FormatInt(req.ReminderID,10))
+	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

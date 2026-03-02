@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
 import { apiFetch } from "../lib/api";
 import "../admin.css";
@@ -8,7 +8,9 @@ type Card = {
   list_id: number;
   title: string;
   description: string;
-  due_date: string; // "" or "YYYY-MM-DD"
+  due_date: string;
+  status: "todo" | "doing" | "blocked" | "done";
+  priority: "low" | "medium" | "high" | "urgent";
 };
 
 type Subtask = {
@@ -16,7 +18,7 @@ type Subtask = {
   card_id: number;
   title: string;
   is_done: boolean;
-  due_date: string; // "" or "YYYY-MM-DD"
+  due_date: string;
 };
 
 type Assignee = {
@@ -44,11 +46,49 @@ type Activity = {
   created_at: string;
 };
 
+type CardLabel = { label_id: number; name: string; color: string };
+type Label = { id: number; board_id: number; name: string; color: string };
+
+type Comment = {
+  id: number;
+  card_id: number;
+  actor_user_id: number;
+  actor_name: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type Attachment = {
+  id: number;
+  card_id: number;
+  uploader_user_id: number;
+  uploader_name: string;
+  original_name: string;
+  stored_name: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+};
+
+type Reminder = {
+  id: number;
+  card_id: number;
+  user_id: number;
+  remind_at: string;
+  is_sent: boolean;
+  created_at: string;
+};
+
 type CardFull = {
   card: Card;
   subtasks: Subtask[];
   assignees: Assignee[];
   activities: Activity[];
+  labels: CardLabel[];
+  comments: Comment[];
+  attachments: Attachment[];
+  reminders: Reminder[];
   board_id: number;
 };
 
@@ -70,22 +110,13 @@ function isDateToday(due: string) {
   const today = new Date();
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dueD = new Date(due + "T00:00:00");
-  return (
-    dueD.getFullYear() === t.getFullYear() &&
-    dueD.getMonth() === t.getMonth() &&
-    dueD.getDate() === t.getDate()
-  );
+  return dueD.getFullYear() === t.getFullYear() && dueD.getMonth() === t.getMonth() && dueD.getDate() === t.getDate();
 }
 
 function ClockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        opacity="0.9"
-      />
+      <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" strokeWidth="2" opacity="0.9" />
       <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -102,20 +133,44 @@ function CheckIcon({ size = 16 }: { size?: number }) {
 function ActivityIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 13.5 8.2 9.3l3.2 3.2L19.6 4.3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4 13.5 8.2 9.3l3.2 3.2L19.6 4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }
 
+function PaperclipIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8 12.5l6.6-6.6a3 3 0 1 1 4.2 4.2L10 19.9a5 5 0 0 1-7.1-7.1l8.8-8.8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChatIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function TagIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20.6 13.6 13.6 20.6a2 2 0 0 1-2.8 0L3 12.8V3h9.8l7.8 7.8a2 2 0 0 1 0 2.8Z" stroke="currentColor" strokeWidth="2" />
+      <path d="M7.5 7.5h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function formatActivity(a: Activity) {
-  // nice labels
   const map: Record<string, string> = {
     card_created: "Card created",
     card_updated: "Card updated",
@@ -124,11 +179,33 @@ function formatActivity(a: Activity) {
     subtask_created: "Subtask added",
     subtask_toggled: "Subtask toggled",
     subtask_deleted: "Subtask removed",
-    subtask_due_updated: "Subtask due updated",
+    subtask_due_date_updated: "Subtask due updated",
     assignee_added: "Assignee added",
     assignee_removed: "Assignee removed",
+    label_added: "Label added",
+    label_removed: "Label removed",
+    comment_added: "Comment added",
+    comment_updated: "Comment updated",
+    comment_deleted: "Comment deleted",
+    attachment_added: "Attachment added",
+    attachment_deleted: "Attachment removed",
+    reminder_added: "Reminder set",
+    reminder_deleted: "Reminder removed",
   };
   return map[a.action] || a.action;
+}
+
+function prettyStatus(s: Card["status"]) {
+  if (s === "doing") return "Doing";
+  if (s === "blocked") return "Blocked";
+  if (s === "done") return "Done";
+  return "To Do";
+}
+function prettyPriority(p: Card["priority"]) {
+  if (p === "low") return "Low";
+  if (p === "high") return "High";
+  if (p === "urgent") return "Urgent";
+  return "Medium";
 }
 
 export default function CardModal({
@@ -154,15 +231,29 @@ export default function CardModal({
   const [boardId, setBoardId] = useState<number | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
 
-  // create subtask
+  const [cardLabels, setCardLabels] = useState<CardLabel[]>([]);
+  const [boardLabels, setBoardLabels] = useState<Label[]>([]);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState("indigo");
+
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingBody, setEditingBody] = useState("");
+
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [remindAt, setRemindAt] = useState("");
+
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskDue, setSubtaskDue] = useState("");
 
-  // assignee picker
   const [assigneeQuery, setAssigneeQuery] = useState("");
   const [assigneeOpen, setAssigneeOpen] = useState(false);
 
-  // small done animation
   const [doneAnimId, setDoneAnimId] = useState<number | null>(null);
 
   const assigneeIds = useMemo(() => new Set(assignees.map((a) => a.user_id)), [assignees]);
@@ -190,6 +281,8 @@ export default function CardModal({
       .slice(0, 8);
   }, [studentsOnly, assigneeIds, assigneeQuery]);
 
+  const cardLabelIds = useMemo(() => new Set(cardLabels.map((x) => x.label_id)), [cardLabels]);
+
   async function loadAll() {
     if (!open || !cardId) return;
     setErr("");
@@ -204,8 +297,16 @@ export default function CardModal({
       setActivities(full.activities || []);
       setBoardId(full.board_id);
 
+      setCardLabels(full.labels || []);
+      setComments(full.comments || []);
+      setAttachments(full.attachments || []);
+      setReminders(full.reminders || []);
+
       const members: BoardMember[] = await apiFetch(`/admin/board-members?board_id=${full.board_id}`);
       setBoardMembers(members || []);
+
+      const labels: Label[] = await apiFetch(`/admin/labels?board_id=${full.board_id}`);
+      setBoardLabels(labels || []);
     } catch (e: any) {
       setErr(e.message || "Failed to load card");
     } finally {
@@ -222,11 +323,20 @@ export default function CardModal({
     setSubtaskDue("");
     setDoneAnimId(null);
 
+    setNewLabelName("");
+    setNewLabelColor("indigo");
+
+    setCommentBody("");
+    setEditingCommentId(null);
+    setEditingBody("");
+
+    setUploading(false);
+    setRemindAt("");
+
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, cardId]);
 
-  // Close assignee dropdown on Escape
   useEffect(() => {
     if (!assigneeOpen) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -251,6 +361,8 @@ export default function CardModal({
           title: card.title.trim(),
           description: card.description.trim(),
           due_date: card.due_date || "",
+          status: card.status || "todo",
+          priority: card.priority || "medium",
         }),
       });
 
@@ -266,20 +378,13 @@ export default function CardModal({
 
   async function addSubtask() {
     if (!card || !subtaskTitle.trim()) return;
-
-    setErr("");
-    setMsg("");
+    setErr(""); setMsg("");
 
     try {
       await apiFetch("/admin/card/subtasks", {
         method: "POST",
-        body: JSON.stringify({
-          card_id: card.id,
-          title: subtaskTitle.trim(),
-          due_date: subtaskDue || "",
-        }),
+        body: JSON.stringify({ card_id: card.id, title: subtaskTitle.trim(), due_date: subtaskDue || "" }),
       });
-
       setSubtaskTitle("");
       setSubtaskDue("");
       await loadAll();
@@ -289,9 +394,7 @@ export default function CardModal({
   }
 
   async function toggleSubtask(id: number, isDone: boolean) {
-    setErr("");
-    setMsg("");
-
+    setErr(""); setMsg("");
     setDoneAnimId(id);
     setTimeout(() => setDoneAnimId(null), 280);
 
@@ -301,7 +404,6 @@ export default function CardModal({
         body: JSON.stringify({ subtask_id: id, is_done: isDone }),
       });
       setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, is_done: isDone } : s)));
-      // refresh activities subtly
       await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to update subtask");
@@ -309,9 +411,7 @@ export default function CardModal({
   }
 
   async function updateSubtaskDue(id: number, due: string) {
-    setErr("");
-    setMsg("");
-
+    setErr(""); setMsg("");
     setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, due_date: due } : s)));
 
     try {
@@ -327,8 +427,7 @@ export default function CardModal({
   }
 
   async function deleteSubtask(id: number) {
-    setErr("");
-    setMsg("");
+    setErr(""); setMsg("");
     try {
       await apiFetch("/admin/card/subtasks/delete", {
         method: "POST",
@@ -343,8 +442,7 @@ export default function CardModal({
 
   async function removeAssignee(userId: number) {
     if (!card) return;
-    setErr("");
-    setMsg("");
+    setErr(""); setMsg("");
     try {
       await apiFetch("/admin/card/assignees/remove", {
         method: "POST",
@@ -358,8 +456,7 @@ export default function CardModal({
 
   async function addAssignee(userId: number) {
     if (!card) return;
-    setErr("");
-    setMsg("");
+    setErr(""); setMsg("");
     try {
       await apiFetch("/admin/card/assignees/add", {
         method: "POST",
@@ -370,6 +467,156 @@ export default function CardModal({
       await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to add assignee");
+    }
+  }
+
+  async function createLabel() {
+    if (!boardId || !newLabelName.trim()) return;
+    setErr(""); setMsg("");
+
+    try {
+      await apiFetch("/admin/labels", {
+        method: "POST",
+        body: JSON.stringify({ board_id: boardId, name: newLabelName.trim(), color: newLabelColor }),
+      });
+      setNewLabelName("");
+      const labels: Label[] = await apiFetch(`/admin/labels?board_id=${boardId}`);
+      setBoardLabels(labels || []);
+    } catch (e: any) {
+      setErr(e.message || "Failed to create label");
+    }
+  }
+
+  async function toggleLabel(labelId: number) {
+    if (!card) return;
+    setErr(""); setMsg("");
+    const has = cardLabelIds.has(labelId);
+
+    try {
+      await apiFetch(has ? "/admin/card/labels/remove" : "/admin/card/labels/add", {
+        method: "POST",
+        body: JSON.stringify({ card_id: card.id, label_id: labelId }),
+      });
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to update label");
+    }
+  }
+
+  async function addComment() {
+    if (!card || !commentBody.trim()) return;
+    setErr(""); setMsg("");
+    try {
+      await apiFetch("/admin/card/comments", {
+        method: "POST",
+        body: JSON.stringify({ card_id: card.id, body: commentBody.trim() }),
+      });
+      setCommentBody("");
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to add comment");
+    }
+  }
+
+  async function startEditComment(c: Comment) {
+    setEditingCommentId(c.id);
+    setEditingBody(c.body);
+  }
+
+  async function saveEditComment() {
+    if (!card || !editingCommentId || !editingBody.trim()) return;
+    setErr(""); setMsg("");
+    try {
+      await apiFetch("/admin/card/comments", {
+        method: "PUT",
+        body: JSON.stringify({ comment_id: editingCommentId, card_id: card.id, body: editingBody.trim() }),
+      });
+      setEditingCommentId(null);
+      setEditingBody("");
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to update comment");
+    }
+  }
+
+  async function deleteComment(id: number) {
+    if (!card) return;
+    setErr(""); setMsg("");
+    try {
+      await apiFetch("/admin/card/comments/delete", {
+        method: "POST",
+        body: JSON.stringify({ comment_id: id, card_id: card.id }),
+      });
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to delete comment");
+    }
+  }
+
+  async function uploadAttachment(file: File) {
+    if (!card) return;
+    setErr(""); setMsg("");
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("card_id", String(card.id));
+      fd.append("file", file);
+
+      await apiFetch("/admin/card/attachments/upload", { method: "POST", body: fd });
+      if (fileRef.current) fileRef.current.value = "";
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to upload");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function downloadAttachment(id: number) {
+    // apiFetch is JSON oriented; for download we can just open a URL
+    window.open(`/admin/card/attachments/download?attachment_id=${id}`, "_blank");
+  }
+
+  async function deleteAttachment(id: number) {
+    if (!card) return;
+    setErr(""); setMsg("");
+    try {
+      await apiFetch("/admin/card/attachments/delete", {
+        method: "POST",
+        body: JSON.stringify({ attachment_id: id, card_id: card.id }),
+      });
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to delete attachment");
+    }
+  }
+
+  async function addReminder() {
+    if (!card || !remindAt.trim()) return;
+    setErr(""); setMsg("");
+    try {
+      await apiFetch("/admin/card/reminders", {
+        method: "POST",
+        body: JSON.stringify({ card_id: card.id, remind_at: remindAt.trim() }),
+      });
+      setRemindAt("");
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to set reminder");
+    }
+  }
+
+  async function deleteReminder(id: number) {
+    if (!card) return;
+    setErr(""); setMsg("");
+    try {
+      await apiFetch("/admin/card/reminders/delete", {
+        method: "POST",
+        body: JSON.stringify({ reminder_id: id, card_id: card.id }),
+      });
+      await loadAll();
+    } catch (e: any) {
+      setErr(e.message || "Failed to remove reminder");
     }
   }
 
@@ -429,6 +676,128 @@ export default function CardModal({
                   />
                 </div>
 
+                {/* Status/Priority */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle">Status & Priority</div>
+                      <div className="cmHeadSub">Make it look like a real board</div>
+                    </div>
+                    <span className="admPill">Meta</span>
+                  </div>
+
+                  <div className="cmTwoCols">
+                    <div>
+                      <div className="admTdMuted" style={{ marginBottom: 6 }}>Status</div>
+                      <select
+                        className="admInput"
+                        value={card.status || "todo"}
+                        onChange={(e) => setCard({ ...card, status: e.target.value as any })}
+                      >
+                        <option value="todo">To Do</option>
+                        <option value="doing">Doing</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="done">Done</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="admTdMuted" style={{ marginBottom: 6 }}>Priority</div>
+                      <select
+                        className="admInput"
+                        value={card.priority || "medium"}
+                        onChange={(e) => setCard({ ...card, priority: e.target.value as any })}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 10 }} className="cardPillRow">
+                    <span className={`pill pillStatus pill-status-${card.status}`}>{prettyStatus(card.status)}</span>
+                    <span className={`pill pillPriority pill-priority-${card.priority}`}>{prettyPriority(card.priority)}</span>
+                  </div>
+                </div>
+
+                {/* Labels */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle"><TagIcon /> Labels</div>
+                      <div className="cmHeadSub">Colors + quick meaning</div>
+                    </div>
+                    <span className="admPill">{cardLabels.length}</span>
+                  </div>
+
+                  {cardLabels.length === 0 ? (
+                    <div className="admTdMuted" style={{ fontSize: 13 }}>
+                      No labels yet.
+                    </div>
+                  ) : (
+                    <div className="labelGrid">
+                      {cardLabels.map((l) => (
+                        <div key={l.label_id} className={`labelChip label-${l.color}`} title={l.name}>
+                          <span className="labelDotSolid" />
+                          <span>{l.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ height: 12 }} />
+
+                  <div className="labelPicker">
+                    {boardLabels.length === 0 ? (
+                      <div className="admTdMuted">No labels on this board yet.</div>
+                    ) : (
+                      <div className="labelPickerGrid">
+                        {boardLabels.map((l) => {
+                          const active = cardLabelIds.has(l.id);
+                          return (
+                            <button
+                              key={l.id}
+                              className={`labelPickBtn ${active ? "active" : ""}`}
+                              onClick={() => toggleLabel(l.id)}
+                              type="button"
+                              title={active ? "Remove" : "Add"}
+                            >
+                              <span className={`labelDot label-${l.color}`} />
+                              <span className="labelPickName">{l.name}</span>
+                              <span className="labelPickState">{active ? "On" : "Off"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ height: 12 }} />
+
+                  <div className="cmRow">
+                    <input
+                      className="admInput"
+                      placeholder="Create new label..."
+                      value={newLabelName}
+                      onChange={(e) => setNewLabelName(e.target.value)}
+                    />
+                    <select className="admInput" value={newLabelColor} onChange={(e) => setNewLabelColor(e.target.value)} style={{ maxWidth: 170 }}>
+                      <option value="indigo">Indigo</option>
+                      <option value="sky">Sky</option>
+                      <option value="emerald">Emerald</option>
+                      <option value="amber">Amber</option>
+                      <option value="rose">Rose</option>
+                      <option value="violet">Violet</option>
+                      <option value="slate">Slate</option>
+                    </select>
+                    <button className="admPrimaryBtn" type="button" onClick={createLabel} disabled={!newLabelName.trim() || !boardId}>
+                      Create
+                    </button>
+                  </div>
+                </div>
+
                 {/* Description */}
                 <div className="cmSection">
                   <div className="cmHead">
@@ -444,14 +813,88 @@ export default function CardModal({
                     onChange={(e) => setCard({ ...card, description: e.target.value })}
                     placeholder="Write details..."
                     rows={8}
-                    style={{
-                      resize: "vertical",
-                      height: "auto",
-                      minHeight: 160,
-                      paddingTop: 10,
-                      paddingBottom: 10,
-                    }}
+                    style={{ resize: "vertical", height: "auto", minHeight: 160, paddingTop: 10, paddingBottom: 10 }}
                   />
+                </div>
+
+                {/* Comments */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle"><ChatIcon /> Comments</div>
+                      <div className="cmHeadSub">Like Trello discussion</div>
+                    </div>
+                    <span className="admPill">{comments.length}</span>
+                  </div>
+
+                  <div className="commentComposer">
+                    <textarea
+                      className="admInput"
+                      placeholder="Write a comment..."
+                      value={commentBody}
+                      onChange={(e) => setCommentBody(e.target.value)}
+                      rows={3}
+                      style={{ resize: "vertical" }}
+                    />
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                      <button className="admPrimaryBtn" type="button" onClick={addComment} disabled={!commentBody.trim()}>
+                        Add comment
+                      </button>
+                    </div>
+                  </div>
+
+                  {comments.length === 0 ? (
+                    <div className="admTdMuted" style={{ fontSize: 13 }}>
+                      No comments yet.
+                    </div>
+                  ) : (
+                    <div className="commentList">
+                      {comments.slice(0, 40).map((c) => (
+                        <div key={c.id} className="commentItem">
+                          <div className="commentAvatar">{initials(c.actor_name)}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="commentTop">
+                              <div className="commentName">{c.actor_name}</div>
+                              <div className="commentTime">{c.created_at}</div>
+                            </div>
+
+                            {editingCommentId === c.id ? (
+                              <div>
+                                <textarea
+                                  className="admInput"
+                                  value={editingBody}
+                                  onChange={(e) => setEditingBody(e.target.value)}
+                                  rows={3}
+                                  style={{ resize: "vertical" }}
+                                />
+                                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                                  <button className="admGhostBtn" type="button" onClick={() => { setEditingCommentId(null); setEditingBody(""); }}>
+                                    Cancel
+                                  </button>
+                                  <button className="admPrimaryBtn" type="button" onClick={saveEditComment} disabled={!editingBody.trim()}>
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="commentBody">{c.body}</div>
+                            )}
+
+                            {editingCommentId !== c.id && (
+                              <div className="commentActions">
+                                <button className="admSoftBtn" type="button" onClick={() => startEditComment(c)}>
+                                  Edit
+                                </button>
+                                <button className="admSoftBtn" type="button" onClick={() => deleteComment(c.id)}>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Checklist */}
@@ -461,9 +904,7 @@ export default function CardModal({
                       <div className="cmHeadTitle">
                         <CheckIcon /> Checklist
                       </div>
-                      <div className="cmHeadSub">
-                        {progress ? `${progress.done}/${progress.total} completed` : "No subtasks yet"}
-                      </div>
+                      <div className="cmHeadSub">{progress ? `${progress.done}/${progress.total} completed` : "No subtasks yet"}</div>
                     </div>
                     <span className="admPill">{subtasks.length}</span>
                   </div>
@@ -479,7 +920,6 @@ export default function CardModal({
 
                   <div style={{ height: 12 }} />
 
-                  {/* Add subtask */}
                   <div style={{ display: "grid", gap: 10 }}>
                     <div className="cmRow">
                       <input
@@ -545,12 +985,7 @@ export default function CardModal({
                               <span
                                 className={`admPill ${overdue ? "clockPillOverdue" : today ? "clockPillSoon" : ""}`}
                                 title={s.due_date ? `Due ${s.due_date}` : "No due date"}
-                                style={{
-                                  opacity: s.due_date ? 1 : 0.7,
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                }}
+                                style={{ opacity: s.due_date ? 1 : 0.7, display: "inline-flex", alignItems: "center", gap: 8 }}
                               >
                                 <ClockIcon />
                                 {s.due_date || "No due"}
@@ -652,6 +1087,95 @@ export default function CardModal({
                       Clear
                     </button>
                   </div>
+                </div>
+
+                {/* Reminders */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle">Reminders</div>
+                      <div className="cmHeadSub">Stored now, cron later</div>
+                    </div>
+                    <span className="admPill">{reminders.length}</span>
+                  </div>
+
+                  <div className="cmRow">
+                    <input
+                      className="admInput"
+                      placeholder="2026-03-10T09:00:00"
+                      value={remindAt}
+                      onChange={(e) => setRemindAt(e.target.value)}
+                    />
+                    <button className="admPrimaryBtn" type="button" onClick={addReminder} disabled={!remindAt.trim()}>
+                      Add
+                    </button>
+                  </div>
+
+                  {reminders.length === 0 ? (
+                    <div className="admTdMuted" style={{ fontSize: 13 }}>No reminders yet.</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {reminders.map((r) => (
+                        <div key={r.id} className="admAlert" style={{ background: "#fbfcff", display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                          <div>
+                            <div style={{ fontWeight: 900 }}>{r.remind_at}</div>
+                            <div className="admTdMuted" style={{ fontSize: 12 }}>{r.is_sent ? "Sent" : "Pending"}</div>
+                          </div>
+                          <button className="admSoftBtn" type="button" onClick={() => deleteReminder(r.id)}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Attachments */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle"><PaperclipIcon /> Attachments</div>
+                      <div className="cmHeadSub">Upload files to this card</div>
+                    </div>
+                    <span className="admPill">{attachments.length}</span>
+                  </div>
+
+                  <div className="cmRow">
+                    <input
+                      ref={fileRef}
+                      className="admInput"
+                      type="file"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) uploadAttachment(f);
+                      }}
+                      disabled={uploading}
+                    />
+                    <button className="admSoftBtn" type="button" onClick={() => { if (fileRef.current) fileRef.current.value = ""; }}>
+                      Clear
+                    </button>
+                  </div>
+
+                  {uploading && <div className="admTdMuted">Uploading...</div>}
+
+                  {attachments.length === 0 ? (
+                    <div className="admTdMuted" style={{ fontSize: 13 }}>No attachments yet.</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {attachments.map((a) => (
+                        <div key={a.id} className="attachmentRow">
+                          <div style={{ minWidth: 0 }}>
+                            <div className="attachmentName" title={a.original_name}>{a.original_name}</div>
+                            <div className="admTdMuted" style={{ fontSize: 12 }}>
+                              {a.uploader_name} • {a.created_at} • {Math.round((a.size_bytes || 0) / 1024)} KB
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 10 }}>
+                            <button className="admSoftBtn" type="button" onClick={() => downloadAttachment(a.id)}>Download</button>
+                            <button className="admSoftBtn" type="button" onClick={() => deleteAttachment(a.id)}>Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Assignees */}

@@ -101,6 +101,22 @@ ar.Post("/card/subtasks/delete", api.AdminDeleteSubtask)
 
 ar.Post("/card/assignees/add", api.AdminAddAssignee)
 ar.Post("/card/assignees/remove", api.AdminRemoveAssignee)
+ar.Post("/labels", api.AdminCreateLabel)
+ar.Get("/labels", api.AdminListLabels)
+
+ar.Post("/card/labels/add", api.AdminAddCardLabel)
+ar.Post("/card/labels/remove", api.AdminRemoveCardLabel)
+
+ar.Post("/card/comments", api.AdminAddComment)
+ar.Put("/card/comments", api.AdminUpdateComment)
+ar.Post("/card/comments/delete", api.AdminDeleteComment)
+
+ar.Post("/card/attachments/upload", api.AdminUploadAttachment)
+ar.Get("/card/attachments/download", api.AdminDownloadAttachment)
+ar.Post("/card/attachments/delete", api.AdminDeleteAttachment)
+
+ar.Post("/card/reminders", api.AdminCreateReminder)
+ar.Post("/card/reminders/delete", api.AdminDeleteReminder)
 
 	})
 	
@@ -115,6 +131,8 @@ func runMigrations(conn *sql.DB) error {
 	files := []string{
 		"migrations/001_init.sql",
 		"migrations/002_activity.sql",
+		"migrations/003_card_meta.sql",
+		"migrations/004_comments_attachments_reminders.sql",
 	}
 
 	for _, f := range files {

@@ -40,6 +40,7 @@ func (a *API) AdminGetBoardFull(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
 		return
 	}
+	labels, _ := db.ListLabelsByBoard(a.conn, boardID)
 
 	cards, err := db.ListCardsByBoard(a.conn, boardID)
 	if err != nil {
@@ -53,6 +54,7 @@ func (a *API) AdminGetBoardFull(w http.ResponseWriter, r *http.Request) {
 		Name:    b.Name,
 		Lists:   lists,
 		Cards:   cards,
+		Labels:  labels,
 	}
 
 	utils.WriteJSON(w, http.StatusOK, out)
@@ -200,6 +202,8 @@ type updateCardReq struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	DueDate     string `json:"due_date"`
+	Status      string `json:"status"`
+	Priority    string `json:"priority"`
 }
 
 func (a *API) AdminGetCard(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +227,6 @@ func (a *API) AdminGetCard(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusOK, c)
 }
-
 func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 	var req updateCardReq
 	if err := utils.ReadJSON(r, &req); err != nil {
@@ -233,18 +236,34 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 
 	req.Title = strings.TrimSpace(req.Title)
 	req.Description = strings.TrimSpace(req.Description)
+	req.DueDate = strings.TrimSpace(req.DueDate)
+	req.Status = strings.TrimSpace(strings.ToLower(req.Status))
+	req.Priority = strings.TrimSpace(strings.ToLower(req.Priority))
 
 	if req.CardID == 0 || req.Title == "" {
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "card_id and title required"})
 		return
 	}
 
-	if err := db.UpdateCardAll(a.conn, req.CardID, req.Title, req.Description, req.DueDate); err != nil {
+	// basic validation
+	okStatus := map[string]bool{"todo": true, "doing": true, "blocked": true, "done": true}
+	okPri := map[string]bool{"low": true, "medium": true, "high": true, "urgent": true}
+	if req.Status != "" && !okStatus[req.Status] {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid status"})
+		return
+	}
+	if req.Priority != "" && !okPri[req.Priority] {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid priority"})
+		return
+	}
+
+	if err := db.UpdateCardAll(a.conn, req.CardID, req.Title, req.Description, req.DueDate, req.Status, req.Priority); err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to update card"})
 		return
 	}
+
 	actor := middleware.UserID(r)
-_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
+	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
 
 	utils.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -268,44 +287,51 @@ func (a *API) AdminGetCardFull(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  c, err := db.GetCardWithDue(a.conn, cardID)
-  if err != nil {
-    utils.WriteJSON(w, http.StatusNotFound, map[string]any{"error": "card not found"})
-    return
-  }
+	c, err := db.GetCardWithDue(a.conn, cardID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusNotFound, map[string]any{"error": "card not found"})
+		return
+	}
 
-  boardID, err := db.GetBoardIDByCardID(a.conn, cardID)
-  if err != nil {
-    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-    return
-  }
+	boardID, err := db.GetBoardIDByCardID(a.conn, cardID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+		return
+	}
 
-  subtasks, err := db.ListSubtasks(a.conn, cardID)
-  if err != nil {
-    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-    return
-  }
+	subtasks, err := db.ListSubtasks(a.conn, cardID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+		return
+	}
 
-  assignees, err := db.ListAssignees(a.conn, cardID)
-  if err != nil {
-    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-    return
-  }
+	assignees, err := db.ListAssignees(a.conn, cardID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+		return
+	}
+	activities, err := db.ListCardActivity(a.conn, cardID, 40)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
+		return
+	}
 
-  // ✅ ADD THIS
-  activities, err := db.ListCardActivity(a.conn, cardID,40)
-  if err != nil {
-    utils.WriteJSON(w, http.StatusInternalServerError, map[string]any{"error": "db error"})
-    return
-  }
+	labels, _ := db.ListCardLabels(a.conn, cardID)
+	comments, _ := db.ListCardComments(a.conn, cardID, 60)
+	attachments, _ := db.ListAttachments(a.conn, cardID, 50)
+	reminders, _ := db.ListRemindersByCard(a.conn, cardID)
 
-  utils.WriteJSON(w, http.StatusOK, models.CardFull{
-    Card:       c,
-    Subtasks:   subtasks,
-    Assignees:  assignees,
-    Activities: activities, // ✅ ADD THIS
-    BoardID:    boardID,
-  })
+	utils.WriteJSON(w, http.StatusOK, models.CardFull{
+		Card:        c,
+		Subtasks:    subtasks,
+		Assignees:   assignees,
+		Activities:  activities,
+		Labels:      labels,
+		Comments:    comments,
+		Attachments: attachments,
+		Reminders:   reminders,
+		BoardID:     boardID,
+	})
 }
 
 //
