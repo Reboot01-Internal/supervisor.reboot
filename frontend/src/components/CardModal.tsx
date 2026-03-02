@@ -86,6 +86,20 @@ function ClockIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function CheckIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 6 9 17l-5-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function CardModal({
   open,
   cardId,
@@ -116,7 +130,7 @@ export default function CardModal({
   const [assigneeQuery, setAssigneeQuery] = useState("");
   const [assigneeOpen, setAssigneeOpen] = useState(false);
 
-  // anim
+  // small done animation
   const [doneAnimId, setDoneAnimId] = useState<number | null>(null);
 
   const assigneeIds = useMemo(() => new Set(assignees.map((a) => a.user_id)), [assignees]);
@@ -163,9 +177,7 @@ export default function CardModal({
       setAssignees(full.assignees);
       setBoardId(full.board_id);
 
-      const members: BoardMember[] = await apiFetch(
-        `/admin/board-members?board_id=${full.board_id}`
-      );
+      const members: BoardMember[] = await apiFetch(`/admin/board-members?board_id=${full.board_id}`);
       setBoardMembers(members);
     } catch (e: any) {
       setErr(e.message || "Failed to load card");
@@ -176,17 +188,30 @@ export default function CardModal({
 
   useEffect(() => {
     if (!open || !cardId) return;
+
     setAssigneeQuery("");
     setAssigneeOpen(false);
     setSubtaskTitle("");
     setSubtaskDue("");
     setDoneAnimId(null);
+
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, cardId]);
 
+  // Close assignee dropdown on Escape
+  useEffect(() => {
+    if (!assigneeOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setAssigneeOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [assigneeOpen]);
+
   async function saveCard() {
     if (!card) return;
+
     setErr("");
     setMsg("");
     setSaving(true);
@@ -214,6 +239,7 @@ export default function CardModal({
 
   async function addSubtask() {
     if (!card || !subtaskTitle.trim()) return;
+
     setErr("");
     setMsg("");
 
@@ -238,6 +264,7 @@ export default function CardModal({
   async function toggleSubtask(id: number, isDone: boolean) {
     setErr("");
     setMsg("");
+
     setDoneAnimId(id);
     setTimeout(() => setDoneAnimId(null), 280);
 
@@ -255,6 +282,7 @@ export default function CardModal({
   async function updateSubtaskDue(id: number, due: string) {
     setErr("");
     setMsg("");
+
     setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, due_date: due } : s)));
 
     try {
@@ -314,6 +342,8 @@ export default function CardModal({
     }
   }
 
+  const cardDueClass = isOverdue ? "clockPillOverdue" : card?.due_date ? "clockPillSoon" : "";
+
   return (
     <Modal
       open={open}
@@ -338,34 +368,24 @@ export default function CardModal({
         <div className="admMuted">Loading...</div>
       ) : (
         <div className="modalBodyScroll">
-          {err && (
-            <div className="admAlert admAlertBad" style={{ marginBottom: 10 }}>
-              {err}
-            </div>
-          )}
-          {msg && (
-            <div className="admAlert admAlertGood" style={{ marginBottom: 10 }}>
-              {msg}
-            </div>
-          )}
+          {err && <div className="admAlert admAlertBad" style={{ marginBottom: 10 }}>{err}</div>}
+          {msg && <div className="admAlert admAlertGood" style={{ marginBottom: 10 }}>{msg}</div>}
 
           {!card ? (
             <div className="admMuted">No card loaded.</div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.25fr 0.75fr",
-                gap: 14,
-                alignItems: "start",
-              }}
-            >
+            <div className="cmGrid">
               {/* LEFT */}
               <div style={{ display: "grid", gap: 14 }}>
-                <div className="admCard" style={{ padding: 12, borderRadius: 16, boxShadow: "none" }}>
-                  <div className="admTdMuted" style={{ marginBottom: 6 }}>
-                    Title
+                {/* Title */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle">Title</div>
+                      <div className="cmHeadSub">Short and clear</div>
+                    </div>
                   </div>
+
                   <input
                     className="admInput"
                     value={card.title}
@@ -374,42 +394,49 @@ export default function CardModal({
                   />
                 </div>
 
-                <div className="admCard" style={{ padding: 12, borderRadius: 16, boxShadow: "none" }}>
-                  <div className="admTdMuted" style={{ marginBottom: 6 }}>
-                    Description
+                {/* Description */}
+                <div className="cmSection">
+                  <div className="cmHead">
+                    <div>
+                      <div className="cmHeadTitle">Description</div>
+                      <div className="cmHeadSub">Notes, requirements, links</div>
+                    </div>
                   </div>
+
                   <textarea
                     className="admInput"
                     value={card.description}
                     onChange={(e) => setCard({ ...card, description: e.target.value })}
                     placeholder="Write details..."
                     rows={8}
-                    style={{ resize: "vertical", height: "auto", minHeight: 160, paddingTop: 10, paddingBottom: 10 }}
+                    style={{
+                      resize: "vertical",
+                      height: "auto",
+                      minHeight: 160,
+                      paddingTop: 10,
+                      paddingBottom: 10,
+                    }}
                   />
                 </div>
 
                 {/* Checklist */}
-                <div className="admCard" style={{ padding: 12, borderRadius: 16, boxShadow: "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div className="cmSection">
+                  <div className="cmHead">
                     <div>
-                      <div style={{ fontWeight: 950 }}>Checklist</div>
-                      {progress ? (
-                        <div className="admTdMuted" style={{ fontSize: 12, marginTop: 4 }}>
-                          {progress.done}/{progress.total} completed
-                        </div>
-                      ) : (
-                        <div className="admTdMuted" style={{ fontSize: 12, marginTop: 4 }}>
-                          No subtasks yet
-                        </div>
-                      )}
+                      <div className="cmHeadTitle">
+                        <CheckIcon />
+                        Checklist
+                      </div>
+                      <div className="cmHeadSub">
+                        {progress ? `${progress.done}/${progress.total} completed` : "No subtasks yet"}
+                      </div>
                     </div>
                     <span className="admPill">{subtasks.length}</span>
                   </div>
 
                   {progress && (
                     <>
-                      <div style={{ height: 10 }} />
-                      {/* Uses your existing progressBar/progressFill styles */}
+                      <div style={{ height: 8 }} />
                       <div className="progressBar">
                         <div className="progressFill" style={{ width: `${progress.pct}%` }} />
                       </div>
@@ -420,7 +447,7 @@ export default function CardModal({
 
                   {/* Add subtask */}
                   <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 10 }}>
+                    <div className="cmRow">
                       <input
                         className="admInput"
                         placeholder="Add a subtask..."
@@ -438,7 +465,7 @@ export default function CardModal({
                       </button>
                     </div>
 
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <div className="cmSplit">
                       <span className="admPill" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                         <ClockIcon />
                         Due (optional)
@@ -467,11 +494,7 @@ export default function CardModal({
                         const today = s.due_date ? isDateToday(s.due_date) : false;
 
                         return (
-                          <div
-                            key={s.id}
-                            className={`admCard ${doneAnimId === s.id ? "animDone" : ""}`}
-                            style={{ padding: 12, borderRadius: 14, boxShadow: "none", background: "#fbfcff" }}
-                          >
+                          <div key={s.id} className={`cmSubtaskRow ${doneAnimId === s.id ? "animDone" : ""}`}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <input
                                 type="checkbox"
@@ -509,7 +532,15 @@ export default function CardModal({
                               </button>
                             </div>
 
-                            <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                            <div
+                              style={{
+                                marginTop: 10,
+                                display: "flex",
+                                gap: 10,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                              }}
+                            >
                               <div className="admTdMuted" style={{ fontSize: 12 }}>
                                 Subtask due date
                               </div>
@@ -537,28 +568,21 @@ export default function CardModal({
               {/* RIGHT */}
               <div style={{ display: "grid", gap: 14 }}>
                 {/* Card due */}
-                <div className="admCard" style={{ padding: 12, borderRadius: 16, boxShadow: "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div className="cmSection">
+                  <div className="cmHead">
                     <div>
-                      <div style={{ fontWeight: 950, display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className="cmHeadTitle">
                         <ClockIcon />
                         Card due date
                       </div>
-                      <div className="admTdMuted" style={{ fontSize: 12, marginTop: 4 }}>
-                        {isOverdue ? "Overdue" : "\u00A0"}
-                      </div>
+                      <div className="cmHeadSub">{isOverdue ? "Overdue" : " "}</div>
                     </div>
 
-                    <span
-                      className={`admPill ${isOverdue ? "clockPillOverdue" : card.due_date ? "clockPillSoon" : ""}`}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-                    >
+                    <span className={`admPill ${cardDueClass}`} style={{ display: "inline-flex", gap: 8 }}>
                       <ClockIcon />
                       {card.due_date || "None"}
                     </span>
                   </div>
-
-                  <div style={{ height: 12 }} />
 
                   <div style={{ display: "grid", gap: 10 }}>
                     <input
@@ -574,18 +598,14 @@ export default function CardModal({
                 </div>
 
                 {/* Assignees */}
-                <div className="admCard" style={{ padding: 12, borderRadius: 16, boxShadow: "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div className="cmSection">
+                  <div className="cmHead">
                     <div>
-                      <div style={{ fontWeight: 950 }}>Assignees</div>
-                      <div className="admTdMuted" style={{ fontSize: 12, marginTop: 4 }}>
-                        Assign students
-                      </div>
+                      <div className="cmHeadTitle">Assignees</div>
+                      <div className="cmHeadSub">Assign students to this card</div>
                     </div>
                     <span className="admPill">{assignees.length}</span>
                   </div>
-
-                  <div style={{ height: 12 }} />
 
                   {assignees.length === 0 ? (
                     <div className="admTdMuted" style={{ fontSize: 13 }}>
@@ -653,19 +673,7 @@ export default function CardModal({
                       />
 
                       {assigneeOpen && availableStudents.length > 0 && (
-                        <div
-                          className="admCard"
-                          style={{
-                            position: "absolute",
-                            top: "calc(100% + 8px)",
-                            left: 0,
-                            right: 0,
-                            padding: 10,
-                            borderRadius: 16,
-                            zIndex: 20,
-                            boxShadow: "none",
-                          }}
-                        >
+                        <div className="cmDrop">
                           <div style={{ display: "grid", gap: 8 }}>
                             {availableStudents.map((m) => (
                               <button
@@ -715,9 +723,9 @@ export default function CardModal({
                       )}
                     </div>
                   )}
-                </div>
 
-                {boardId && <div className="admTdMuted">Board: #{boardId}</div>}
+                  {boardId && <div className="admTdMuted" style={{ marginTop: 10 }}>Board: #{boardId}</div>}
+                </div>
               </div>
             </div>
           )}

@@ -58,24 +58,29 @@ function ClockIcon({ size = 14 }: { size?: number }) {
         strokeWidth="2"
         opacity="0.9"
       />
-      <path
-        d="M12 6v6l4 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlusIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
 function isDateOverdue(due: string) {
+  if (!due) return false;
   const today = new Date();
   const dueD = new Date(due + "T00:00:00");
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   return dueD < t;
 }
 function isDateToday(due: string) {
+  if (!due) return false;
   const today = new Date();
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dueD = new Date(due + "T00:00:00");
@@ -106,7 +111,9 @@ function CardItem({
     opacity: sortable.isDragging ? 0.7 : 1,
   };
 
-  const progressPct = preview && preview.total > 0 ? Math.round((preview.done / preview.total) * 100) : 0;
+  const progressPct =
+    preview && preview.total > 0 ? Math.round((preview.done / preview.total) * 100) : 0;
+
   const due = card.due_date || "";
 
   return (
@@ -117,8 +124,12 @@ function CardItem({
             <span style={{ opacity: 0.7, fontSize: 14 }}>⋮⋮</span>
           </div>
 
-          <div style={{ flex: 1, minWidth: 0, cursor: "default" }}>
-            <div className="cardTitle" onDoubleClick={() => onOpen(card.id)} title="Double click to open">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              className="cardTitle"
+              onDoubleClick={() => onOpen(card.id)}
+              title="Double click to open"
+            >
               {card.title}
             </div>
 
@@ -194,7 +205,11 @@ function ListColumn({
   return (
     <div className="column" style={{ borderColor: drop.isOver ? "rgba(37,99,235,0.35)" : undefined }}>
       <div className="columnHeader">
-        <div className="columnTitle">{list.title}</div>
+        <div className="columnTitleRow">
+          <div className="columnTitle">{list.title}</div>
+          <span className="colCountPill">{cards.length}</span>
+        </div>
+
         <button className="admSoftBtn" onClick={() => onAddCard(list.id)}>
           + Card
         </button>
@@ -208,7 +223,9 @@ function ListColumn({
         </SortableContext>
 
         {cards.length === 0 && (
-          <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 13, padding: "10px 6px" }}>Drop cards here</div>
+          <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 13, padding: "10px 6px" }}>
+            Drop cards here
+          </div>
         )}
       </div>
     </div>
@@ -250,6 +267,7 @@ export default function BoardPage() {
   }
 
   async function loadPreviews(cards: Card[]) {
+    // keep your logic: sequential requests are okay for now (small boards)
     const next: Record<number, CardPreview> = {};
     for (const c of cards) {
       try {
@@ -262,7 +280,7 @@ export default function BoardPage() {
         }));
         next[c.id] = { card_id: c.id, done, total, assignees };
       } catch {
-        // ignore
+        // ignore preview error
       }
     }
     setPreviews((prev) => ({ ...prev, ...next }));
@@ -295,6 +313,7 @@ export default function BoardPage() {
       map[c.list_id].push(c);
     }
     for (const k of Object.keys(map)) map[Number(k)].sort((a, b) => a.position - b.position);
+
     return map;
   }, [data]);
 
@@ -319,6 +338,7 @@ export default function BoardPage() {
   }
 
   async function createCard(listId: number) {
+    setErr("");
     try {
       const res = await apiFetch("/admin/cards", {
         method: "POST",
@@ -353,6 +373,7 @@ export default function BoardPage() {
 
     const activeId = String(e.active.id);
     const overId = e.over ? String(e.over.id) : null;
+
     if (!overId) return;
     if (!activeId.startsWith("card:")) return;
 
@@ -362,6 +383,7 @@ export default function BoardPage() {
 
     const fromListId = activeCard.list_id;
 
+    // drop on another card
     if (overId.startsWith("card:")) {
       const overCardId = Number(overId.split(":")[1]);
       const overCard = findCard(overCardId);
@@ -369,6 +391,7 @@ export default function BoardPage() {
 
       const toListId = overCard.list_id;
 
+      // reorder within same list
       if (toListId === fromListId) {
         const current = cardsByList[fromListId] ?? [];
         const fromIndex = current.findIndex((c) => c.id === cardId);
@@ -386,6 +409,7 @@ export default function BoardPage() {
         return;
       }
 
+      // move to another list, insert at the over card position
       const target = cardsByList[toListId] ?? [];
       const toPos = target.findIndex((c) => c.id === overCardId);
       const position = toPos < 0 ? 0 : toPos;
@@ -399,6 +423,7 @@ export default function BoardPage() {
       return;
     }
 
+    // drop on list body
     if (overId.startsWith("list:")) {
       const toListId = Number(overId.split(":")[1]);
       const endPos = cardsByList[toListId]?.length ?? 0;
@@ -443,19 +468,18 @@ export default function BoardPage() {
         }}
       />
 
-      {err && (
-        <div className="admAlert admAlertBad" style={{ marginBottom: 12 }}>
-          {err}
-        </div>
-      )}
-
+      {err && <div className="admAlert admAlertBad" style={{ marginBottom: 12 }}>{err}</div>}
       {loading && <div className="admMuted">Loading board...</div>}
 
       {!loading && data && (
         <div className="boardWrap">
           {/* Add list bar */}
-          <div className="admCard" style={{ padding: 14 }}>
-            <form onSubmit={createList} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="admCard boardAddListCard">
+            <form onSubmit={createList} className="boardTopBar">
+              <div className="boardTopIcon" aria-hidden="true">
+                <PlusIcon />
+              </div>
+
               <input
                 className="admInput"
                 placeholder="Add a list (To Do, Doing, Done...)"
@@ -463,13 +487,19 @@ export default function BoardPage() {
                 onChange={(e) => setNewListTitle(e.target.value)}
                 style={{ flex: 1 }}
               />
+
               <button className="admPrimaryBtn" disabled={creatingList || !newListTitle.trim()}>
                 {creatingList ? "..." : "Add"}
               </button>
             </form>
           </div>
 
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          >
             <div className="boardScroller">
               <div className="columnsRow">
                 {listsSorted.map((l) => (
@@ -486,9 +516,12 @@ export default function BoardPage() {
                 {listsSorted.length === 0 && (
                   <div className="column">
                     <div className="columnHeader">
-                      <div className="columnTitle">No lists yet</div>
+                      <div className="columnTitleRow">
+                        <div className="columnTitle">No lists yet</div>
+                        <span className="colCountPill">0</span>
+                      </div>
                     </div>
-                    <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 13, padding: 10 }}>
+                    <div style={{ color: "rgba(15,23,42,0.55)", fontSize: 13, padding: 12 }}>
                       Add your first list above.
                     </div>
                   </div>

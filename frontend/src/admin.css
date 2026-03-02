@@ -500,3 +500,356 @@
   .admGrid{ grid-template-columns: 1fr; }
   .admRow2{ grid-template-columns: 1fr; }
 }
+/* =========================
+   BOARD (KANBAN) UI
+========================= */
+
+.boardWrap {
+  display: grid;
+  gap: 14px;
+}
+
+.boardTopBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.boardTopBar .admInput {
+  height: 44px;
+}
+
+.boardAddListCard {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.boardTopIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  background: rgba(59, 130, 246, 0.07);
+  color: rgba(37, 99, 235, 0.95);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.boardScroller {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.columnsRow {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  min-height: 380px;
+  padding: 2px;
+}
+
+/* Column */
+.column {
+  width: 340px;
+  flex: 0 0 340px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.column:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.columnHeader {
+  padding: 12px 12px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, rgba(59,130,246,0.04), rgba(255,255,255,0));
+}
+
+.columnTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.columnTitle {
+  font-weight: 950;
+  color: rgba(15, 23, 42, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.colCountPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.03);
+  color: rgba(15, 23, 42, 0.70);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.columnBody {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  min-height: 120px;
+}
+
+/* Card */
+.tCard {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease;
+}
+.tCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59,130,246,0.18);
+  box-shadow: 0 16px 34px rgba(59,130,246,0.10);
+  background: rgba(59,130,246,0.02);
+}
+
+.tCardInner {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.cardTopRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.dragHandle {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.03);
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  transition: transform .14s ease, background .14s ease, border-color .14s ease;
+}
+.dragHandle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59,130,246,0.18);
+  background: rgba(59,130,246,0.06);
+}
+.dragHandle:active { cursor: grabbing; }
+
+.cardTitle {
+  font-weight: 950;
+  color: rgba(15, 23, 42, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* meta row */
+.cardMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.metaLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Progress */
+.progressBar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(37,99,235,0.9), rgba(59,130,246,0.65));
+  transition: width .22s ease;
+}
+
+.miniTag {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.03);
+  color: rgba(15, 23, 42, 0.72);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pill {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.03);
+  color: rgba(15, 23, 42, 0.72);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+/* Due colors */
+.clockPillOverdue {
+  border-color: rgba(239,68,68,0.22);
+  background: rgba(239,68,68,0.08);
+  color: rgba(185,28,28,0.92);
+}
+.clockPillSoon {
+  border-color: rgba(245,158,11,0.22);
+  background: rgba(245,158,11,0.08);
+  color: rgba(180,83,9,0.92);
+}
+
+/* Avatars */
+.avatars { display: flex; align-items: center; }
+.avatarDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(15, 23, 42, 0.06);
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  font-size: 11px;
+  color: rgba(15, 23, 42, 0.82);
+  margin-left: -8px;
+}
+.avatarDot:first-child { margin-left: 0; }
+
+/* =========================
+   MODAL (CARD) UI
+========================= */
+
+.modalBodyScroll {
+  max-height: 72vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.cmGrid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.cmSection {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+}
+
+.cmHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cmHeadTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 950;
+  color: rgba(15, 23, 42, 0.92);
+}
+.cmHeadSub {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.55);
+  margin-top: 2px;
+}
+
+.cmRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cmSplit {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Subtask row */
+.cmSubtaskRow {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(59, 130, 246, 0.02);
+  padding: 10px;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease;
+}
+.cmSubtaskRow:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59,130,246,0.18);
+  background: rgba(59,130,246,0.04);
+}
+
+/* tiny “done” animation */
+.animDone {
+  animation: cmPop .28s ease;
+}
+@keyframes cmPop {
+  from { transform: scale(0.98); }
+  to { transform: scale(1); }
+}
+
+/* Assignee dropdown */
+.cmDrop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.10);
+  padding: 10px;
+  z-index: 30;
+}
+
+@media (max-width: 980px) {
+  .cmGrid { grid-template-columns: 1fr; }
+  .column { width: 320px; flex-basis: 320px; }
+}
