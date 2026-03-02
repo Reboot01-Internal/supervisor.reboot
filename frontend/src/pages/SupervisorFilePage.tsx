@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
@@ -12,6 +12,42 @@ type Board = {
   created_by: number;
   created_at: string;
 };
+
+function initials(name: string) {
+  const parts = (name || "").trim().split(/\s+/).slice(0, 2);
+  const v = parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
+  return v || "B";
+}
+
+function ClockIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        opacity="0.9"
+      />
+      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function UsersIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" strokeWidth="2" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function SupervisorFilePage() {
   const nav = useNavigate();
@@ -73,33 +109,38 @@ export default function SupervisorFilePage() {
     }
   }
 
+  const boardsSorted = useMemo(() => {
+    return [...boards].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [boards]);
+
   return (
     <AdminLayout
       active="supervisors"
-      title={`Supervisor File #${fileID}`}
-      subtitle="Boards in this workspace"
+      title="Workspace"
+      subtitle={loading ? "Loading…" : `Supervisor File #${fileID} • ${boards.length} board(s)`}
       right={
-        <>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button className="admGhostBtn" onClick={() => nav("/admin/supervisors")}>
             Back
           </button>
           <button className="admPrimaryBtn" onClick={loadBoards} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}
           </button>
-        </>
+        </div>
       }
     >
-      {/* same 2-column layout as dashboard */}
       <section className="admGrid">
-        {/* Left: Create Board */}
+        {/* Left: Create Board (keep your current structure) */}
         <div className="admCol">
           <section className="admCard">
             <div className="admCardTitleRow">
               <div>
-                <div className="admCardTitle">Create Board</div>
-                <div className="admMuted">A board is where columns and tasks will live.</div>
+                <div className="admCardTitle">Create board</div>
+                <div className="admMuted">Name + optional description.</div>
               </div>
-              <span className="admPill">Boards</span>
+              <span className="admPill">New</span>
             </div>
 
             <form onSubmit={createBoard} className="admForm">
@@ -118,7 +159,7 @@ export default function SupervisorFilePage() {
                   <span className="admLabel">Description</span>
                   <input
                     className="admInput"
-                    placeholder="Optional description"
+                    placeholder="Optional"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                   />
@@ -130,7 +171,7 @@ export default function SupervisorFilePage() {
 
               <div className="admFormActions">
                 <button className="admPrimaryBtn" disabled={creating || !name.trim()}>
-                  {creating ? "Creating..." : "Create Board"}
+                  {creating ? "Creating..." : "Create"}
                 </button>
 
                 <button
@@ -150,80 +191,227 @@ export default function SupervisorFilePage() {
           </section>
         </div>
 
-        {/* Right: Boards List */}
+        {/* Right: Boards list (minimal + professional like supervisors page) */}
         <div className="admCol">
           <section className="admCard">
-            <div className="admCardTitleRow">
+            <div className="admCardTitleRow" style={{ marginBottom: 0 }}>
               <div>
                 <div className="admCardTitle">Boards</div>
-                <div className="admMuted">
-                  {loading ? "Loading..." : `${boards.length} board(s)`}
-                </div>
+                <div className="admMuted">Open a board or manage members.</div>
               </div>
 
-              <button className="admGhostBtn" onClick={loadBoards} disabled={loading}>
-                Refresh
-              </button>
+              <span className="admPill">{loading ? "…" : boards.length}</span>
             </div>
 
+            <div style={{ height: 12 }} />
+
+            {err && (
+              <div className="admAlert admAlertBad" style={{ marginBottom: 12 }}>
+                {err}
+              </div>
+            )}
+
             {loading ? (
-              <div className="admMuted">Loading boards...</div>
-            ) : boards.length === 0 ? (
+              <div className="admMuted">Loading…</div>
+            ) : boardsSorted.length === 0 ? (
               <div className="admMuted">No boards yet.</div>
             ) : (
-              <div style={{ display: "grid", gap: 12 }}>
-                {boards.map((b) => (
-                  <div
-                    key={b.id}
-                    className="admCard"
-                    style={{
-                      padding: 14,
-                      boxShadow: "none",
-                      borderRadius: 16,
-                      background: "#fbfcff",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 950 }}>{b.name}</div>
+              <div className="admDirGrid">
+                {boardsSorted.map((b) => {
+                  const created = new Date(b.created_at);
+                  const desc = (b.description || "").trim();
 
-                        {b.description ? (
-                          <div className="admMuted" style={{ marginTop: 6 }}>
-                            {b.description}
-                          </div>
-                        ) : (
-                          <div className="admMuted" style={{ marginTop: 6 }}>
-                            No description
-                          </div>
-                        )}
+                  return (
+                    <div key={b.id} className="admBoardRow">
+                      <div className="admDirLeft" style={{ minWidth: 0 }}>
+                        <div className="admAvatar" aria-hidden="true">
+                          {initials(b.name)}
+                        </div>
 
-                        <div className="admTdMuted" style={{ marginTop: 10, fontSize: 12 }}>
-                          Created: {new Date(b.created_at).toLocaleString()}
+                        <div className="admDirText">
+                          <div className="admDirName">{b.name}</div>
+
+                          {/* ONE clean meta line only */}
+                          <div className="admBoardMetaLine">
+                            <span className="admMetaInline">
+                              <ClockIcon /> {created.toLocaleDateString()}
+                            </span>
+
+                            {desc ? (
+                              <>
+                                <span className="admMetaDot">•</span>
+                                <span className="admMetaInline" title={desc}>
+                                  {desc}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <button className="admSoftBtn" onClick={() => nav(`/admin/boards/${b.id}`)}>
+                      <div className="admBoardActions">
+                        <button
+                          className="admOpenPill"
+                          type="button"
+                          onClick={() => nav(`/admin/boards/${b.id}`)}
+                          title="Open board"
+                        >
                           Open
                         </button>
 
                         <button
-                          className="admSoftBtn"
+                          className="admIconPill"
+                          type="button"
                           onClick={() => nav(`/admin/boards/${b.id}/members`)}
+                          title="Members"
+                          aria-label="Members"
                         >
-                          Members
+                          <UsersIcon />
                         </button>
 
-                        <span className="admPill">#{b.id}</span>
+                        <span className="admChevron" aria-hidden="true">
+                          ›
+                        </span>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
         </div>
       </section>
+
+      <style>{`
+        /* shared look (same vibe as supervisors page) */
+        .admDirGrid{ display:grid; gap:10px; }
+
+        .admAvatar{
+          width: 40px; height: 40px;
+          border-radius: 999px;
+          border: 1px solid rgba(15,23,42,0.14);
+          background: rgba(15,23,42,0.05);
+          display:grid;
+          place-items:center;
+          font-weight: 950;
+          color: rgba(15,23,42,0.85);
+          flex: 0 0 40px;
+        }
+
+        .admBoardRow{
+          width: 100%;
+          border-radius: 16px;
+          border: 1px solid rgba(15,23,42,0.10);
+          background: #fff;
+          box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+          padding: 12px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 12px;
+          text-align: left;
+          transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease;
+        }
+        .admBoardRow:hover{
+          transform: translateY(-1px);
+          border-color: rgba(59,130,246,0.18);
+          box-shadow: 0 16px 32px rgba(59,130,246,0.10);
+          background: rgba(59,130,246,0.02);
+        }
+
+        .admDirLeft{
+          display:flex;
+          align-items:center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .admDirText{ min-width:0; display:grid; gap:6px; }
+
+        .admDirName{
+          font-weight: 950;
+          color: rgba(15,23,42,0.92);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* minimal meta line (no pills) */
+        .admBoardMetaLine{
+          display:flex;
+          align-items:center;
+          gap: 8px;
+          min-width: 0;
+          color: rgba(15,23,42,0.60);
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .admMetaInline{
+          display:inline-flex;
+          align-items:center;
+          gap: 8px;
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .admMetaInline svg{ display:block; opacity: .85; }
+        .admMetaDot{ opacity: .55; }
+
+        .admBoardActions{
+          display:flex;
+          align-items:center;
+          gap: 10px;
+          flex: 0 0 auto;
+        }
+
+        .admOpenPill{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          padding: 7px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(59,130,246,0.18);
+          background: rgba(59,130,246,0.06);
+          color: rgba(37,99,235,0.92);
+          font-weight: 900;
+          font-size: 12px;
+          cursor: pointer;
+        }
+
+        /* members icon button (clean, no bubble stack) */
+        .admIconPill{
+          width: 38px; height: 32px;
+          border-radius: 999px;
+          border: 1px solid rgba(15,23,42,0.10);
+          background: rgba(15,23,42,0.03);
+          color: rgba(15,23,42,0.72);
+          display:grid;
+          place-items:center;
+          cursor:pointer;
+          transition: transform .14s ease, border-color .14s ease, background .14s ease;
+        }
+        .admIconPill:hover{
+          transform: translateY(-1px);
+          border-color: rgba(16,185,129,0.18);
+          background: rgba(16,185,129,0.06);
+        }
+        .admIconPill svg{ display:block; }
+
+        .admChevron{
+          font-size: 22px;
+          color: rgba(15,23,42,0.35);
+          transition: transform .14s ease, color .14s ease;
+        }
+        .admBoardRow:hover .admChevron{
+          transform: translateX(2px);
+          color: rgba(37,99,235,0.75);
+        }
+
+        @media (max-width: 900px){
+          .admBoardRow{ flex-direction: column; align-items: stretch; }
+          .admBoardActions{ justify-content: flex-end; }
+        }
+      `}</style>
     </AdminLayout>
   );
 }
