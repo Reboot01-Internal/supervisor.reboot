@@ -28,7 +28,13 @@ function ClockIcon({ size = 14 }: { size?: number }) {
         strokeWidth="2"
         opacity="0.9"
       />
-      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 6v6l4 2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -45,6 +51,22 @@ function UsersIcon({ size = 16 }: { size?: number }) {
       <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" strokeWidth="2" />
       <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BoardIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M8 7h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.65" />
+      <path d="M8 11h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.65" />
+      <path d="M8 15h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.65" />
     </svg>
   );
 }
@@ -93,8 +115,8 @@ export default function SupervisorFilePage() {
         method: "POST",
         body: JSON.stringify({
           supervisor_file_id: fileID,
-          name,
-          description,
+          name: name.trim(),
+          description: description.trim(),
         }),
       });
 
@@ -110,10 +132,11 @@ export default function SupervisorFilePage() {
   }
 
   const boardsSorted = useMemo(() => {
-    return [...boards].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    return [...boards].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [boards]);
+
+  const nameMax = 60;
+  const descMax = 120;
 
   return (
     <AdminLayout
@@ -132,12 +155,17 @@ export default function SupervisorFilePage() {
       }
     >
       <section className="admGrid">
-        {/* Left: Create Board (keep your current structure) */}
+        {/* Left: Create Board (same structure, cleaner) */}
         <div className="admCol">
           <section className="admCard">
             <div className="admCardTitleRow">
               <div>
-                <div className="admCardTitle">Create board</div>
+                <div className="admCardTitle" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="admTinyIcon" aria-hidden="true">
+                    <BoardIcon />
+                  </span>
+                  Create board
+                </div>
                 <div className="admMuted">Name + optional description.</div>
               </div>
               <span className="admPill">New</span>
@@ -146,23 +174,35 @@ export default function SupervisorFilePage() {
             <form onSubmit={createBoard} className="admForm">
               <div className="admRow2">
                 <label className="admField" style={{ gridColumn: "1 / -1" }}>
-                  <span className="admLabel">Board name</span>
+                  <div className="admLabelRow">
+                    <span className="admLabel">Board name</span>
+                    <span className="admCount">{name.trim().length}/{nameMax}</span>
+                  </div>
+
                   <input
                     className="admInput"
-                    placeholder="e.g. Sprint Planning"
+                    placeholder="e.g. Social Network"
                     value={name}
+                    maxLength={nameMax}
                     onChange={(e) => setName(e.target.value)}
                   />
+                  <span className="admHelp">Make it short and clear.</span>
                 </label>
 
                 <label className="admField" style={{ gridColumn: "1 / -1" }}>
-                  <span className="admLabel">Description</span>
+                  <div className="admLabelRow">
+                    <span className="admLabel">Description</span>
+                    <span className="admCount">{description.trim().length}/{descMax}</span>
+                  </div>
+
                   <input
                     className="admInput"
-                    placeholder="Optional"
+                    placeholder="Optional (example: tasks to finish before Sunday)"
                     value={description}
+                    maxLength={descMax}
                     onChange={(e) => setDescription(e.target.value)}
                   />
+                  <span className="admHelp">Optional — helps students understand the board.</span>
                 </label>
               </div>
 
@@ -191,7 +231,7 @@ export default function SupervisorFilePage() {
           </section>
         </div>
 
-        {/* Right: Boards list (minimal + professional like supervisors page) */}
+        {/* Right: Boards list (UNCHANGED) */}
         <div className="admCol">
           <section className="admCard">
             <div className="admCardTitleRow" style={{ marginBottom: 0 }}>
@@ -231,7 +271,6 @@ export default function SupervisorFilePage() {
                         <div className="admDirText">
                           <div className="admDirName">{b.name}</div>
 
-                          {/* ONE clean meta line only */}
                           <div className="admBoardMetaLine">
                             <span className="admMetaInline">
                               <ClockIcon /> {created.toLocaleDateString()}
@@ -283,7 +322,7 @@ export default function SupervisorFilePage() {
       </section>
 
       <style>{`
-        /* shared look (same vibe as supervisors page) */
+        /* ===== list styles (same as yours) ===== */
         .admDirGrid{ display:grid; gap:10px; }
 
         .admAvatar{
@@ -335,7 +374,6 @@ export default function SupervisorFilePage() {
           text-overflow: ellipsis;
         }
 
-        /* minimal meta line (no pills) */
         .admBoardMetaLine{
           display:flex;
           align-items:center;
@@ -378,7 +416,6 @@ export default function SupervisorFilePage() {
           cursor: pointer;
         }
 
-        /* members icon button (clean, no bubble stack) */
         .admIconPill{
           width: 38px; height: 32px;
           border-radius: 999px;
@@ -410,6 +447,35 @@ export default function SupervisorFilePage() {
         @media (max-width: 900px){
           .admBoardRow{ flex-direction: column; align-items: stretch; }
           .admBoardActions{ justify-content: flex-end; }
+        }
+
+        /* ===== small form enhancements only ===== */
+        .admTinyIcon{
+          width: 28px; height: 28px;
+          border-radius: 999px;
+          border: 1px solid rgba(15,23,42,0.10);
+          background: rgba(15,23,42,0.03);
+          display:grid;
+          place-items:center;
+          color: rgba(15,23,42,0.75);
+        }
+
+        .admLabelRow{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 10px;
+        }
+        .admCount{
+          font-size: 12px;
+          font-weight: 800;
+          color: rgba(15,23,42,0.45);
+        }
+        .admHelp{
+          display:block;
+          margin-top: 6px;
+          font-size: 12px;
+          color: rgba(15,23,42,0.55);
         }
       `}</style>
     </AdminLayout>
