@@ -32,10 +32,7 @@ export default function AdminSidebar({ active }: Props) {
         )}
       >
         <span
-          className={cn(
-            "h-2.5 w-2.5 rounded-full",
-            isActive ? "bg-[#6d5efc]" : "bg-slate-300"
-          )}
+          className={cn("h-2.5 w-2.5 rounded-full", isActive ? "bg-[#6d5efc]" : "bg-slate-300")}
         />
         {label}
       </button>
@@ -43,7 +40,17 @@ export default function AdminSidebar({ active }: Props) {
   };
 
   return (
-    <aside className="w-[280px] border-r border-slate-200 bg-white p-[18px]">
+    <aside
+      className={cn(
+        "w-[280px] border-r border-slate-200 bg-white p-[18px]",
+
+        "h-screen sticky top-0 self-start",
+
+        "overflow-y-auto overscroll-contain",
+
+        "max-[1050px]:w-full max-[1050px]:h-auto max-[1050px]:sticky max-[1050px]:top-0 max-[1050px]:overflow-visible"
+      )}
+    >
       <div className="grid h-full grid-rows-[auto_1fr_auto] gap-2">
         {/* Brand */}
         <div
