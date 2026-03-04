@@ -128,6 +128,7 @@ func main() {
 		ar.Get("/assign/list", api.AdminAssignList)
 		ar.Post("/assign", api.AdminAssignAdd)
 		ar.Post("/assign/remove", api.AdminAssignRemove)
+		ar.Get("/eligible-users", api.AdminEligibleUsers)
 	})
 
 	// supervisor

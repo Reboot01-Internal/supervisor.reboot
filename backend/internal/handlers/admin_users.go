@@ -313,3 +313,64 @@ func (a *API) AdminSearchUsers(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, users)
 }
+func (a *API) AdminEligibleUsers(w http.ResponseWriter, r *http.Request) {
+	boardIDStr := r.URL.Query().Get("board_id")
+	role := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("role")))
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+
+	boardID, err := strconv.ParseInt(boardIDStr, 10, 64)
+	if err != nil || boardID <= 0 {
+		writeErr(w, http.StatusBadRequest, "invalid board_id")
+		return
+	}
+
+	// current board members -> exclude them from results
+	members, err := db.ListBoardMembers(a.conn, boardID)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	inBoard := map[int64]bool{}
+	for _, m := range members {
+		inBoard[m.UserID] = true
+	}
+
+	// board supervisor -> used to determine eligible students
+	supID, err := db.GetBoardSupervisorUserID(a.conn, boardID)
+	if err != nil || supID == 0 {
+		writeErr(w, http.StatusBadRequest, "board has no supervisor")
+		return
+	}
+
+	out := []models.User{}
+
+	// include supervisors (if role=all or supervisor)
+	if role == "" || role == "all" || role == "supervisor" {
+		sups, err := db.SearchUsersByRole(a.conn, "supervisor", q)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		for _, u := range sups {
+			if !inBoard[u.ID] {
+				out = append(out, u)
+			}
+		}
+	}
+
+	// include students (if role=all or student)
+	if role == "" || role == "all" || role == "student" {
+		studs, err := db.ListEligibleStudentsForSupervisor(a.conn, supID, q)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		for _, u := range studs {
+			if !inBoard[u.ID] {
+				out = append(out, u)
+			}
+		}
+	}
+
+	writeJSON(w, http.StatusOK, out)
+}
