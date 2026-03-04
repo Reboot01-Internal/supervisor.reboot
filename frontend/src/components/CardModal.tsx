@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal from "./Modal";
 import { apiFetch } from "../lib/api";
 
@@ -65,7 +65,6 @@ type CardFull = {
   activities: Activity[];
   labels: CardLabel[];
   comments: Comment[];
-  // attachments/reminders may still come from backend; we ignore them in UI now
   board_id: number;
 };
 
@@ -97,8 +96,19 @@ function isDateToday(due: string) {
 function ClockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" strokeWidth="2" opacity="0.9" />
-      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        opacity="0.9"
+      />
+      <path
+        d="M12 6v6l4 2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -106,7 +116,13 @@ function ClockIcon({ size = 14 }: { size?: number }) {
 function CheckIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M20 6 9 17l-5-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -114,8 +130,18 @@ function CheckIcon({ size = 16 }: { size?: number }) {
 function ActivityIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 13.5 8.2 9.3l3.2 3.2L19.6 4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M4 13.5 8.2 9.3l3.2 3.2L19.6 4.3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
     </svg>
   );
 }
@@ -123,7 +149,11 @@ function ActivityIcon({ size = 16 }: { size?: number }) {
 function ChatIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
     </svg>
   );
 }
@@ -131,7 +161,11 @@ function ChatIcon({ size = 16 }: { size?: number }) {
 function TagIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M20.6 13.6 13.6 20.6a2 2 0 0 1-2.8 0L3 12.8V3h9.8l7.8 7.8a2 2 0 0 1 0 2.8Z" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M20.6 13.6 13.6 20.6a2 2 0 0 1-2.8 0L3 12.8V3h9.8l7.8 7.8a2 2 0 0 1 0 2.8Z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
       <path d="M7.5 7.5h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
@@ -216,23 +250,24 @@ function labelDotClass(color: string) {
   return map[color] || "bg-indigo-600";
 }
 
+/** slightly more compact controls */
 const inputBase =
-  "h-11 w-full rounded-[14px] border border-slate-900/10 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-indigo-500/35 focus:bg-white focus:ring-4 focus:ring-indigo-500/15";
+  "h-10 w-full rounded-[14px] border border-slate-900/10 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-indigo-500/35 focus:bg-white focus:ring-4 focus:ring-indigo-500/15";
 
 const btnPrimary =
-  "h-11 rounded-[14px] px-4 font-extrabold text-white disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_18px_45px_rgba(15,23,42,0.08)] bg-gradient-to-br from-indigo-600 to-violet-500";
+  "h-10 rounded-[14px] px-4 font-extrabold text-white disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_18px_45px_rgba(15,23,42,0.08)] bg-gradient-to-br from-indigo-600 to-violet-500";
 
 const btnGhost =
   "h-10 rounded-[14px] px-4 font-extrabold border border-slate-900/10 bg-slate-50 hover:border-indigo-500/20 hover:bg-indigo-500/10";
 
 const btnSoft =
-  "h-11 rounded-[14px] px-4 font-extrabold border border-slate-900/10 bg-white hover:bg-indigo-500/[0.04]";
+  "h-10 rounded-[14px] px-4 font-extrabold border border-slate-900/10 bg-white hover:bg-indigo-500/[0.04]";
 
 const pillBase =
   "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-extrabold";
 
 const section =
-  "rounded-[18px] border border-slate-900/10 bg-white p-3 shadow-[0_14px_34px_rgba(15,23,42,0.06)]";
+  "rounded-[18px] border border-slate-900/10 bg-white p-3.5 shadow-[0_14px_34px_rgba(15,23,42,0.06)]";
 
 type TabKey = "overview" | "details" | "discussion" | "activity";
 
@@ -329,7 +364,7 @@ export default function CardModal({
         if (!q) return true;
         return m.full_name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
       })
-      .slice(0, 8);
+      .slice(0, 10);
   }, [studentsOnly, assigneeIds, assigneeQuery]);
 
   const cardLabelIds = useMemo(() => new Set(cardLabels.map((x) => x.label_id)), [cardLabels]);
@@ -575,7 +610,7 @@ export default function CardModal({
     }
   }
 
-  async function startEditComment(c: Comment) {
+  function startEditComment(c: Comment) {
     setEditingCommentId(c.id);
     setEditingBody(c.body);
   }
@@ -625,11 +660,7 @@ export default function CardModal({
           <button className={btnGhost} onClick={onClose}>
             Cancel
           </button>
-          <button
-            className={btnPrimary}
-            onClick={saveCard}
-            disabled={saving || loading || !card?.title?.trim()}
-          >
+          <button className={btnPrimary} onClick={saveCard} disabled={saving || loading || !card?.title?.trim()}>
             {saving ? "Saving..." : "Save"}
           </button>
         </>
@@ -673,266 +704,273 @@ export default function CardModal({
               {/* Tab content (scroll only inside content area) */}
               <div className="max-h-[62vh] overflow-y-auto overflow-x-hidden pr-[2px]">
                 {tab === "overview" && (
-                  <div className="grid items-start gap-[14px] xl:grid-cols-[1.2fr_0.8fr]">
-                    {/* Left */}
-                    <div className="grid gap-[14px]">
-                      <div className={section}>
-                        <div className="mb-[10px]">
+                  <div className="grid gap-3 xl:grid-cols-12">
+                    {/* Row 1: Title + Due */}
+                    <div className={`${section} xl:col-span-7`}>
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div>
                           <div className="text-[14px] font-black text-slate-900">Title</div>
-                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">
-                            Short and clear
-                          </div>
+                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">Short and clear</div>
                         </div>
-                        <input
-                          className={inputBase}
-                          value={card.title}
-                          onChange={(e) => setCard({ ...card, title: e.target.value })}
-                          placeholder="Card title"
-                        />
+                        <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
+                          #{card.id}
+                        </span>
                       </div>
 
-                      <div className={section}>
-                        <div className="mb-[10px] flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[14px] font-black text-slate-900">Status & Priority</div>
-                            <div className="mt-[2px] text-[12px] font-semibold text-slate-500">
-                              Quick settings
-                            </div>
-                          </div>
+                      <input
+                        className={inputBase}
+                        value={card.title}
+                        onChange={(e) => setCard({ ...card, title: e.target.value })}
+                        placeholder="Card title"
+                      />
+                    </div>
+
+                    <div className={`${section} xl:col-span-5`}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                          <ClockIcon /> Due date
                         </div>
 
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div>
-                            <div className="mb-1.5 text-[12px] font-semibold text-slate-500">Status</div>
-                            <select
-                              className={inputBase}
-                              value={card.status || "todo"}
-                              onChange={(e) => setCard({ ...card, status: e.target.value as any })}
-                            >
-                              <option value="todo">To Do</option>
-                              <option value="doing">Doing</option>
-                              <option value="blocked">Blocked</option>
-                              <option value="done">Done</option>
-                            </select>
-                          </div>
+                        <span className={`${pillBase} ${duePillClass(cardDueKind)} gap-2`}>
+                          <ClockIcon />
+                          {card.due_date || "None"}
+                        </span>
+                      </div>
 
-                          <div>
-                            <div className="mb-1.5 text-[12px] font-semibold text-slate-500">Priority</div>
-                            <select
-                              className={inputBase}
-                              value={card.priority || "medium"}
-                              onChange={(e) => setCard({ ...card, priority: e.target.value as any })}
-                            >
-                              <option value="low">Low</option>
-                              <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                              <option value="urgent">Urgent</option>
-                            </select>
-                          </div>
+                      <div className="grid gap-2">
+                        <input
+                          className={inputBase}
+                          type="date"
+                          value={card.due_date || ""}
+                          onChange={(e) => setCard({ ...card, due_date: e.target.value })}
+                        />
+                        <button className={btnSoft} type="button" onClick={() => setCard({ ...card, due_date: "" })}>
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Status/Priority + Assignees */}
+                    <div className={`${section} xl:col-span-7`}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[14px] font-black text-slate-900">Status & Priority</div>
+                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">Quick settings</div>
                         </div>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className={`${pillBase} ${pillStatusClass(card.status)}`}>
-                            {prettyStatus(card.status)}
-                          </span>
+                        <div className="flex flex-wrap gap-2">
+                          <span className={`${pillBase} ${pillStatusClass(card.status)}`}>{prettyStatus(card.status)}</span>
                           <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>
                             {prettyPriority(card.priority)}
                           </span>
                         </div>
                       </div>
 
-                      <div className={section}>
-                        <div className="mb-[10px] flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
-                            <TagIcon /> Labels
-                          </div>
-                          <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                            {cardLabels.length}
-                          </span>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div>
+                          <div className="mb-1 text-[12px] font-semibold text-slate-500">Status</div>
+                          <select
+                            className={inputBase}
+                            value={card.status || "todo"}
+                            onChange={(e) => setCard({ ...card, status: e.target.value as any })}
+                          >
+                            <option value="todo">To Do</option>
+                            <option value="doing">Doing</option>
+                            <option value="blocked">Blocked</option>
+                            <option value="done">Done</option>
+                          </select>
                         </div>
 
-                        {boardLabels.length === 0 ? (
-                          <div className="text-[13px] font-semibold text-slate-500">No labels yet.</div>
-                        ) : (
-                          <div className="grid gap-2">
-                            {boardLabels.map((l) => {
-                              const active = cardLabelIds.has(l.id);
-                              return (
-                                <button
-                                  key={l.id}
-                                  type="button"
-                                  onClick={() => toggleLabel(l.id)}
-                                  className={[
-                                    "flex h-11 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold",
-                                    active
-                                      ? "border-indigo-500/35 bg-indigo-500/10"
-                                      : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
-                                  ].join(" ")}
-                                >
-                                  <span className={`h-2.5 w-2.5 rounded-full ${labelDotClass(l.color)}`} />
-                                  <span className="min-w-0 flex-1 truncate">{l.name}</span>
-                                  <span className="text-[11px] font-extrabold text-slate-500">
-                                    {active ? "On" : "Off"}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        <div className="h-3" />
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input
-                            className={inputBase}
-                            placeholder="Create new label..."
-                            value={newLabelName}
-                            onChange={(e) => setNewLabelName(e.target.value)}
-                          />
+                        <div>
+                          <div className="mb-1 text-[12px] font-semibold text-slate-500">Priority</div>
                           <select
-                            className={inputBase + " max-w-[170px]"}
-                            value={newLabelColor}
-                            onChange={(e) => setNewLabelColor(e.target.value)}
+                            className={inputBase}
+                            value={card.priority || "medium"}
+                            onChange={(e) => setCard({ ...card, priority: e.target.value as any })}
                           >
-                            <option value="indigo">Indigo</option>
-                            <option value="sky">Sky</option>
-                            <option value="emerald">Emerald</option>
-                            <option value="amber">Amber</option>
-                            <option value="rose">Rose</option>
-                            <option value="violet">Violet</option>
-                            <option value="slate">Slate</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
                           </select>
-                          <button
-                            className={btnPrimary}
-                            type="button"
-                            onClick={createLabel}
-                            disabled={!newLabelName.trim() || !boardId}
-                          >
-                            Create
-                          </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Right */}
-                    <div className="grid gap-[14px]">
-                      <div className={section}>
-                        <div className="mb-[10px] flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
-                            <ClockIcon /> Due date
-                          </div>
-
-                          <span className={`${pillBase} ${duePillClass(cardDueKind)} gap-2`}>
-                            <ClockIcon />
-                            {card.due_date || "None"}
-                          </span>
+                    <div className={`${section} xl:col-span-5`}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[14px] font-black text-slate-900">Assignees</div>
+                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">Assign students</div>
                         </div>
-
-                        <div className="grid gap-2">
-                          <input
-                            className={inputBase}
-                            type="date"
-                            value={card.due_date || ""}
-                            onChange={(e) => setCard({ ...card, due_date: e.target.value })}
-                          />
-                          <button className={btnSoft} type="button" onClick={() => setCard({ ...card, due_date: "" })}>
-                            Clear
-                          </button>
-                        </div>
+                        <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
+                          {assignees.length}
+                        </span>
                       </div>
 
-                      <div className={section}>
-                        <div className="mb-[10px] flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[14px] font-black text-slate-900">Assignees</div>
-                            <div className="mt-[2px] text-[12px] font-semibold text-slate-500">
-                              Assign students
+                      {assignees.length === 0 ? (
+                        <div className="text-[13px] font-semibold text-slate-500">No assignees yet.</div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {assignees.map((a) => (
+                            <div
+                              key={a.user_id}
+                              className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 pr-1`}
+                            >
+                              <span className="grid h-[22px] w-[22px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[11px] font-black">
+                                {initials(a.full_name)}
+                              </span>
+                              <span className="text-[12px] font-black">{a.full_name}</span>
+                              <button
+                                className="h-[32px] rounded-[12px] border border-slate-900/10 bg-white/70 px-2.5 font-black hover:bg-rose-500/10"
+                                type="button"
+                                onClick={() => removeAssignee(a.user_id)}
+                                title="Remove"
+                              >
+                                ×
+                              </button>
                             </div>
-                          </div>
-                          <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                            {assignees.length}
-                          </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="h-2" />
+
+                      {studentsOnly.length === 0 ? (
+                        <div className="text-[13px] font-semibold text-slate-500">
+                          No students in this board yet. Add them from “Members”.
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <input
+                            className={inputBase}
+                            placeholder="Search student to assign..."
+                            value={assigneeQuery}
+                            onChange={(e) => {
+                              setAssigneeQuery(e.target.value);
+                              setAssigneeOpen(true);
+                            }}
+                            onFocus={() => setAssigneeOpen(true)}
+                            onBlur={() => setTimeout(() => setAssigneeOpen(false), 120)}
+                          />
+
+                          {assigneeOpen && availableStudents.length > 0 && (
+                            <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-[18px] border border-slate-900/10 bg-white p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
+                              <div className="grid gap-2">
+                                {availableStudents.map((m) => (
+                                  <button
+                                    key={m.user_id}
+                                    type="button"
+                                    className="flex h-10 w-full items-center justify-between gap-3 rounded-[14px] border border-slate-900/10 bg-white px-3 text-left font-extrabold hover:bg-indigo-500/[0.04]"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => addAssignee(m.user_id)}
+                                  >
+                                    <span className="flex min-w-0 items-center gap-3">
+                                      <span className="grid h-[24px] w-[24px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black">
+                                        {initials(m.full_name)}
+                                      </span>
+
+                                      <span className="min-w-0">
+                                        <span className="block truncate text-[13px] font-black text-slate-900">
+                                          {m.full_name}
+                                        </span>
+                                        <span className="block truncate text-[12px] font-semibold text-slate-500">
+                                          {m.email}
+                                        </span>
+                                      </span>
+                                    </span>
+
+                                    <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
+                                      Add
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Row 3: Labels (two-column inside, no wasted horizontal space) */}
+                    <div className={`${section} xl:col-span-12`}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                          <TagIcon /> Labels
+                        </div>
+                        <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
+                          {cardLabels.length}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-3 lg:grid-cols-[1fr_420px] lg:items-start">
+                        {/* Existing labels list */}
+                        <div>
+                          {boardLabels.length === 0 ? (
+                            <div className="text-[13px] font-semibold text-slate-500">No labels yet.</div>
+                          ) : (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {boardLabels.map((l) => {
+                                const active = cardLabelIds.has(l.id);
+                                return (
+                                  <button
+                                    key={l.id}
+                                    type="button"
+                                    onClick={() => toggleLabel(l.id)}
+                                    className={[
+                                      "flex h-10 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold",
+                                      active
+                                        ? "border-indigo-500/35 bg-indigo-500/10"
+                                        : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
+                                    ].join(" ")}
+                                  >
+                                    <span className={`h-2.5 w-2.5 rounded-full ${labelDotClass(l.color)}`} />
+                                    <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                                    <span className="text-[11px] font-extrabold text-slate-500">
+                                      {active ? "On" : "Off"}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
 
-                        {assignees.length === 0 ? (
-                          <div className="text-[13px] font-semibold text-slate-500">No assignees yet.</div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {assignees.map((a) => (
-                              <div key={a.user_id} className={`${pillBase} border-indigo-500/25 bg-indigo-500/10`}>
-                                <span className="grid h-[22px] w-[22px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[11px] font-black">
-                                  {initials(a.full_name)}
-                                </span>
-                                <span className="text-[12px] font-black">{a.full_name}</span>
-                                <button
-                                  className="h-[34px] rounded-[12px] border border-slate-900/10 bg-white/70 px-3 font-black hover:bg-rose-500/10"
-                                  type="button"
-                                  onClick={() => removeAssignee(a.user_id)}
-                                  title="Remove"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="h-3" />
-
-                        {studentsOnly.length === 0 ? (
-                          <div className="text-[13px] font-semibold text-slate-500">
-                            No students in this board yet. Add them from “Members”.
-                          </div>
-                        ) : (
-                          <div className="relative">
+                        {/* Create label box */}
+                        <div className="rounded-[16px] border border-slate-900/10 bg-slate-50 p-3">
+                          <div className="mb-2 text-[12px] font-extrabold text-slate-700">Create a new label</div>
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                             <input
                               className={inputBase}
-                              placeholder="Search student to assign..."
-                              value={assigneeQuery}
-                              onChange={(e) => {
-                                setAssigneeQuery(e.target.value);
-                                setAssigneeOpen(true);
-                              }}
-                              onFocus={() => setAssigneeOpen(true)}
-                              onBlur={() => setTimeout(() => setAssigneeOpen(false), 120)}
+                              placeholder="Label name..."
+                              value={newLabelName}
+                              onChange={(e) => setNewLabelName(e.target.value)}
                             />
-
-                            {assigneeOpen && availableStudents.length > 0 && (
-                              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-[18px] border border-slate-900/10 bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
-                                <div className="grid gap-2">
-                                  {availableStudents.map((m) => (
-                                    <button
-                                      key={m.user_id}
-                                      type="button"
-                                      className="flex h-11 w-full items-center justify-between gap-3 rounded-[14px] border border-slate-900/10 bg-white px-3 text-left font-extrabold hover:bg-indigo-500/[0.04]"
-                                      onMouseDown={(e) => e.preventDefault()}
-                                      onClick={() => addAssignee(m.user_id)}
-                                    >
-                                      <span className="flex min-w-0 items-center gap-3">
-                                        <span className="grid h-[26px] w-[26px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black">
-                                          {initials(m.full_name)}
-                                        </span>
-
-                                        <span className="min-w-0">
-                                          <span className="block truncate text-[13px] font-black text-slate-900">
-                                            {m.full_name}
-                                          </span>
-                                          <span className="block truncate text-[12px] font-semibold text-slate-500">
-                                            {m.email}
-                                          </span>
-                                        </span>
-                                      </span>
-
-                                      <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                                        Add
-                                      </span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                            <select
+                              className={inputBase}
+                              value={newLabelColor}
+                              onChange={(e) => setNewLabelColor(e.target.value)}
+                            >
+                              <option value="indigo">Indigo</option>
+                              <option value="sky">Sky</option>
+                              <option value="emerald">Emerald</option>
+                              <option value="amber">Amber</option>
+                              <option value="rose">Rose</option>
+                              <option value="violet">Violet</option>
+                              <option value="slate">Slate</option>
+                            </select>
                           </div>
-                        )}
+
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              className={btnPrimary}
+                              type="button"
+                              onClick={createLabel}
+                              disabled={!newLabelName.trim() || !boardId}
+                            >
+                              Create
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -974,7 +1012,7 @@ export default function CardModal({
 
                       {progress && (
                         <div className="mt-2">
-                          <div className="h-2 rounded-full bg-slate-900/10 overflow-hidden">
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-900/10">
                             <div
                               className="h-full rounded-full bg-gradient-to-r from-blue-600/90 to-sky-500/60 transition-[width] duration-200"
                               style={{ width: `${progress.pct}%` }}
@@ -1119,12 +1157,7 @@ export default function CardModal({
                           rows={3}
                         />
                         <div className="flex justify-end">
-                          <button
-                            className={btnPrimary}
-                            type="button"
-                            onClick={addComment}
-                            disabled={!commentBody.trim()}
-                          >
+                          <button className={btnPrimary} type="button" onClick={addComment} disabled={!commentBody.trim()}>
                             Add comment
                           </button>
                         </div>
@@ -1146,9 +1179,7 @@ export default function CardModal({
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-baseline justify-between gap-3">
                                   <div className="truncate font-black text-slate-900">{c.actor_name}</div>
-                                  <div className="shrink-0 text-[12px] font-semibold text-slate-500">
-                                    {c.created_at}
-                                  </div>
+                                  <div className="shrink-0 text-[12px] font-semibold text-slate-500">{c.created_at}</div>
                                 </div>
 
                                 {editingCommentId === c.id ? (
@@ -1229,9 +1260,7 @@ export default function CardModal({
                               <div className="text-[13px] font-black text-slate-900">
                                 {a.actor_name} — {formatActivity(a)}
                               </div>
-                              {a.meta ? (
-                                <div className="mt-1 text-[13px] font-semibold text-slate-500">{a.meta}</div>
-                              ) : null}
+                              {a.meta ? <div className="mt-1 text-[13px] font-semibold text-slate-500">{a.meta}</div> : null}
                               <div className="mt-1.5 text-[12px] font-semibold text-slate-500">{a.created_at}</div>
                             </div>
                           ))}
