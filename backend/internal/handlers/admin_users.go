@@ -7,6 +7,7 @@ import (
 
 	"taskflow/internal/auth"
 	"taskflow/internal/db"
+
 	// "taskflow/internal/middleware"
 	"taskflow/internal/models"
 	"taskflow/internal/utils"
@@ -114,7 +115,7 @@ func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdBy := actorID(r)
+	createdBy := actorID(r, a.conn)
 	boardID, err := db.CreateBoard(a.conn, req.SupervisorFileID, req.Name, req.Description, createdBy)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to create board")
@@ -125,7 +126,6 @@ func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, map[string]any{"id": boardID})
 }
-
 
 func (a *API) AdminListBoardsByFile(w http.ResponseWriter, r *http.Request) {
 	fileIDStr := r.URL.Query().Get("file_id")
@@ -283,7 +283,6 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, 200, out)
 }
-
 
 func (a *API) AdminSearchUsers(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))

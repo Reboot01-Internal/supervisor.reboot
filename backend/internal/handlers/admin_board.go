@@ -107,7 +107,7 @@ func (a *API) AdminCreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := actorID(r)
+	actor := actorID(r, a.conn)
 	_ = db.InsertCardActivity(a.conn, id, actor, "card_created", "Card created")
 
 	writeJSON(w, http.StatusCreated, map[string]any{"id": id})
@@ -136,7 +136,7 @@ func (a *API) AdminMoveCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := actorID(r)
+	actor := actorID(r, a.conn)
 	meta := "Moved to list_id=" + strconv.FormatInt(req.ToListID, 10)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_moved", meta)
 
@@ -233,7 +233,7 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := actorID(r)
+	actor := actorID(r, a.conn)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})

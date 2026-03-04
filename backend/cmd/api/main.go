@@ -45,12 +45,27 @@ func main() {
 	api := handlers.NewAPI(conn)
 
 	r := chi.NewRouter()
+
+	// ✅ CORS FIX
 	r.Use(cors.Handler(cors.Options{
-AllowedOrigins: []string{
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-},		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+			"http://127.0.0.1:5173",
+		},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{
+			"Accept",
+			"Authorization",
+			"Content-Type",
+
+			// ✅ allow your identity headers
+			"X-User-Email",
+			"X-User-Role",
+			"X-User-Login",
+		},
+		ExposedHeaders: []string{
+			"Content-Type",
+		},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
@@ -63,7 +78,7 @@ AllowedOrigins: []string{
 	r.Post("/auth/login", api.Login)
 	r.Get("/auth/me", api.Me)
 
-	// admin (NO AUTH now)
+	// admin
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Post("/users", api.AdminCreateUser)
 		ar.Get("/users", api.AdminSearchUsers)
@@ -123,7 +138,7 @@ AllowedOrigins: []string{
 		ar.Get("/eligible-users", api.AdminEligibleUsers)
 	})
 
-	// supervisor (NO AUTH now)
+	// supervisor
 	r.Route("/supervisor", func(sr chi.Router) {
 		sr.Get("/board-members", api.AdminListBoardMembers)
 		sr.Post("/board-members", api.SupervisorAddBoardMember)
@@ -132,7 +147,6 @@ AllowedOrigins: []string{
 
 	log.Println("API running on http://localhost:" + port)
 	log.Println("Hardcoded login enabled (NO JWT)")
-
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
 

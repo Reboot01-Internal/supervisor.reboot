@@ -1,57 +1,140 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import placeholder from "../placeholder.png";
 
 const AUTH_URL = "https://learn.reboot01.com/api/auth/signin";
-const GRAPHQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
-
-const ROLE_QUERY = `
-query Event_user1 {
-  event_user {
-    userLogin
-    user {
-      email
-      id
-      login
-      role
-    }
-  }
-}
-`;
+const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
 
 function normalizeToken(raw: string) {
   return raw.trim().replace(/^"|"$/g, "");
 }
 
-function norm(s: string) {
-  return (s || "").trim().toLowerCase();
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+
+    const json = atob(padded);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function getIdentityFromJwt(jwt: string): { login?: string; userId?: string; roleFromClaims?: string } {
+  const payload = decodeJwtPayload(jwt) || {};
+  const claims = payload["https://hasura.io/jwt/claims"] || payload["hasura"] || {};
+
+  // Common places:
+  const login =
+    (payload.login as string) ||
+    (payload.sub as string) ||
+    (claims["x-hasura-user-id"] as string) ||
+    (claims["x-hasura-userid"] as string) ||
+    "";
+
+  const roleFromClaims =
+    (claims["x-hasura-default-role"] as string) ||
+    (claims["x-hasura-role"] as string) ||
+    (payload.role as string) ||
+    "";
+
+  // Sometimes user-id is numeric string in claims
+  const userId =
+    (claims["x-hasura-user-id"] as string) ||
+    (payload.user_id as string) ||
+    "";
+
+  return {
+    login: login ? String(login).trim() : undefined,
+    userId: userId ? String(userId).trim() : undefined,
+    roleFromClaims: roleFromClaims ? String(roleFromClaims).trim().toLowerCase() : undefined,
+  };
+}
+
+async function gqlFetch(jwt: string, query: string, variables?: any) {
+  const res = await fetch(GQL_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const json = await res.json();
+  if (!res.ok || json.errors) {
+    const msg = json?.errors?.[0]?.message || "GraphQL request failed";
+    throw new Error(msg);
+  }
+  return json.data;
+}
+
+async function fetchUserByLogin(jwt: string, login: string) {
+  // NOTE: This assumes the schema has `user` table with `login/email/role`.
+  // If your schema uses `users` instead of `user`, tell me and I’ll adjust.
+  const query = `
+    query MeByLogin($login: String!) {
+      user(where: { login: { _eq: $login } }, limit: 1) {
+        email
+        login
+        role
+      }
+    }
+  `;
+  const data = await gqlFetch(jwt, query, { login });
+  return data?.user?.[0] || null;
+}
+
+async function fetchUserById(jwt: string, id: string) {
+  const query = `
+    query MeById($id: Int!) {
+      user(where: { id: { _eq: $id } }, limit: 1) {
+        email
+        login
+        role
+      }
+    }
+  `;
+  const asInt = Number(id);
+  if (!Number.isFinite(asInt)) return null;
+  const data = await gqlFetch(jwt, query, { id: asInt });
+  return data?.user?.[0] || null;
 }
 
 export default function LoginPage() {
   const nav = useNavigate();
 
-  const [email, setEmail] = useState(""); // you might type login OR email here
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+    if (role && email) {
+      if (role === "admin") nav("/admin");
+      else nav("/dashboard");
+    }
+  }, [nav]);
 
   async function onLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    if (!email || !password) {
-      setError("Please enter username/email and password");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const encoded = btoa(`${email}:${password}`);
+      if (!identifier.trim()) throw new Error("Please enter your username or email.");
+      if (!password.trim()) throw new Error("Please enter your password.");
 
-      // 1) LOGIN → get JWT
-      const loginRes = await fetch(AUTH_URL, {
+      // 1) Sign in -> JWT
+      const encoded = btoa(`${identifier.trim()}:${password}`);
+      const authRes = await fetch(AUTH_URL, {
         method: "POST",
         headers: {
           Authorization: `Basic ${encoded}`,
@@ -59,62 +142,42 @@ export default function LoginPage() {
         },
       });
 
-      if (!loginRes.ok) {
-        setError("Invalid login");
-        return;
+      if (!authRes.ok) throw new Error("Invalid login. Please try again.");
+
+      const raw = await authRes.text();
+      const jwt = normalizeToken(raw);
+
+      // 2) Identity from JWT (so we query YOUR user, not event_user[0])
+      const ident = getIdentityFromJwt(jwt);
+
+      let me: any = null;
+
+      if (ident.login) {
+        me = await fetchUserByLogin(jwt, ident.login);
+      }
+      if (!me && ident.userId) {
+        me = await fetchUserById(jwt, ident.userId);
       }
 
-      const rawToken = await loginRes.text();
-      const token = normalizeToken(rawToken);
+      if (!me?.email) throw new Error("Could not find your user record in GraphQL.");
 
-      localStorage.setItem("jwt", token);
+      const email = String(me.email).trim().toLowerCase();
+      const login = String(me.login || ident.login || "").trim();
+      const role = String(me.role || ident.roleFromClaims || "").trim().toLowerCase();
 
-      // 2) CALL GRAPHQL → get users list (event_user)
-      const gqlRes = await fetch(GRAPHQL_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query: ROLE_QUERY }),
-      });
+      if (!role) throw new Error("Could not read your role.");
 
-      if (!gqlRes.ok) {
-        setError("Failed to fetch user role");
-        return;
-      }
-
-      const gqlData = await gqlRes.json();
-      const rows: any[] = gqlData?.data?.event_user ?? [];
-
-      const input = norm(email);
-
-      // 3) FIND THE MATCHING USER (IMPORTANT FIX ✅)
-      const match = rows.find((r) => {
-        const user = r?.user || {};
-        return (
-          norm(user.email) === input ||
-          norm(user.login) === input ||
-          norm(r?.userLogin) === input
-        );
-      });
-
-      const role = norm(match?.user?.role || "");
-
-      if (!role) {
-        setError("Logged in, but could not find your role in GraphQL results.");
-        return;
-      }
-
-      // 4) SAVE ROLE (this will now be YOUR role ✅)
+      // 3) Save
+      localStorage.setItem("jwt", jwt);
+      localStorage.setItem("email", email);
+      localStorage.setItem("login", login);
       localStorage.setItem("role", role);
 
-      // redirect
+      // 4) Redirect
       if (role === "admin") nav("/admin");
       else nav("/dashboard");
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong");
+    } catch (err: any) {
+      setError(err?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -142,8 +205,8 @@ export default function LoginPage() {
               <input
                 type="text"
                 placeholder="Username or Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full h-[46px] px-3.5 rounded-xl border border-[#e5e5e5] text-sm outline-none transition focus:border-[#dc586d] focus:ring-4 focus:ring-[rgba(220,88,109,0.15)]"
               />
 
@@ -166,7 +229,9 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-7.5 text-xs text-center text-[#999]">© {new Date().getFullYear()} Your App</div>
+            <div className="mt-7.5 text-xs text-center text-[#999]">
+              © {new Date().getFullYear()} Your App
+            </div>
           </div>
         </div>
       </div>

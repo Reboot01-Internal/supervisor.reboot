@@ -14,8 +14,8 @@ func GetBoardSupervisorUserID(conn *sql.DB, boardID int64) (int64, error) {
 	return supID, err
 }
 
-func GetUserRole(conn *sql.DB, userID int64) (string, error) {
-	var role string
-	err := conn.QueryRow(`SELECT role FROM users WHERE id = ?`, userID).Scan(&role)
-	return role, err
-}
+// func GetUserRole(conn *sql.DB, userID int64) (string, error) {
+// 	var role string
+// 	err := conn.QueryRow(`SELECT role FROM users WHERE id = ?`, userID).Scan(&role)
+// 	return role, err
+// }

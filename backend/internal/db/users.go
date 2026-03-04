@@ -1,13 +1,12 @@
 package db
 
 import (
-	"database/sql"
 	"strings"
 
 	"taskflow/internal/models"
 )
 
-func GetUserByEmail(conn *sql.DB, email string) (id int64, fullName, passHash, role string, isActive bool, err error) {
+func GetUserByEmail(conn DBTX, email string) (id int64, fullName, passHash, role string, isActive bool, err error) {
 	var activeInt int
 	err = conn.QueryRow(`
 		SELECT id, full_name, password_hash, role, is_active
@@ -20,7 +19,7 @@ func GetUserByEmail(conn *sql.DB, email string) (id int64, fullName, passHash, r
 	return id, fullName, passHash, role, activeInt == 1, nil
 }
 
-func GetUserBasic(conn *sql.DB, id int64) (fullName, email, role string, isActive bool, err error) {
+func GetUserBasic(conn DBTX, id int64) (fullName, email, role string, isActive bool, err error) {
 	var activeInt int
 	err = conn.QueryRow(`
 		SELECT full_name, email, role, is_active
@@ -32,7 +31,7 @@ func GetUserBasic(conn *sql.DB, id int64) (fullName, email, role string, isActiv
 	return fullName, email, role, activeInt == 1, nil
 }
 
-func CreateUser(conn *sql.DB, fullName, email, passHash, role string) (int64, error) {
+func CreateUser(conn DBTX, fullName, email, passHash, role string) (int64, error) {
 	res, err := conn.Exec(`
 		INSERT INTO users (full_name, email, password_hash, role)
 		VALUES (?, ?, ?, ?)
@@ -43,7 +42,7 @@ func CreateUser(conn *sql.DB, fullName, email, passHash, role string) (int64, er
 	return res.LastInsertId()
 }
 
-func SearchUsersByRole(conn *sql.DB, role string, q string) ([]models.User, error) {
+func SearchUsersByRole(conn DBTX, role string, q string) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 
 	rows, err := conn.Query(`
@@ -75,7 +74,7 @@ func SearchUsersByRole(conn *sql.DB, role string, q string) ([]models.User, erro
 	return out, nil
 }
 
-func SearchUsersStudentsAndSupervisors(conn *sql.DB, q string) ([]models.User, error) {
+func SearchUsersStudentsAndSupervisors(conn DBTX, q string) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 
 	rows, err := conn.Query(`

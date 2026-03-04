@@ -1,22 +1,48 @@
 const API_URL = "http://localhost:8080";
 
-// ✅ No token/JWT anymore
-
 export function clearAuth() {
-  // keep only what you still use
   localStorage.removeItem("role");
+  localStorage.removeItem("email");
+  localStorage.removeItem("login");
 }
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+function buildHeaders(options: RequestInit): Record<string, string> {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  // ✅ Only set JSON content-type when we actually send JSON body
+  // (Setting it on GET triggers OPTIONS preflight frequently)
+  const hasBody = options.body !== undefined && options.body !== null;
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (hasBody && !isFormData && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  // ✅ Identity headers for backend actorID()
+  const email = (localStorage.getItem("email") || "").trim();
+  const role = (localStorage.getItem("role") || "").trim();
+  const login = (localStorage.getItem("login") || "").trim();
+
+  if (email) headers["X-User-Email"] = email;
+  if (role) headers["X-User-Role"] = role;
+  if (login) headers["X-User-Login"] = login;
+
+  return headers;
+}
+
+export async function apiFetch(path: string, options: RequestInit = {}) {
+  const headers = buildHeaders(options);
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+  });
 
   const text = await res.text();
   let data: any = null;
+
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
