@@ -14,24 +14,12 @@ type assignUser struct {
 	Role     string `json:"role,omitempty"`
 }
 
-
-func writeJSON2(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+type assignBody struct {
+	SupervisorID int `json:"supervisor_id"`
+	StudentID    int `json:"student_id"`
 }
 
-func writeErr2(w http.ResponseWriter, status int, msg string) {
-	writeJSON2(w, status, map[string]any{
-		"ok":    false,
-		"error": msg,
-	})
-}
 
-/*
-GET /admin/assign/supervisors
-Returns all active supervisors
-*/
 func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Request) {
 	rows, err := api.conn.Query(`
 		SELECT id, full_name, email, role
@@ -40,7 +28,7 @@ func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Reques
 		ORDER BY full_name ASC
 	`)
 	if err != nil {
-		writeErr2(w, 500, err.Error())
+		writeErr(w, 500, err.Error())
 		return
 	}
 	defer rows.Close()
@@ -49,12 +37,12 @@ func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Reques
 	for rows.Next() {
 		var u assignUser
 		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role); err != nil {
-			writeErr2(w, 500, err.Error())
+			writeErr(w, 500, err.Error())
 			return
 		}
 		out = append(out, u)
 	}
-	writeJSON2(w, 200, out)
+	writeJSON(w, 200, out)
 }
 
 /*
@@ -87,7 +75,7 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err != nil {
-		writeErr2(w, 500, err.Error())
+		writeErr(w, 500, err.Error())
 		return
 	}
 	defer rows.Close()
@@ -96,12 +84,12 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 	for rows.Next() {
 		var u assignUser
 		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role); err != nil {
-			writeErr2(w, 500, err.Error())
+			writeErr(w, 500, err.Error())
 			return
 		}
 		out = append(out, u)
 	}
-	writeJSON2(w, 200, out)
+	writeJSON(w, 200, out)
 }
 
 /*
@@ -111,7 +99,7 @@ Returns students assigned to supervisor
 func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 	sid := strings.TrimSpace(r.URL.Query().Get("supervisor_id"))
 	if sid == "" {
-		writeErr2(w, 400, "supervisor_id is required")
+		writeErr(w, 400, "supervisor_id is required")
 		return
 	}
 
@@ -123,7 +111,7 @@ func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 		ORDER BY u.full_name ASC
 	`, sid)
 	if err != nil {
-		writeErr2(w, 500, err.Error())
+		writeErr(w, 500, err.Error())
 		return
 	}
 	defer rows.Close()
@@ -132,17 +120,12 @@ func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var u assignUser
 		if err := rows.Scan(&u.ID, &u.FullName, &u.Email); err != nil {
-			writeErr2(w, 500, err.Error())
+			writeErr(w, 500, err.Error())
 			return
 		}
 		out = append(out, u)
 	}
-	writeJSON2(w, 200, out)
-}
-
-type assignBody struct {
-	SupervisorID int `json:"supervisor_id"`
-	StudentID    int `json:"student_id"`
+	writeJSON(w, 200, out)
 }
 
 /*
@@ -153,11 +136,11 @@ Assign student to supervisor
 func (api *API) AdminAssignAdd(w http.ResponseWriter, r *http.Request) {
 	var body assignBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErr2(w, 400, "invalid json")
+		writeErr(w, 400, "invalid json")
 		return
 	}
 	if body.SupervisorID == 0 || body.StudentID == 0 {
-		writeErr2(w, 400, "supervisor_id and student_id are required")
+		writeErr(w, 400, "supervisor_id and student_id are required")
 		return
 	}
 
@@ -166,26 +149,21 @@ func (api *API) AdminAssignAdd(w http.ResponseWriter, r *http.Request) {
 		VALUES(?, ?)
 	`, body.SupervisorID, body.StudentID)
 	if err != nil {
-		writeErr2(w, 500, err.Error())
+		writeErr(w, 500, err.Error())
 		return
 	}
 
-	writeJSON2(w, 200, map[string]any{"ok": true})
+	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-/*
-POST /admin/assign/remove
-Body: { supervisor_id, student_id }
-Remove assignment
-*/
 func (api *API) AdminAssignRemove(w http.ResponseWriter, r *http.Request) {
 	var body assignBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeErr2(w, 400, "invalid json")
+		writeErr(w, 400, "invalid json")
 		return
 	}
 	if body.SupervisorID == 0 || body.StudentID == 0 {
-		writeErr2(w, 400, "supervisor_id and student_id are required")
+		writeErr(w, 400, "supervisor_id and student_id are required")
 		return
 	}
 
@@ -194,9 +172,9 @@ func (api *API) AdminAssignRemove(w http.ResponseWriter, r *http.Request) {
 		WHERE supervisor_user_id=? AND student_user_id=?
 	`, body.SupervisorID, body.StudentID)
 	if err != nil {
-		writeErr2(w, 500, err.Error())
+		writeErr(w, 500, err.Error())
 		return
 	}
 
-	writeJSON2(w, 200, map[string]any{"ok": true})
+	writeJSON(w, 200, map[string]any{"ok": true})
 }

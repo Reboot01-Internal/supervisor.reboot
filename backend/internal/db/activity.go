@@ -63,8 +63,3 @@ func ListCardActivity(conn *sql.DB, cardID int64, limit int) ([]models.CardActiv
 
 	return out, nil
 }
-func GetCardIDBySubtaskID(conn *sql.DB, subtaskID int64) (int64, error) {
-  var cardID int64
-  err := conn.QueryRow(`SELECT card_id FROM card_subtasks WHERE id = ?`, subtaskID).Scan(&cardID)
-  return cardID, err
-}

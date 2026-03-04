@@ -7,25 +7,6 @@ import (
 	"taskflow/internal/models"
 )
 
-// Get supervisor user id that owns this board (via supervisor_files)
-func GetBoardSupervisorUserID(conn *sql.DB, boardID int64) (int64, error) {
-	var supID int64
-	err := conn.QueryRow(`
-		SELECT sf.supervisor_user_id
-		FROM boards b
-		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
-		WHERE b.id = ?
-	`, boardID).Scan(&supID)
-	return supID, err
-}
-
-func GetUserRole(conn *sql.DB, userID int64) (string, error) {
-	var role string
-	err := conn.QueryRow(`SELECT role FROM users WHERE id = ?`, userID).Scan(&role)
-	return role, err
-}
-
-// ✅ FIXED: uses supervisor_students table (your migration creates supervisor_students)
 func IsStudentAssignedToSupervisor(conn *sql.DB, supervisorID, studentID int64) (bool, error) {
 	var count int
 	err := conn.QueryRow(`
@@ -36,7 +17,6 @@ func IsStudentAssignedToSupervisor(conn *sql.DB, supervisorID, studentID int64) 
 	return count > 0, err
 }
 
-// ✅ Eligible students (assigned to supervisor + optional q)
 func ListEligibleStudentsForSupervisor(conn *sql.DB, supervisorID int64, q string) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 
@@ -72,7 +52,6 @@ func ListEligibleStudentsForSupervisor(conn *sql.DB, supervisorID int64, q strin
 	return out, nil
 }
 
-// ✅ Eligible supervisors (active + optional q)
 func ListEligibleSupervisors(conn *sql.DB, q string) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 

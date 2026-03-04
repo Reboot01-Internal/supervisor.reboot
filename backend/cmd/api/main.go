@@ -59,23 +59,22 @@ func main() {
 	}))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
+	// auth
 	r.Post("/auth/login", api.Login)
-
 	r.With(middleware.RequireAuth(api.JWTSecret(), conn)).
 		Get("/auth/me", api.Me)
 
-	// -------------------------
-	// Admin routes (admin only)
-	// -------------------------
+	// admin
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Use(middleware.RequireAuth(api.JWTSecret(), conn))
 		ar.Use(middleware.RequireRole("admin"))
 
 		ar.Post("/users", api.AdminCreateUser)
-		ar.Get("/users", api.AdminSearchUsers) // keep your existing search
+
+		ar.Get("/users", api.AdminSearchUsers)
 
 		ar.Get("/supervisors", api.AdminListSupervisors)
 		ar.Post("/boards", api.AdminCreateBoard)
@@ -84,10 +83,8 @@ func main() {
 		ar.Post("/board-members", api.AdminAddBoardMember)
 		ar.Get("/board-members", api.AdminListBoardMembers)
 
-		// NEW: eligible students for a board (assigned to that supervisor)
 		ar.Get("/eligible-students", api.AdminEligibleStudents)
 
-		ar.Get("/students", api.AdminSearchStudents)
 		ar.Get("/board", api.AdminGetBoardFull)
 
 		ar.Post("/lists", api.AdminCreateList)
@@ -125,28 +122,21 @@ func main() {
 
 		ar.Get("/all-boards", api.AdminAllBoards)
 
+		// supervisor-student assignments
 		ar.Get("/assign/supervisors", api.AdminAssignListSupervisors)
 		ar.Get("/assign/students", api.AdminAssignListStudents)
 		ar.Get("/assign/list", api.AdminAssignList)
 		ar.Post("/assign", api.AdminAssignAdd)
 		ar.Post("/assign/remove", api.AdminAssignRemove)
-		ar.Get("/eligible-users", api.AdminEligibleUsers)
 	})
 
-	// -------------------------
-	// Supervisor routes (supervisor only)
-	// -------------------------
+	// supervisor
 	r.Route("/supervisor", func(sr chi.Router) {
 		sr.Use(middleware.RequireAuth(api.JWTSecret(), conn))
 		sr.Use(middleware.RequireRole("supervisor"))
 
-		// list members for a board (re-use same handler)
 		sr.Get("/board-members", api.AdminListBoardMembers)
-
-		// supervisor can add member but ONLY for their boards + assigned students only
 		sr.Post("/board-members", api.SupervisorAddBoardMember)
-
-		// eligible students for their board (assigned to them)
 		sr.Get("/eligible-students", api.SupervisorEligibleStudents)
 	})
 
