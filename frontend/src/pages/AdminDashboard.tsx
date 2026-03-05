@@ -55,19 +55,47 @@ function RoleIcon({ role }: { role: Role }) {
 
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
 
-async function fetchRebootUserByLogin(login: string) {
+// ✅ Your cohort mapping (eventId -> Cohort N)
+const COHORT_BY_EVENT_ID: Record<number, string> = {
+  20: "Cohort 1",
+  72: "Cohort 2",
+  250: "Cohort 3",
+  763: "Cohort 4",
+  1195: "Cohort 5",
+  1829: "Cohort 6",
+};
+
+type RebootFetchedUser = {
+  nickname: string;
+  email: string;
+  full_name: string;
+  cohort: string;
+};
+
+async function fetchRebootUserByLogin(login: string): Promise<RebootFetchedUser | null> {
   const jwt = (localStorage.getItem("jwt") || "").trim();
   if (!jwt) throw new Error("Missing Reboot JWT in localStorage (jwt).");
 
+  // ✅ event_user is the source of cohort (eventId mapping)
   const query = `
-    query Event_user1($login: String!) {
-      event_user(where: { userLogin: { _eq: $login } }, limit: 1) {
-        userLogin
-        user {
-          email
-          firstName
-          lastName
+    query GetUserForTaskflow($login: String!) {
+      user(where: { login: { _eq: $login } }, limit: 1) {
+        email
+        firstName
+        lastName
+        login
+      }
+
+      event_user(
+        where: {
+          userLogin: { _eq: $login }
+          eventId: { _in: [20, 72, 250, 763, 1195, 1829] }
         }
+        limit: 1
+      ) {
+        eventId
+        userLogin
+        level
       }
     }
   `;
@@ -82,17 +110,28 @@ async function fetchRebootUserByLogin(login: string) {
   });
 
   const json = await res.json();
-  const row = json?.data?.event_user?.[0];
-  const u = row?.user;
 
-  if (!row || !u?.email) return null;
+  // GraphQL errors handling
+  if (json?.errors?.length) {
+    const msg = json.errors?.[0]?.message || "GraphQL error";
+    throw new Error(msg);
+  }
 
-  const fullName = `${u.firstName || ""} ${u.lastName || ""}`.trim() || row.userLogin;
+  const u = json?.data?.user?.[0];
+  if (!u?.email) return null;
+
+  const fullName = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.login || login;
+
+  const ev = json?.data?.event_user?.[0];
+  const cohort =
+    (ev?.eventId && COHORT_BY_EVENT_ID[Number(ev.eventId)]) ||
+    "Unknown cohort";
 
   return {
-    login: row.userLogin,
+    nickname: u.login || login,
     email: u.email,
     full_name: fullName,
+    cohort,
   };
 }
 
@@ -105,6 +144,7 @@ export default function AdminDashboard() {
   // auto-filled from Reboot
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [cohort, setCohort] = useState("");
 
   const [role, setRole] = useState<Role>("supervisor");
 
@@ -147,6 +187,7 @@ export default function AdminDashboard() {
     if (!login) {
       setFullName("");
       setEmail("");
+      setCohort("");
       setExists(false);
       setErr("");
       setMsg("");
@@ -169,11 +210,13 @@ export default function AdminDashboard() {
           setErr("User not found in Reboot API.");
           setFullName("");
           setEmail("");
+          setCohort("");
           return;
         }
 
         setFullName(u.full_name);
         setEmail(u.email);
+        setCohort(u.cohort);
 
         const res = await apiFetch(`/admin/users/exists?email=${encodeURIComponent(u.email)}`);
         if (!alive) return;
@@ -188,6 +231,7 @@ export default function AdminDashboard() {
         setErr(e?.message || "Failed to fetch user.");
         setFullName("");
         setEmail("");
+        setCohort("");
       } finally {
         setChecking(false);
       }
@@ -213,9 +257,11 @@ export default function AdminDashboard() {
       const res = await apiFetch("/admin/users", {
         method: "POST",
         body: JSON.stringify({
-          full_name: fullName, // from firstName+lastName
-          email,               // from Reboot
-          password: "",        // ✅ backend will generate
+          nickname: nickname.trim(),
+          cohort: cohort || "Unknown cohort",
+          full_name: fullName,
+          email,
+          password: "", // backend generates
           role,
         }),
       });
@@ -226,6 +272,7 @@ export default function AdminDashboard() {
       setNickname("");
       setFullName("");
       setEmail("");
+      setCohort("");
       setExists(false);
 
       await loadDashboardStats();
@@ -256,11 +303,7 @@ export default function AdminDashboard() {
   }, [fullName, nickname, role]);
 
   return (
-    <AdminLayout
-      active="dashboard"
-      title="Admin Dashboard"
-      subtitle="Manage users and supervise the system."
-    >
+    <AdminLayout active="dashboard" title="Admin Dashboard" subtitle="Manage users and supervise the system.">
       {/* KPI row */}
       <section className="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
         {/* Supervisors */}
@@ -330,6 +373,7 @@ export default function AdminDashboard() {
                 setNickname("");
                 setFullName("");
                 setEmail("");
+                setCohort("");
                 setErr("");
                 setMsg("");
                 setExists(false);
@@ -387,12 +431,12 @@ export default function AdminDashboard() {
           </div>
 
           <form onSubmit={createUser} className="mt-3.5 grid gap-3">
-            {/* ✅ Only nickname input */}
+            {/* Only nickname input */}
             <label className="grid gap-1.5">
               <span className="text-xs font-extrabold text-slate-500">Nickname / Login</span>
               <input
                 className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-100"
-                placeholder="e.g. yalsari"
+                placeholder="e.g. ralhlawa"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 autoComplete="off"
@@ -400,11 +444,11 @@ export default function AdminDashboard() {
               {checking ? (
                 <span className="text-xs font-bold text-slate-500">Checking Reboot API…</span>
               ) : (
-                <span className="text-xs font-bold text-slate-500">We’ll auto-fill name + email.</span>
+                <span className="text-xs font-bold text-slate-500">We’ll auto-fill name + email + cohort.</span>
               )}
             </label>
 
-            {/* Preview (same card you had) */}
+            {/* Preview */}
             <div className="grid gap-1.5">
               <span className="text-xs font-extrabold text-slate-500">Preview</span>
 
@@ -415,9 +459,18 @@ export default function AdminDashboard() {
 
                 <div className="min-w-0">
                   <div className="truncate font-black text-slate-900">
-                    {fullName || (nickname.trim() ? nickname.trim() : role === "supervisor" ? "New Supervisor" : "New Student")}
+                    {fullName ||
+                      (nickname.trim()
+                        ? nickname.trim()
+                        : role === "supervisor"
+                        ? "New Supervisor"
+                        : "New Student")}
                   </div>
-
+{nickname.trim() && (
+  <div className="mt-1 text-xs font-extrabold text-slate-500">
+    Nickname: <span className="text-slate-700">{nickname.trim()}</span>
+  </div>
+)}
                   <div className="mt-1.5 flex min-w-0 items-center gap-2">
                     <span
                       className={[
@@ -435,16 +488,18 @@ export default function AdminDashboard() {
                     </span>
                   </div>
 
+                  {cohort && (
+                    <div className="mt-2 text-xs font-bold text-slate-600">
+                      Cohort: <span className="font-extrabold">{cohort}</span>
+                    </div>
+                  )}
+
                   {exists && (
                     <div className="mt-2 text-xs font-extrabold text-amber-700">
                       Already added in TaskFlow.
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-2 text-[13px] text-slate-500">
-                Tip: Use the “Supervisors” button above to open workspaces after creating.
               </div>
             </div>
 

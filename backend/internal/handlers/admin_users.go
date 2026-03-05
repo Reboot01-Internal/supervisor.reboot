@@ -20,10 +20,13 @@ type createUserReq struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Role     string `json:"role"` // supervisor|student
+	Nickname  string `json:"nickname"`  
+	Cohort    string `json:"cohort"` 
 }
 func genTempPassword() (string, error) {
 return "1111",nil
 }
+
 
 func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	var req createUserReq
@@ -36,6 +39,13 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	req.FullName = strings.TrimSpace(req.FullName)
 	req.Password = strings.TrimSpace(req.Password)
 	req.Role = strings.TrimSpace(strings.ToLower(req.Role))
+	req.Nickname = strings.TrimSpace(req.Nickname)
+	req.Cohort = strings.TrimSpace(req.Cohort)
+
+	if req.Nickname == "" {
+		writeErr(w, http.StatusBadRequest, "nickname required")
+		return
+	}
 
 	if req.FullName == "" || req.Email == "" {
 		writeErr(w, http.StatusBadRequest, "full_name and email required")
@@ -46,16 +56,22 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ password optional now (DB still needs password_hash)
-	tempPass := ""
+	// ✅ block duplicates by nickname too
+	if ok, err := db.UserExistsByNickname(a.conn, req.Nickname); err == nil && ok {
+		writeErr(w, http.StatusBadRequest, "nickname already exists")
+		return
+	}
+
+	// ✅ password: generate if empty
+	tempPassword := ""
 	passToHash := req.Password
 	if passToHash == "" {
 		p, err := genTempPassword()
 		if err != nil {
-			writeErr(w, http.StatusInternalServerError, "failed to generate temp password")
+			writeErr(w, http.StatusInternalServerError, "failed to generate password")
 			return
 		}
-		tempPass = p
+		tempPassword = p
 		passToHash = p
 	}
 
@@ -65,13 +81,12 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := db.CreateUser(a.conn, req.FullName, req.Email, passHash, req.Role)
+	userID, err := db.CreateUser(a.conn, req.FullName, req.Email, passHash, req.Role, req.Nickname, req.Cohort)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, "email already exists or invalid")
 		return
 	}
 
-	// auto-create supervisor file
 	if req.Role == "supervisor" {
 		if err := db.EnsureSupervisorFile(a.conn, userID); err != nil {
 			writeErr(w, http.StatusInternalServerError, "failed to create supervisor file")
@@ -83,11 +98,9 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		"id":   userID,
 		"role": req.Role,
 	}
-	// ✅ return generated password so admin can share it if needed
-	if tempPass != "" {
-		resp["temp_password"] = tempPass
+	if tempPassword != "" {
+		resp["temp_password"] = tempPassword
 	}
-
 	writeJSON(w, http.StatusCreated, resp)
 }
 
@@ -400,16 +413,35 @@ func (a *API) AdminEligibleUsers(w http.ResponseWriter, r *http.Request) {
 }
 func (a *API) AdminUserExists(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.URL.Query().Get("email"))
-	if email == "" {
-		writeErr(w, http.StatusBadRequest, "email required")
+	nickname := strings.TrimSpace(r.URL.Query().Get("nickname"))
+
+	if email == "" && nickname == "" {
+		writeErr(w, http.StatusBadRequest, "email or nickname required")
 		return
 	}
 
-	exists, err := db.UserExistsByEmail(a.conn, email) // ✅ FIX: a.conn not api.Conn
+	out := map[string]any{"exists": false}
+
+	if email != "" {
+		exists, err := db.UserExistsByEmail(a.conn, email)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		out["exists"] = exists
+		returnJSON(w, out)
+		return
+	}
+
+	exists, err := db.UserExistsByNickname(a.conn, nickname)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
+	out["exists"] = exists
+	returnJSON(w, out)
+}
 
-	writeJSON(w, http.StatusOK, map[string]any{"exists": exists})
+func returnJSON(w http.ResponseWriter, payload map[string]any) {
+	writeJSON(w, http.StatusOK, payload)
 }

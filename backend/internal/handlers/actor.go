@@ -23,11 +23,9 @@ func actorID(r *http.Request, conn *sql.DB) int64 {
 	}
 
 	// 1) try find user
-	id, fullName, _, userRole, active, err := db.GetUserByEmail(conn, email)
+	id, _, _, _, active, err := db.GetUserByEmail(conn, email)
 	if err == nil && id > 0 {
 		if active {
-			_ = fullName
-			_ = userRole
 			return id
 		}
 		// user exists but inactive → fallback
@@ -43,7 +41,7 @@ func actorID(r *http.Request, conn *sql.DB) int64 {
 	}
 
 	// full_name default = email if we don't have a name
-	newID, err := db.CreateUser(conn, email, email, "", role)
+	newID, err := db.CreateUserMinimal(conn, email, email, "", role)
 	if err == nil && newID > 0 {
 		// if created supervisor, ensure supervisor file exists
 		if role == "supervisor" {

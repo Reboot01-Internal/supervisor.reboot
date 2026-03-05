@@ -137,8 +137,9 @@ func main() {
 		ar.Post("/assign/remove", api.AdminAssignRemove)
 		ar.Get("/eligible-users", api.AdminEligibleUsers)
 		    ar.Get("/users/exists", api.AdminUserExists)
-
 			
+
+
 	})
 
 	// supervisor
@@ -160,6 +161,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/003_card_meta.sql",
 		"migrations/004_comments_attachments_reminders.sql",
 		"migrations/005_supervisor_assignments.sql",
+		"migrations/006_users_nickname_cohort.sql",
 	}
 
 	for _, f := range files {

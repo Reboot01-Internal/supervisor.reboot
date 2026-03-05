@@ -7,6 +7,8 @@ type User struct {
 	Role      string `json:"role"` // admin|supervisor|student
 	IsActive  bool   `json:"is_active"`
 	CreatedAt string `json:"created_at"`
+	Nickname string `json:"nickname"` 
+	Cohort   string `json:"cohort"`  
 }
 
 type SupervisorRow struct {
