@@ -364,6 +364,7 @@ export default function CardModal({
   }, [studentsOnly, assigneeIds, assigneeQuery]);
 
   const cardLabelIds = useMemo(() => new Set(cardLabels.map((x) => x.label_id)), [cardLabels]);
+  const nowStamp = () => new Date().toISOString().slice(0, 19).replace("T", " ");
 
   async function loadAll() {
     if (!open || !cardId) return;
@@ -461,13 +462,22 @@ export default function CardModal({
     setMsg("");
 
     try {
-      await apiFetch("/admin/card/subtasks", {
+      const res = await apiFetch("/admin/card/subtasks", {
         method: "POST",
         body: JSON.stringify({ card_id: card.id, title: subtaskTitle.trim(), due_date: subtaskDue || "" }),
       });
+      setSubtasks((prev) => [
+        ...prev,
+        {
+          id: Number(res?.id),
+          card_id: card.id,
+          title: subtaskTitle.trim(),
+          is_done: false,
+          due_date: subtaskDue || "",
+        },
+      ]);
       setSubtaskTitle("");
       setSubtaskDue("");
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to add subtask");
     }
@@ -485,15 +495,16 @@ export default function CardModal({
         body: JSON.stringify({ subtask_id: id, is_done: isDone }),
       });
       setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, is_done: isDone } : s)));
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to update subtask");
+      setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, is_done: !isDone } : s)));
     }
   }
 
   async function updateSubtaskDue(id: number, due: string) {
     setErr("");
     setMsg("");
+    const prevDue = subtasks.find((s) => s.id === id)?.due_date || "";
     setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, due_date: due } : s)));
 
     try {
@@ -501,10 +512,9 @@ export default function CardModal({
         method: "POST",
         body: JSON.stringify({ subtask_id: id, due_date: due || "" }),
       });
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to update subtask due date");
-      await loadAll();
+      setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, due_date: prevDue } : s)));
     }
   }
 
@@ -517,7 +527,6 @@ export default function CardModal({
         body: JSON.stringify({ subtask_id: id }),
       });
       setSubtasks((prev) => prev.filter((s) => s.id !== id));
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to delete subtask");
     }
@@ -527,14 +536,18 @@ export default function CardModal({
     if (!card) return;
     setErr("");
     setMsg("");
+    const removed = assignees.find((a) => a.user_id === userId);
+    setAssignees((prev) => prev.filter((a) => a.user_id !== userId));
     try {
       await apiFetch("/admin/card/assignees/remove", {
         method: "POST",
         body: JSON.stringify({ card_id: card.id, user_id: userId }),
       });
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to remove assignee");
+      if (removed) {
+        setAssignees((prev) => [removed, ...prev]);
+      }
     }
   }
 
@@ -542,6 +555,13 @@ export default function CardModal({
     if (!card) return;
     setErr("");
     setMsg("");
+    const chosen = studentsOnly.find((s) => s.user_id === userId);
+    if (chosen) {
+      setAssignees((prev) => [
+        ...prev,
+        { user_id: chosen.user_id, full_name: chosen.full_name, email: chosen.email, role: chosen.role },
+      ]);
+    }
     try {
       await apiFetch("/admin/card/assignees/add", {
         method: "POST",
@@ -549,9 +569,9 @@ export default function CardModal({
       });
       setAssigneeQuery("");
       setAssigneeOpen(false);
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to add assignee");
+      setAssignees((prev) => prev.filter((a) => a.user_id !== userId));
     }
   }
 
@@ -561,13 +581,15 @@ export default function CardModal({
     setMsg("");
 
     try {
-      await apiFetch("/admin/labels", {
+      const res = await apiFetch("/admin/labels", {
         method: "POST",
         body: JSON.stringify({ board_id: boardId, name: newLabelName.trim(), color: newLabelColor }),
       });
+      setBoardLabels((prev) => [
+        ...prev,
+        { id: Number(res?.id), board_id: boardId, name: newLabelName.trim(), color: newLabelColor },
+      ]);
       setNewLabelName("");
-      const labels: Label[] = await apiFetch(`/admin/labels?board_id=${boardId}`);
-      setBoardLabels(labels || []);
     } catch (e: any) {
       setErr(e.message || "Failed to create label");
     }
@@ -584,7 +606,14 @@ export default function CardModal({
         method: "POST",
         body: JSON.stringify({ card_id: card.id, label_id: labelId }),
       });
-      await loadAll();
+      if (has) {
+        setCardLabels((prev) => prev.filter((l) => l.label_id !== labelId));
+      } else {
+        const found = boardLabels.find((l) => l.id === labelId);
+        if (found) {
+          setCardLabels((prev) => [...prev, { label_id: found.id, name: found.name, color: found.color }]);
+        }
+      }
     } catch (e: any) {
       setErr(e.message || "Failed to update label");
     }
@@ -595,12 +624,23 @@ export default function CardModal({
     setErr("");
     setMsg("");
     try {
-      await apiFetch("/admin/card/comments", {
+      const res = await apiFetch("/admin/card/comments", {
         method: "POST",
         body: JSON.stringify({ card_id: card.id, body: commentBody.trim() }),
       });
+      setComments((prev) => [
+        ...prev,
+        {
+          id: Number(res?.id),
+          card_id: card.id,
+          actor_user_id: 0,
+          actor_name: "You",
+          body: commentBody.trim(),
+          created_at: nowStamp(),
+          updated_at: nowStamp(),
+        },
+      ]);
       setCommentBody("");
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to add comment");
     }
@@ -620,9 +660,11 @@ export default function CardModal({
         method: "PUT",
         body: JSON.stringify({ comment_id: editingCommentId, card_id: card.id, body: editingBody.trim() }),
       });
+      setComments((prev) =>
+        prev.map((c) => (c.id === editingCommentId ? { ...c, body: editingBody.trim(), updated_at: nowStamp() } : c))
+      );
       setEditingCommentId(null);
       setEditingBody("");
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to update comment");
     }
@@ -632,14 +674,18 @@ export default function CardModal({
     if (!card) return;
     setErr("");
     setMsg("");
+    const backup = comments.find((c) => c.id === id);
+    setComments((prev) => prev.filter((c) => c.id !== id));
     try {
       await apiFetch("/admin/card/comments/delete", {
         method: "POST",
         body: JSON.stringify({ comment_id: id, card_id: card.id }),
       });
-      await loadAll();
     } catch (e: any) {
       setErr(e.message || "Failed to delete comment");
+      if (backup) {
+        setComments((prev) => [...prev, backup]);
+      }
     }
   }
 
