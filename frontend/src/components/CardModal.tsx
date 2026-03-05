@@ -192,12 +192,6 @@ function formatActivity(a: Activity) {
   return map[a.action] || a.action;
 }
 
-function prettyStatus(s: Card["status"]) {
-  if (s === "doing") return "Doing";
-  if (s === "blocked") return "Blocked";
-  if (s === "done") return "Done";
-  return "To Do";
-}
 function prettyPriority(p: Card["priority"]) {
   if (p === "low") return "Low";
   if (p === "high") return "High";
@@ -252,22 +246,24 @@ function labelDotClass(color: string) {
 
 /** slightly more compact controls */
 const inputBase =
-  "h-10 w-full rounded-[14px] border border-slate-900/10 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-indigo-500/35 focus:bg-white focus:ring-4 focus:ring-indigo-500/15";
+  "h-9 w-full rounded-[10px] border border-slate-300 bg-slate-50 px-3 text-[14px] text-slate-900 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-3 focus:ring-sky-100";
 
 const btnPrimary =
-  "h-10 rounded-[14px] px-4 font-extrabold text-white disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_18px_45px_rgba(15,23,42,0.08)] bg-gradient-to-br from-indigo-600 to-violet-500";
+  "h-9 rounded-[10px] px-4 text-[14px] font-extrabold text-white disabled:opacity-70 disabled:cursor-not-allowed shadow-sm bg-slate-800 hover:bg-slate-900";
 
 const btnGhost =
-  "h-10 rounded-[14px] px-4 font-extrabold border border-slate-900/10 bg-slate-50 hover:border-indigo-500/20 hover:bg-indigo-500/10";
+  "h-9 rounded-[10px] px-4 text-[14px] font-extrabold border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100";
 
 const btnSoft =
-  "h-10 rounded-[14px] px-4 font-extrabold border border-slate-900/10 bg-white hover:bg-indigo-500/[0.04]";
+  "h-9 rounded-[10px] px-4 text-[14px] font-extrabold border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
 
 const pillBase =
-  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-extrabold";
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-extrabold";
 
 const section =
-  "rounded-[18px] border border-slate-900/10 bg-white p-3.5 shadow-[0_14px_34px_rgba(15,23,42,0.06)]";
+  "rounded-[14px] border border-slate-200 bg-white p-2.5 shadow-[0_8px_22px_rgba(15,23,42,0.06)] transition hover:shadow-[0_12px_30px_rgba(15,23,42,0.09)]";
+const sectionHead = "mb-1.5 flex items-center justify-between gap-2";
+const sectionTitle = "text-[13px] font-black text-slate-900";
 
 type TabKey = "overview" | "details" | "discussion" | "activity";
 
@@ -285,10 +281,10 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={[
-        "h-10 rounded-full px-4 text-[13px] font-extrabold transition border",
+        "h-9 rounded-full px-3.5 text-[12px] font-extrabold transition border",
         active
-          ? "border-indigo-500/30 bg-indigo-500/10 text-slate-900"
-          : "border-slate-900/10 bg-white text-slate-600 hover:bg-indigo-500/[0.05]",
+          ? "border-sky-300 bg-sky-50 text-slate-900"
+          : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50",
       ].join(" ")}
     >
       {children}
@@ -649,6 +645,7 @@ export default function CardModal({
 
   const cardDueKind: "overdue" | "soon" | "none" =
     isOverdue ? "overdue" : card?.due_date ? "soon" : "none";
+  const isDone = card?.status === "done";
 
   return (
     <Modal
@@ -686,7 +683,7 @@ export default function CardModal({
           ) : (
             <>
               {/* Tabs */}
-              <div className="mb-3 flex flex-wrap gap-2">
+              <div className="mb-2 flex flex-wrap gap-1.5">
                 <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
                   Overview
                 </TabButton>
@@ -702,16 +699,27 @@ export default function CardModal({
               </div>
 
               {/* Tab content (scroll only inside content area) */}
-              <div className="max-h-[62vh] overflow-y-auto overflow-x-hidden pr-[2px]">
+              <div className="dropdownAnim max-h-[58vh] overflow-y-auto overflow-x-hidden pr-[2px]">
                 {tab === "overview" && (
-                  <div className="grid gap-3 xl:grid-cols-12">
+                  <div className="grid gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>Card #{card.id}</span>
+                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>
+                        Due: {card.due_date || "None"}
+                      </span>
+                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>
+                        {assignees.length} assignee{assignees.length === 1 ? "" : "s"}
+                      </span>
+                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>
+                        {cardLabels.length} label{cardLabels.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+
+                    <div className="grid gap-2 xl:grid-cols-12">
                     {/* Row 1: Title + Due */}
-                    <div className={`${section} xl:col-span-7`}>
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-[14px] font-black text-slate-900">Title</div>
-                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">Short and clear</div>
-                        </div>
+                    <div className={`${section} xl:col-span-8`}>
+                      <div className={sectionHead}>
+                        <div className={sectionTitle}>Title</div>
                         <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
                           #{card.id}
                         </span>
@@ -725,9 +733,9 @@ export default function CardModal({
                       />
                     </div>
 
-                    <div className={`${section} xl:col-span-5`}>
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                    <div className={`${section} xl:col-span-4`}>
+                      <div className={sectionHead}>
+                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
                           <ClockIcon /> Due date
                         </div>
 
@@ -737,51 +745,36 @@ export default function CardModal({
                         </span>
                       </div>
 
-                      <div className="grid gap-2">
+                      <div className="flex items-center gap-2">
                         <input
                           className={inputBase}
                           type="date"
                           value={card.due_date || ""}
                           onChange={(e) => setCard({ ...card, due_date: e.target.value })}
                         />
-                        <button className={btnSoft} type="button" onClick={() => setCard({ ...card, due_date: "" })}>
+                        <button className="h-9 rounded-[10px] border border-slate-300 bg-white px-3 text-[13px] font-extrabold text-slate-700 hover:bg-slate-50" type="button" onClick={() => setCard({ ...card, due_date: "" })}>
                           Clear
                         </button>
                       </div>
                     </div>
 
-                    {/* Row 2: Status/Priority + Assignees */}
+                    {/* Row 2: Completion/Priority + Assignees */}
                     <div className={`${section} xl:col-span-7`}>
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[14px] font-black text-slate-900">Status & Priority</div>
-                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">Quick settings</div>
-                        </div>
+                      <div className={sectionHead}>
+                        <div className={sectionTitle}>Completion & Priority</div>
                         <div className="flex flex-wrap gap-2">
-                          <span className={`${pillBase} ${pillStatusClass(card.status)}`}>{prettyStatus(card.status)}</span>
+                          <span className={`${pillBase} ${pillStatusClass(card.status)}`}>
+                            <CheckIcon size={13} />
+                            {isDone ? "Completed" : "Open"}
+                          </span>
                           <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>
                             {prettyPriority(card.priority)}
                           </span>
                         </div>
                       </div>
 
-                      <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="grid gap-2 sm:grid-cols-1">
                         <div>
-                          <div className="mb-1 text-[12px] font-semibold text-slate-500">Status</div>
-                          <select
-                            className={inputBase}
-                            value={card.status || "todo"}
-                            onChange={(e) => setCard({ ...card, status: e.target.value as any })}
-                          >
-                            <option value="todo">To Do</option>
-                            <option value="doing">Doing</option>
-                            <option value="blocked">Blocked</option>
-                            <option value="done">Done</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <div className="mb-1 text-[12px] font-semibold text-slate-500">Priority</div>
                           <select
                             className={inputBase}
                             value={card.priority || "medium"}
@@ -797,11 +790,8 @@ export default function CardModal({
                     </div>
 
                     <div className={`${section} xl:col-span-5`}>
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[14px] font-black text-slate-900">Assignees</div>
-                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">Assign students</div>
-                        </div>
+                      <div className={sectionHead}>
+                        <div className={sectionTitle}>Assignees</div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
                           {assignees.length}
                         </span>
@@ -833,7 +823,7 @@ export default function CardModal({
                         </div>
                       )}
 
-                      <div className="h-2" />
+                      <div className="h-1.5" />
 
                       {studentsOnly.length === 0 ? (
                         <div className="text-[13px] font-semibold text-slate-500">
@@ -854,7 +844,7 @@ export default function CardModal({
                           />
 
                           {assigneeOpen && availableStudents.length > 0 && (
-                            <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-[18px] border border-slate-900/10 bg-white p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
+                            <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-[14px] border border-slate-900/10 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
                               <div className="grid gap-2">
                                 {availableStudents.map((m) => (
                                   <button
@@ -893,8 +883,8 @@ export default function CardModal({
 
                     {/* Row 3: Labels (two-column inside, no wasted horizontal space) */}
                     <div className={`${section} xl:col-span-12`}>
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                      <div className={sectionHead}>
+                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
                           <TagIcon /> Labels
                         </div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
@@ -902,7 +892,7 @@ export default function CardModal({
                         </span>
                       </div>
 
-                      <div className="grid gap-3 lg:grid-cols-[1fr_420px] lg:items-start">
+                      <div className="grid gap-2 lg:grid-cols-[1fr_360px] lg:items-start">
                         {/* Existing labels list */}
                         <div>
                           {boardLabels.length === 0 ? (
@@ -918,6 +908,7 @@ export default function CardModal({
                                     onClick={() => toggleLabel(l.id)}
                                     className={[
                                       "flex h-10 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold",
+                                      "text-[13px]",
                                       active
                                         ? "border-indigo-500/35 bg-indigo-500/10"
                                         : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
@@ -936,7 +927,7 @@ export default function CardModal({
                         </div>
 
                         {/* Create label box */}
-                        <div className="rounded-[16px] border border-slate-900/10 bg-slate-50 p-3">
+                        <div className="rounded-[12px] border border-slate-900/10 bg-slate-50 p-2.5">
                           <div className="mb-2 text-[12px] font-extrabold text-slate-700">Create a new label</div>
                           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                             <input
@@ -973,35 +964,36 @@ export default function CardModal({
                         </div>
                       </div>
                     </div>
+                    </div>
                   </div>
                 )}
 
                 {tab === "details" && (
-                  <div className="grid gap-[14px]">
+                  <div className="grid gap-2.5">
                     <div className={section}>
-                      <div className="mb-[10px]">
-                        <div className="text-[14px] font-black text-slate-900">Description</div>
-                        <div className="mt-[2px] text-[12px] font-semibold text-slate-500">
-                          Notes, requirements, links
-                        </div>
+                      <div className={sectionHead}>
+                        <div className={sectionTitle}>Description</div>
+                        <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-600`}>
+                          Notes
+                        </span>
                       </div>
 
                       <textarea
-                        className={inputBase + " h-auto min-h-[160px] py-3"}
+                        className={inputBase + " h-auto min-h-[120px] py-2.5"}
                         value={card.description}
                         onChange={(e) => setCard({ ...card, description: e.target.value })}
-                        placeholder="Write details..."
-                        rows={8}
+                        placeholder="Notes, requirements, links..."
+                        rows={5}
                       />
                     </div>
 
                     <div className={section}>
-                      <div className="mb-[10px] flex items-center justify-between gap-3">
+                      <div className={sectionHead}>
                         <div>
-                          <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                          <div className={`flex items-center gap-2 ${sectionTitle}`}>
                             <CheckIcon /> Checklist
                           </div>
-                          <div className="mt-[2px] text-[12px] font-semibold text-slate-500">
+                          <div className="mt-[1px] text-[11px] font-semibold text-slate-500">
                             {progress ? `${progress.done}/${progress.total} completed` : "No subtasks yet"}
                           </div>
                         </div>
@@ -1011,8 +1003,8 @@ export default function CardModal({
                       </div>
 
                       {progress && (
-                        <div className="mt-2">
-                          <div className="h-2 overflow-hidden rounded-full bg-slate-900/10">
+                        <div className="mt-1.5">
+                          <div className="h-1.5 overflow-hidden rounded-full bg-slate-900/10">
                             <div
                               className="h-full rounded-full bg-gradient-to-r from-blue-600/90 to-sky-500/60 transition-[width] duration-200"
                               style={{ width: `${progress.pct}%` }}
@@ -1021,7 +1013,7 @@ export default function CardModal({
                         </div>
                       )}
 
-                      <div className="h-3" />
+                      <div className="h-1.5" />
 
                       <div className="grid gap-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1060,7 +1052,7 @@ export default function CardModal({
                         </div>
                       </div>
 
-                      <div className="h-3" />
+                      <div className="h-1.5" />
 
                       {subtasks.length > 0 && (
                         <div className="grid gap-2">
@@ -1072,7 +1064,7 @@ export default function CardModal({
                               <div
                                 key={s.id}
                                 className={[
-                                  "rounded-[16px] border border-slate-900/10 bg-blue-500/[0.03] p-3 transition",
+                                  "rounded-[12px] border border-slate-900/10 bg-blue-500/[0.03] p-2.5 transition",
                                   "hover:-translate-y-[1px] hover:border-blue-500/20 hover:bg-blue-500/[0.05]",
                                   doneAnimId === s.id ? "animate-[cmPop_0.28s_ease]" : "",
                                 ].join(" ")}
@@ -1088,7 +1080,7 @@ export default function CardModal({
 
                                   <div
                                     className={[
-                                      "flex-1 text-[14px] font-semibold",
+                                      "flex-1 text-[13px] font-semibold",
                                       s.is_done ? "text-slate-500 line-through" : "text-slate-900",
                                     ].join(" ")}
                                   >
@@ -1113,8 +1105,8 @@ export default function CardModal({
                                   </button>
                                 </div>
 
-                                <div className="mt-3 flex flex-wrap items-center gap-2">
-                                  <div className="text-[12px] font-semibold text-slate-500">Subtask due date</div>
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  <div className="text-[11px] font-semibold text-slate-500">Subtask due</div>
 
                                   <input
                                     className={inputBase + " max-w-[220px]"}
@@ -1137,10 +1129,10 @@ export default function CardModal({
                 )}
 
                 {tab === "discussion" && (
-                  <div className="grid gap-[14px]">
+                  <div className="grid gap-2.5">
                     <div className={section}>
-                      <div className="mb-[10px] flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                      <div className={sectionHead}>
+                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
                           <ChatIcon /> Comments
                         </div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
@@ -1150,11 +1142,11 @@ export default function CardModal({
 
                       <div className="grid gap-2">
                         <textarea
-                          className={inputBase + " h-auto py-3"}
+                          className={inputBase + " h-auto py-2.5"}
                           placeholder="Write a comment..."
                           value={commentBody}
                           onChange={(e) => setCommentBody(e.target.value)}
-                          rows={3}
+                          rows={2}
                         />
                         <div className="flex justify-end">
                           <button className={btnPrimary} type="button" onClick={addComment} disabled={!commentBody.trim()}>
@@ -1166,29 +1158,29 @@ export default function CardModal({
                       {comments.length === 0 ? (
                         <div className="mt-3 text-[13px] font-semibold text-slate-500">No comments yet.</div>
                       ) : (
-                        <div className="mt-3 grid gap-3">
+                        <div className="mt-2 grid gap-2">
                           {comments.slice(0, 60).map((c) => (
                             <div
                               key={c.id}
-                              className="flex gap-3 rounded-[14px] border border-slate-900/10 bg-white/85 p-3"
+                              className="flex gap-2.5 rounded-[12px] border border-slate-200 bg-white/90 p-2.5"
                             >
-                              <div className="grid h-[34px] w-[34px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black text-slate-800">
+                              <div className="grid h-[30px] w-[30px] place-items-center rounded-full border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-800">
                                 {initials(c.actor_name)}
                               </div>
 
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-baseline justify-between gap-3">
-                                  <div className="truncate font-black text-slate-900">{c.actor_name}</div>
-                                  <div className="shrink-0 text-[12px] font-semibold text-slate-500">{c.created_at}</div>
+                                  <div className="truncate text-[13px] font-black text-slate-900">{c.actor_name}</div>
+                                  <div className="shrink-0 text-[11px] font-semibold text-slate-500">{c.created_at}</div>
                                 </div>
 
                                 {editingCommentId === c.id ? (
                                   <div className="mt-2 grid gap-2">
                                     <textarea
-                                      className={inputBase + " h-auto py-3"}
+                                      className={inputBase + " h-auto py-2.5"}
                                       value={editingBody}
                                       onChange={(e) => setEditingBody(e.target.value)}
-                                      rows={3}
+                                      rows={2}
                                     />
                                     <div className="flex justify-end gap-2">
                                       <button
@@ -1212,7 +1204,7 @@ export default function CardModal({
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="mt-2 whitespace-pre-wrap text-[14px] font-semibold text-slate-900">
+                                  <div className="mt-1.5 whitespace-pre-wrap text-[13px] font-semibold text-slate-900">
                                     {c.body}
                                   </div>
                                 )}
@@ -1237,10 +1229,10 @@ export default function CardModal({
                 )}
 
                 {tab === "activity" && (
-                  <div className="grid gap-[14px]">
+                  <div className="grid gap-2.5">
                     <div className={section}>
-                      <div className="mb-[10px] flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-[14px] font-black text-slate-900">
+                      <div className={sectionHead}>
+                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
                           <ActivityIcon /> Activity
                         </div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
@@ -1255,13 +1247,13 @@ export default function CardModal({
                           {activities.slice(0, 80).map((a) => (
                             <div
                               key={a.id}
-                              className="rounded-[14px] border border-slate-900/10 bg-slate-50 px-3 py-2 text-[13px]"
+                              className="rounded-[12px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-[12px]"
                             >
-                              <div className="text-[13px] font-black text-slate-900">
+                              <div className="text-[12px] font-black text-slate-900">
                                 {a.actor_name} — {formatActivity(a)}
                               </div>
-                              {a.meta ? <div className="mt-1 text-[13px] font-semibold text-slate-500">{a.meta}</div> : null}
-                              <div className="mt-1.5 text-[12px] font-semibold text-slate-500">{a.created_at}</div>
+                              {a.meta ? <div className="mt-1 text-[12px] font-semibold text-slate-500">{a.meta}</div> : null}
+                              <div className="mt-1 text-[11px] font-semibold text-slate-500">{a.created_at}</div>
                             </div>
                           ))}
                         </div>

@@ -152,12 +152,14 @@ function CardItem({
   preview,
   onOpen,
   onToggleDone,
+  index = 0,
   isOverlay = false,
 }: {
   card: Card;
   preview?: CardPreview;
   onOpen: (cardId: number) => void;
   onToggleDone: (cardId: number, nextDone: boolean) => void;
+  index?: number;
   isOverlay?: boolean;
 }) {
   const sortable = useSortable({
@@ -170,6 +172,7 @@ function CardItem({
     transform: CSS.Transform.toString(sortable.transform),
     transition: isOverlay ? undefined : sortable.transition,
     opacity: sortable.isDragging ? 0.65 : 1,
+    animationDelay: isOverlay ? undefined : `${Math.min(index, 12) * 28}ms`,
   };
 
   const progressPct =
@@ -192,8 +195,9 @@ function CardItem({
       ref={sortable.setNodeRef}
       style={style}
       className={[
-        "rounded-xl border bg-white shadow-sm transition",
+        "boardCardIn rounded-xl border bg-white shadow-sm transition",
         "border-slate-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50/40 hover:shadow-md",
+        "active:scale-[0.997]",
         isOverlay ? "shadow-lg ring-1 ring-slate-200/70" : "",
       ].join(" ")}
     >
@@ -239,7 +243,10 @@ function CardItem({
           )}
 
           <div
-            className="font-extrabold text-slate-900 truncate cursor-default"
+            className={[
+              "font-extrabold text-slate-900 truncate cursor-default transition",
+              isDone ? "text-slate-500 line-through decoration-slate-300" : "",
+            ].join(" ")}
             onDoubleClick={() => onOpen(card.id)}
             title="Double click to open"
           >
@@ -254,7 +261,7 @@ function CardItem({
               className={[
                 "h-7 px-2.5 inline-flex items-center gap-1.5 rounded-full border text-xs font-extrabold transition",
                 isDone
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 animDone"
                   : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100",
               ].join(" ")}
               title={isDone ? "Mark as not done" : "Mark as done"}
@@ -348,6 +355,7 @@ function ListColumn({
   onAddCard,
   onOpenCard,
   onToggleDone,
+  columnIndex,
 }: {
   list: List;
   cards: Card[];
@@ -355,6 +363,7 @@ function ListColumn({
   onAddCard: (listId: number) => void;
   onOpenCard: (cardId: number) => void;
   onToggleDone: (cardId: number, nextDone: boolean) => void;
+  columnIndex: number;
 }) {
   const drop = useDroppable({
     id: `list:${list.id}`,
@@ -363,8 +372,9 @@ function ListColumn({
 
   return (
     <div
+      style={{ animationDelay: `${Math.min(columnIndex, 8) * 45}ms` }}
       className={[
-        "w-[332px] shrink-0 rounded-xl border bg-slate-100/90 shadow-sm overflow-hidden",
+        "boardColumnIn w-[332px] shrink-0 rounded-xl border bg-slate-100/90 shadow-sm overflow-hidden",
         "border-slate-200 transition hover:-translate-y-0.5 hover:shadow-md",
         drop.isOver ? "border-sky-300 ring-2 ring-sky-100" : "",
       ].join(" ")}
@@ -388,8 +398,15 @@ function ListColumn({
 
       <div ref={drop.setNodeRef} className="p-3 grid gap-2 min-h-[120px] bg-slate-100/80">
         <SortableContext items={cards.map((c) => `card:${c.id}`)} strategy={verticalListSortingStrategy}>
-          {cards.map((c) => (
-            <CardItem key={c.id} card={c} preview={previews[c.id]} onOpen={onOpenCard} onToggleDone={onToggleDone} />
+          {cards.map((c, idx) => (
+            <CardItem
+              key={c.id}
+              card={c}
+              preview={previews[c.id]}
+              onOpen={onOpenCard}
+              onToggleDone={onToggleDone}
+              index={idx}
+            />
           ))}
         </SortableContext>
 
@@ -498,6 +515,14 @@ export default function BoardPage() {
     for (const k of Object.keys(map)) map[Number(k)].sort((a, b) => a.position - b.position);
 
     return map;
+  }, [data]);
+
+  const boardStats = useMemo(() => {
+    const cards = data?.cards ?? [];
+    const total = cards.length;
+    const done = cards.filter((c) => (c.status || "todo").toLowerCase() === "done").length;
+    const overdue = cards.filter((c) => c.due_date && isDateOverdue(c.due_date)).length;
+    return { total, done, overdue };
   }, [data]);
 
   async function createList(e: React.FormEvent) {
@@ -696,6 +721,33 @@ export default function BoardPage() {
 
       {!loading && data && (
         <div className="grid gap-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[18px] font-black tracking-[-0.02em] text-slate-900">{data.name}</div>
+                <div className="mt-1 text-[13px] font-semibold text-slate-500">
+                  Organize work by list, mark done on cards, and open card modal for details.
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="h-8 px-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-extrabold text-slate-700">
+                  {listsSorted.length} Lists
+                </span>
+                <span className="h-8 px-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-extrabold text-slate-700">
+                  {boardStats.total} Cards
+                </span>
+                <span className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-[12px] font-extrabold text-emerald-700">
+                  <CircleCheckIcon size={12} />
+                  {boardStats.done} Done
+                </span>
+                <span className="h-8 px-3 inline-flex items-center rounded-full border border-rose-200 bg-rose-50 text-[12px] font-extrabold text-rose-700">
+                  {boardStats.overdue} Overdue
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* add list */}
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-3">
             <form onSubmit={createList} className="flex items-center gap-3">
@@ -705,7 +757,7 @@ export default function BoardPage() {
 
               <input
                 className="h-11 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 outline-none focus:bg-white focus:ring-4 focus:ring-sky-100 focus:border-sky-300"
-                placeholder="Add a list (To Do, Doing, Done...)"
+                placeholder="Add a new list"
                 value={newListTitle}
                 onChange={(e) => setNewListTitle(e.target.value)}
               />
@@ -726,9 +778,9 @@ export default function BoardPage() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
           >
-            <div className="overflow-x-auto pb-2 rounded-xl border border-slate-200 bg-[#f1f2f4] p-3">
+            <div className="overflow-x-auto pb-2 rounded-xl border border-slate-200 bg-[linear-gradient(180deg,#f6f7f8_0%,#eef1f3_100%)] p-3">
               <div className="flex gap-4 items-start min-h-[380px]">
-                {listsSorted.map((l) => (
+                {listsSorted.map((l, colIdx) => (
                   <ListColumn
                     key={l.id}
                     list={l}
@@ -737,6 +789,7 @@ export default function BoardPage() {
                     onAddCard={createCard}
                     onOpenCard={onOpenCard}
                     onToggleDone={toggleCardDone}
+                    columnIndex={colIdx}
                   />
                 ))}
 
@@ -763,6 +816,7 @@ export default function BoardPage() {
                   preview={previews[activeCardSnapshot.id]}
                   onOpen={onOpenCard}
                   onToggleDone={toggleCardDone}
+                  index={0}
                   isOverlay
                 />
               ) : null}
