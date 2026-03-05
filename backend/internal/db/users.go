@@ -162,3 +162,20 @@ func CreateUserMinimal(conn DBTX, fullName, email, passHash, role string) (int64
 	// nickname/cohort can be empty for dev auto-create
 	return CreateUser(conn, fullName, email, passHash, role, "", "")
 }
+func GetBoardMemberIDs(conn DBTX, boardID int64) (map[int64]bool, error) {
+  rows, err := conn.Query(`SELECT user_id FROM board_members WHERE board_id = ?`, boardID)
+  if err != nil {
+    return nil, err
+  }
+  defer rows.Close()
+
+  m := map[int64]bool{}
+  for rows.Next() {
+    var id int64
+    if err := rows.Scan(&id); err != nil {
+      return nil, err
+    }
+    m[id] = true
+  }
+  return m, nil
+}

@@ -17,7 +17,15 @@ func AddBoardMember(conn *sql.DB, boardID, userID int64, roleInBoard string) err
 
 func ListBoardMembers(conn *sql.DB, boardID int64) ([]models.BoardMember, error) {
 	rows, err := conn.Query(`
-		SELECT u.id, u.full_name, u.email, u.role, bm.role_in_board, bm.added_at
+		SELECT
+			u.id,
+			u.full_name,
+			u.email,
+			u.role,
+			IFNULL(u.nickname,''),
+			IFNULL(u.cohort,''),
+			bm.role_in_board,
+			bm.added_at
 		FROM board_members bm
 		JOIN users u ON u.id = bm.user_id
 		WHERE bm.board_id = ?
@@ -31,7 +39,16 @@ func ListBoardMembers(conn *sql.DB, boardID int64) ([]models.BoardMember, error)
 	out := []models.BoardMember{}
 	for rows.Next() {
 		var m models.BoardMember
-		if err := rows.Scan(&m.UserID, &m.FullName, &m.Email, &m.Role, &m.RoleInBoard, &m.AddedAt); err != nil {
+		if err := rows.Scan(
+			&m.UserID,
+			&m.FullName,
+			&m.Email,
+			&m.Role,
+			&m.Nickname,
+			&m.Cohort,
+			&m.RoleInBoard,
+			&m.AddedAt,
+		); err != nil {
 			return nil, err
 		}
 		out = append(out, m)

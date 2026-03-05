@@ -15,10 +15,11 @@ type SupervisorRow struct {
 	SupervisorUserID int64  `json:"supervisor_user_id"`
 	FullName         string `json:"full_name"`
 	Email            string `json:"email"`
+	Nickname         string `json:"nickname"`
+	Cohort           string `json:"cohort"`
 	FileID           int64  `json:"file_id"`
 	CreatedAt        string `json:"created_at"`
 }
-
 type Board struct {
 	ID               int64  `json:"id"`
 	SupervisorFileID int64  `json:"supervisor_file_id"`
@@ -33,6 +34,8 @@ type BoardMember struct {
 	FullName    string `json:"full_name"`
 	Email       string `json:"email"`
 	Role        string `json:"role"` // admin/supervisor/student
+	Nickname    string `json:"nickname"`
+	Cohort      string `json:"cohort"`
 	RoleInBoard string `json:"role_in_board"`
 	AddedAt     string `json:"added_at"`
 }

@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('admin','supervisor','student')),
   is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  nickname TEXT NOT NULL,
+  cohort TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS supervisor_files (

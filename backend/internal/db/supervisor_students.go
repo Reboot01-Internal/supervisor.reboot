@@ -17,23 +17,25 @@ func IsStudentAssignedToSupervisor(conn *sql.DB, supervisorID, studentID int64) 
 	return count > 0, err
 }
 
-func ListEligibleStudentsForSupervisor(conn *sql.DB, supervisorID int64, q string) ([]models.User, error) {
+func ListEligibleStudentsForSupervisor(conn DBTX, supervisorUserID int64, q string) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 
 	rows, err := conn.Query(`
-		SELECT u.id, u.full_name, u.email, u.role, u.is_active, u.created_at
-		FROM users u
-		JOIN supervisor_students ss ON ss.student_user_id = u.id
+		SELECT 
+			u.id, u.full_name, u.email, u.role, u.is_active, u.created_at,
+			IFNULL(u.nickname,''), IFNULL(u.cohort,'')
+		FROM supervisor_students ss
+		JOIN users u ON u.id = ss.student_user_id
 		WHERE ss.supervisor_user_id = ?
-		  AND u.role = 'student'
 		  AND u.is_active = 1
 		  AND (
 		    LOWER(u.full_name) LIKE '%' || LOWER(?) || '%'
 		    OR LOWER(u.email) LIKE '%' || LOWER(?) || '%'
+		    OR LOWER(IFNULL(u.nickname,'')) LIKE '%' || LOWER(?) || '%'
 		  )
 		ORDER BY u.full_name ASC
 		LIMIT 25
-	`, supervisorID, q, q)
+	`, supervisorUserID, q, q, q)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +45,10 @@ func ListEligibleStudentsForSupervisor(conn *sql.DB, supervisorID int64, q strin
 	for rows.Next() {
 		var u models.User
 		var activeInt int
-		if err := rows.Scan(&u.ID, &u.FullName, &u.Email, &u.Role, &activeInt, &u.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&u.ID, &u.FullName, &u.Email, &u.Role, &activeInt, &u.CreatedAt,
+			&u.Nickname, &u.Cohort,
+		); err != nil {
 			return nil, err
 		}
 		u.IsActive = activeInt == 1

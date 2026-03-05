@@ -1,1 +1,1 @@
-ALTER TABLE cards ADD COLUMN status TEXT DEFAULT 'todo';
+select * from users;

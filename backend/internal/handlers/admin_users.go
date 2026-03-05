@@ -107,7 +107,14 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) AdminListSupervisors(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.conn.Query(`
-		SELECT u.id, u.full_name, u.email, sf.id, sf.created_at
+		SELECT
+			u.id,
+			u.full_name,
+			u.email,
+			IFNULL(u.nickname,''),
+			IFNULL(u.cohort,''),
+			sf.id,
+			sf.created_at
 		FROM users u
 		JOIN supervisor_files sf ON sf.supervisor_user_id = u.id
 		WHERE u.role = 'supervisor' AND u.is_active = 1
@@ -122,7 +129,15 @@ func (a *API) AdminListSupervisors(w http.ResponseWriter, r *http.Request) {
 	out := []models.SupervisorRow{}
 	for rows.Next() {
 		var s models.SupervisorRow
-		if err := rows.Scan(&s.SupervisorUserID, &s.FullName, &s.Email, &s.FileID, &s.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&s.SupervisorUserID,
+			&s.FullName,
+			&s.Email,
+			&s.Nickname,
+			&s.Cohort,
+			&s.FileID,
+			&s.CreatedAt,
+		); err != nil {
 			writeErr(w, http.StatusInternalServerError, "scan error")
 			return
 		}
