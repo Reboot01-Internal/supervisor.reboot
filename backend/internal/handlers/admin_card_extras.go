@@ -142,6 +142,14 @@ type createLabelReq struct {
 }
 
 func (a *API) AdminCreateLabel(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can create labels")
+		return
+	}
 	var req createLabelReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -191,6 +199,14 @@ type updateLabelReq struct {
 }
 
 func (a *API) AdminUpdateLabel(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can update labels")
+		return
+	}
 	var req updateLabelReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -214,6 +230,14 @@ type deleteLabelReq struct {
 }
 
 func (a *API) AdminDeleteLabel(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can delete labels")
+		return
+	}
 	var req deleteLabelReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -236,6 +260,14 @@ type cardLabelReq struct {
 }
 
 func (a *API) AdminAddCardLabel(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can edit card labels")
+		return
+	}
 	var req cardLabelReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -255,6 +287,14 @@ func (a *API) AdminAddCardLabel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) AdminRemoveCardLabel(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can edit card labels")
+		return
+	}
 	var req cardLabelReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -285,6 +325,10 @@ type addCommentReq struct {
 }
 
 func (a *API) AdminAddComment(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
 	var req addCommentReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -295,8 +339,23 @@ func (a *API) AdminAddComment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "card_id and body required")
 		return
 	}
-
 	actor := actorID(r, a.conn)
+	if role == "student" {
+		boardID, err := db.GetBoardIDByCardID(a.conn, req.CardID)
+		if err != nil || boardID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid card")
+			return
+		}
+		ok, err := db.IsBoardMember(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusForbidden, "not a member of this board")
+			return
+		}
+	}
 	id, err := db.CreateCardComment(a.conn, req.CardID, actor, req.Body)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed")
@@ -314,6 +373,14 @@ type updateCommentReq struct {
 }
 
 func (a *API) AdminUpdateComment(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can edit comments")
+		return
+	}
 	var req updateCommentReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -339,6 +406,14 @@ type deleteCommentReq struct {
 }
 
 func (a *API) AdminDeleteComment(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can delete comments")
+		return
+	}
 	var req deleteCommentReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -548,6 +623,14 @@ type createSubtaskReq struct {
 }
 
 func (a *API) AdminCreateSubtask(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can create checklist items")
+		return
+	}
 	var req createSubtaskReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -579,6 +662,10 @@ type toggleSubtaskReq struct {
 }
 
 func (a *API) AdminToggleSubtask(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
 	var req toggleSubtaskReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -588,6 +675,27 @@ func (a *API) AdminToggleSubtask(w http.ResponseWriter, r *http.Request) {
 	if req.SubtaskID == 0 {
 		writeErr(w, http.StatusBadRequest, "subtask_id required")
 		return
+	}
+	if role == "student" {
+		cardID, err := db.GetCardIDBySubtaskID(a.conn, req.SubtaskID)
+		if err != nil || cardID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid subtask")
+			return
+		}
+		boardID, err := db.GetBoardIDByCardID(a.conn, cardID)
+		if err != nil || boardID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid card")
+			return
+		}
+		ok, err := db.IsBoardMember(a.conn, boardID, actorID(r, a.conn))
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusForbidden, "not a member of this board")
+			return
+		}
 	}
 
 	if err := db.ToggleSubtaskDone(a.conn, req.SubtaskID, req.IsDone); err != nil {
@@ -609,6 +717,14 @@ type deleteSubtaskReq struct {
 }
 
 func (a *API) AdminDeleteSubtask(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can delete checklist items")
+		return
+	}
 	var req deleteSubtaskReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -640,6 +756,14 @@ type updateSubtaskDueReq struct {
 }
 
 func (a *API) AdminUpdateSubtaskDue(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can edit checklist items")
+		return
+	}
 	var req updateSubtaskDueReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -672,6 +796,14 @@ type updateSubtaskReq struct {
 }
 
 func (a *API) AdminUpdateSubtask(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can edit checklist items")
+		return
+	}
 	var req updateSubtaskReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -716,6 +848,14 @@ type addAssigneeReq struct {
 }
 
 func (a *API) AdminAddAssignee(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can manage assignees")
+		return
+	}
 	var req addAssigneeReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")
@@ -738,6 +878,14 @@ func (a *API) AdminAddAssignee(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) AdminRemoveAssignee(w http.ResponseWriter, r *http.Request) {
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can manage assignees")
+		return
+	}
 	var req addAssigneeReq
 	if err := utils.ReadJSON(r, &req); err != nil {
 		writeErr(w, http.StatusBadRequest, "bad json")

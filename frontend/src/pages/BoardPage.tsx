@@ -891,8 +891,8 @@ export default function BoardPage() {
 
   const pageTitle = data ? data.name : `Board #${boardID}`;
   const from = new URLSearchParams(location.search).get("from");
-  const layoutActive = from === "boards" ? "boards" : "supervisors";
   const role = (localStorage.getItem("role") || "").trim().toLowerCase();
+  const layoutActive = role === "admin" ? (from === "boards" ? "boards" : "supervisors") : "boards";
   const isAdmin = role === "admin";
   const canManage = role === "admin" || role === "supervisor";
 

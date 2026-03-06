@@ -81,3 +81,20 @@ func DeleteBoardMember(conn *sql.DB, boardID, userID int64) (bool, error) {
 	}
 	return affected > 0, nil
 }
+
+func IsBoardMember(conn *sql.DB, boardID, userID int64) (bool, error) {
+	var exists int
+	err := conn.QueryRow(`
+		SELECT 1
+		FROM board_members
+		WHERE board_id = ? AND user_id = ?
+		LIMIT 1
+	`, boardID, userID).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}

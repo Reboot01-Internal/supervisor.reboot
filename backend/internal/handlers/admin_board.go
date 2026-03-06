@@ -24,6 +24,30 @@ func (a *API) AdminGetBoardFull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	actor := actorID(r, a.conn)
+	if role == "supervisor" {
+		supID, err := db.GetBoardSupervisorUserID(a.conn, boardID)
+		if err != nil || supID == 0 || actor != supID {
+			writeErr(w, http.StatusForbidden, "not your board")
+			return
+		}
+	}
+	if role == "student" {
+		ok, err := db.IsBoardMember(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusForbidden, "not a member of this board")
+			return
+		}
+	}
+
 	b, err := db.GetBoardBasic(a.conn, boardID)
 	if err != nil {
 		writeErr(w, http.StatusNotFound, "board not found")
@@ -79,6 +103,14 @@ func (a *API) AdminCreateList(w http.ResponseWriter, r *http.Request) {
 	req.Title = strings.TrimSpace(req.Title)
 	if req.BoardID == 0 || req.Title == "" {
 		writeErr(w, http.StatusBadRequest, "board_id and title required")
+		return
+	}
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can create list")
 		return
 	}
 
@@ -206,6 +238,14 @@ func (a *API) AdminCreateCard(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "list_id and title required")
 		return
 	}
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can create card")
+		return
+	}
 
 	id, err := db.CreateCard(a.conn, req.ListID, req.Title, req.Description)
 	if err != nil {
@@ -236,6 +276,14 @@ func (a *API) AdminMoveCard(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid params")
 		return
 	}
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can move cards")
+		return
+	}
 
 	if err := db.MoveCard(a.conn, req.CardID, req.ToListID, req.ToPosition); err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to move card")
@@ -263,6 +311,14 @@ func (a *API) AdminReorderCards(w http.ResponseWriter, r *http.Request) {
 
 	if req.ListID == 0 || len(req.IDs) == 0 {
 		writeErr(w, http.StatusBadRequest, "list_id and ids required")
+		return
+	}
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can reorder cards")
 		return
 	}
 
@@ -327,6 +383,49 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" && role != "student" {
+		writeErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	actor := actorID(r, a.conn)
+	if role == "student" {
+		boardID, err := db.GetBoardIDByCardID(a.conn, req.CardID)
+		if err != nil || boardID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid card")
+			return
+		}
+		ok, err := db.IsBoardMember(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusForbidden, "not a member of this board")
+			return
+		}
+		// student can only toggle card done/open
+		if req.Status != "done" && req.Status != "todo" {
+			writeErr(w, http.StatusForbidden, "students can only mark done/open")
+			return
+		}
+		current, err := db.GetCardWithDue(a.conn, req.CardID)
+		if err != nil {
+			writeErr(w, http.StatusNotFound, "card not found")
+			return
+		}
+		if req.Title != strings.TrimSpace(current.Title) ||
+			req.Description != strings.TrimSpace(current.Description) ||
+			req.DueDate != strings.TrimSpace(current.DueDate) ||
+			req.Priority != strings.TrimSpace(strings.ToLower(current.Priority)) {
+			writeErr(w, http.StatusForbidden, "students cannot edit card fields")
+			return
+		}
+	}
+
 	okStatus := map[string]bool{"todo": true, "doing": true, "blocked": true, "done": true}
 	okPri := map[string]bool{"low": true, "medium": true, "high": true, "urgent": true}
 	if req.Status != "" && !okStatus[req.Status] {
@@ -343,7 +442,6 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actor := actorID(r, a.conn)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
@@ -414,6 +512,11 @@ func (a *API) AdminGetCardFull(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid card_id")
 		return
 	}
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	actor := actorID(r, a.conn)
 
 	c, err := db.GetCardWithDue(a.conn, cardID)
 	if err != nil {
@@ -425,6 +528,24 @@ func (a *API) AdminGetCardFull(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "db error")
 		return
+	}
+	if role == "supervisor" {
+		supID, err := db.GetBoardSupervisorUserID(a.conn, boardID)
+		if err != nil || supID == 0 || actor != supID {
+			writeErr(w, http.StatusForbidden, "not your board")
+			return
+		}
+	}
+	if role == "student" {
+		ok, err := db.IsBoardMember(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusForbidden, "not a member of this board")
+			return
+		}
 	}
 
 	subtasks, err := db.ListSubtasks(a.conn, cardID)

@@ -77,6 +77,7 @@ func main() {
 	// auth (hardcoded)
 	r.Post("/auth/login", api.Login)
 	r.Get("/auth/me", api.Me)
+	r.Get("/auth/resolve-user", api.ResolveUserRole)
 
 	// admin
 	r.Route("/admin", func(ar chi.Router) {

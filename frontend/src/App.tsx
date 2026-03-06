@@ -65,9 +65,16 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
   return children;
 }
 
-export default function App() {
+function RequireBoardsAccess({ children }: { children: JSX.Element }) {
+  if (!hasValidJwt()) return <Navigate to="/login" replace />;
   const role = getRole();
+  if (role !== "admin" && role !== "supervisor" && role !== "student") {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
+export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -77,8 +84,7 @@ export default function App() {
         path="/dashboard"
         element={
           <RequireAuth>
-            {/* Replace this with your actual dashboard component */}
-            <div className="p-6">Dashboard (role: {role || "unknown"})</div>
+            <Navigate to="/admin/boards" replace />
           </RequireAuth>
         }
       />
@@ -87,9 +93,15 @@ export default function App() {
       <Route
         path="/admin"
         element={
-          <RequireAdmin>
-            <AdminDashboard />
-          </RequireAdmin>
+          getRole() === "admin" ? (
+            <RequireAdmin>
+              <AdminDashboard />
+            </RequireAdmin>
+          ) : (
+            <RequireBoardsAccess>
+              <Navigate to="/admin/boards" replace />
+            </RequireBoardsAccess>
+          )
         }
       />
 
@@ -114,18 +126,18 @@ export default function App() {
       <Route
         path="/admin/boards"
         element={
-          <RequireAdmin>
+          <RequireBoardsAccess>
             <AdminBoardsPage />
-          </RequireAdmin>
+          </RequireBoardsAccess>
         }
       />
 
       <Route
         path="/admin/boards/:boardId"
         element={
-          <RequireAdmin>
+          <RequireBoardsAccess>
             <BoardPage />
-          </RequireAdmin>
+          </RequireBoardsAccess>
         }
       />
 
@@ -160,7 +172,7 @@ export default function App() {
           ) : getRole() === "admin" ? (
             <Navigate to="/admin" replace />
           ) : (
-            <Navigate to="/dashboard" replace />
+            <Navigate to="/admin/boards" replace />
           )
         }
       />

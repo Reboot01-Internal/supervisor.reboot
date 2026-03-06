@@ -444,7 +444,18 @@ func (a *API) AdminRemoveBoardMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
-	rows, err := a.conn.Query(`
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	actor := actorID(r, a.conn)
+
+	var rows *sql.Rows
+	var err error
+
+	switch role {
+	case "admin":
+		rows, err = a.conn.Query(`
 		SELECT 
 			b.id,
 			b.name,
@@ -461,6 +472,49 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 		GROUP BY b.id
 		ORDER BY b.created_at DESC
 	`)
+	case "supervisor":
+		rows, err = a.conn.Query(`
+		SELECT 
+			b.id,
+			b.name,
+			b.description,
+			u.full_name,
+			b.created_at,
+			COUNT(DISTINCT l.id) as lists_count,
+			COUNT(DISTINCT c.id) as cards_count
+		FROM boards b
+		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
+		JOIN users u ON u.id = sf.supervisor_user_id
+		LEFT JOIN lists l ON l.board_id = b.id
+		LEFT JOIN cards c ON c.list_id = l.id
+		WHERE sf.supervisor_user_id = ?
+		GROUP BY b.id
+		ORDER BY b.created_at DESC
+	`, actor)
+	case "student":
+		rows, err = a.conn.Query(`
+		SELECT 
+			b.id,
+			b.name,
+			b.description,
+			u.full_name,
+			b.created_at,
+			COUNT(DISTINCT l.id) as lists_count,
+			COUNT(DISTINCT c.id) as cards_count
+		FROM boards b
+		JOIN board_members bm ON bm.board_id = b.id
+		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
+		JOIN users u ON u.id = sf.supervisor_user_id
+		LEFT JOIN lists l ON l.board_id = b.id
+		LEFT JOIN cards c ON c.list_id = l.id
+		WHERE bm.user_id = ?
+		GROUP BY b.id
+		ORDER BY b.created_at DESC
+	`, actor)
+	default:
+		writeErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
 	if err != nil {
 		writeErr(w, 500, "db error")
 		return

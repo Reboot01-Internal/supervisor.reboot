@@ -4,6 +4,7 @@ import placeholder from "../placeholder.png";
 
 const AUTH_URL = "https://learn.reboot01.com/api/auth/signin";
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
+const LOCAL_API = "http://localhost:8080";
 
 function normalizeToken(raw: string) {
   return raw.trim().replace(/^"|"$/g, "");
@@ -82,7 +83,6 @@ async function fetchUserByLogin(jwt: string, login: string) {
       user(where: { login: { _eq: $login } }, limit: 1) {
         email
         login
-        role
       }
     }
   `;
@@ -96,7 +96,6 @@ async function fetchUserById(jwt: string, id: string) {
       user(where: { id: { _eq: $id } }, limit: 1) {
         email
         login
-        role
       }
     }
   `;
@@ -104,6 +103,43 @@ async function fetchUserById(jwt: string, id: string) {
   if (!Number.isFinite(asInt)) return null;
   const data = await gqlFetch(jwt, query, { id: asInt });
   return data?.user?.[0] || null;
+}
+
+async function resolveLocalUser(identifier: string) {
+  const id = identifier.trim();
+  if (!id) return null;
+
+  // Preferred endpoint (new).
+  try {
+    const res = await fetch(`${LOCAL_API}/auth/resolve-user?identifier=${encodeURIComponent(id)}`);
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.role) {
+      return data as { email: string; nickname?: string; role: string } | null;
+    }
+  } catch {
+    // fallback below
+  }
+
+  // Fallback for older backend instances: search users and match exact email/nickname.
+  try {
+    const res = await fetch(`${LOCAL_API}/admin/users?q=${encodeURIComponent(id)}&role=all`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !Array.isArray(data)) return null;
+
+    const needle = id.toLowerCase();
+    const exact =
+      data.find((u: any) => String(u?.email || "").trim().toLowerCase() === needle) ||
+      data.find((u: any) => String(u?.nickname || "").trim().toLowerCase() === needle);
+
+    if (!exact?.role) return null;
+    return {
+      email: String(exact.email || "").trim().toLowerCase(),
+      nickname: String(exact.nickname || "").trim(),
+      role: String(exact.role || "").trim().toLowerCase(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default function LoginPage() {
@@ -129,7 +165,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (!identifier.trim()) throw new Error("Please enter your username or email.");
+      if (!identifier.trim()) throw new Error("Please enter your email or nickname.");
       if (!password.trim()) throw new Error("Please enter your password.");
 
       // 1) Sign in -> JWT
@@ -159,13 +195,43 @@ export default function LoginPage() {
         me = await fetchUserById(jwt, ident.userId);
       }
 
-      if (!me?.email) throw new Error("Could not find your user record in GraphQL.");
+      // Admin bypass: do not check DB for admin.
+      const inputIdentifier = identifier.trim();
+      const adminByInput = inputIdentifier.toLowerCase() === "admin@local.test";
+      const adminByClaims = (ident.roleFromClaims || "").toLowerCase() === "admin";
 
-      const email = String(me.email).trim().toLowerCase();
-      const login = String(me.login || ident.login || "").trim();
-      const role = String(me.role || ident.roleFromClaims || "").trim().toLowerCase();
+      let role = "";
+      let email = "";
+      let login = "";
 
-      if (!role) throw new Error("Could not read your role.");
+      if (adminByInput || adminByClaims) {
+        role = "admin";
+        email = inputIdentifier.includes("@")
+          ? inputIdentifier.toLowerCase()
+          : String(me?.email || "").trim().toLowerCase() || "admin@local.test";
+        login = String(me?.login || ident.login || inputIdentifier).trim();
+      } else {
+        const candidates = [
+          inputIdentifier,
+          String(ident.login || "").trim(),
+          String(me?.email || "").trim(),
+          String(me?.login || "").trim(),
+        ].filter(Boolean);
+
+        let localUser: { email: string; nickname?: string; role: string } | null = null;
+        for (const c of candidates) {
+          localUser = await resolveLocalUser(c);
+          if (localUser) break;
+        }
+
+        if (!localUser?.role) {
+          throw new Error("User role not found in local DB. Ask admin to add this user first.");
+        }
+
+        role = String(localUser.role).trim().toLowerCase();
+        email = String(localUser.email || me?.email || "").trim().toLowerCase();
+        login = String(localUser.nickname || me?.login || ident.login || inputIdentifier).trim();
+      }
 
       // 3) Save
       localStorage.setItem("jwt", jwt);
@@ -204,7 +270,7 @@ export default function LoginPage() {
             <form onSubmit={onLogin} className="space-y-4">
               <input
                 type="text"
-                placeholder="Username or Email"
+                placeholder="Email or Nickname"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full h-[46px] px-3.5 rounded-xl border border-[#e5e5e5] text-sm outline-none transition focus:border-[#dc586d] focus:ring-4 focus:ring-[rgba(220,88,109,0.15)]"

@@ -8,6 +8,8 @@ function cn(...xs: Array<string | false | null | undefined>) {
 
 export default function AdminSidebar({ active }: Props) {
   const nav = useNavigate();
+  const role = (localStorage.getItem("role") || "").trim().toLowerCase();
+  const isAdmin = role === "admin";
 
   const Item = ({
     id,
@@ -54,47 +56,57 @@ export default function AdminSidebar({ active }: Props) {
       <div className="grid h-full grid-rows-[auto_1fr_auto] gap-2">
         {/* Brand */}
         <div
-          onClick={() => nav("/admin")}
+          onClick={() => nav(isAdmin ? "/admin" : "/admin/boards")}
           className="flex cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2"
         >
           <div className="h-10 w-10 rounded-[14px] bg-gradient-to-br from-[#6d5efc] to-[#9a8cff] shadow-[0_10px_25px_rgba(15,23,42,0.06)]" />
           <div>
             <div className="font-black tracking-[-0.2px] text-slate-900">TaskFlow</div>
-            <div className="mt-0.5 text-[12px] font-bold text-slate-500">Admin Console</div>
+            <div className="mt-0.5 text-[12px] font-bold text-slate-500">
+              {isAdmin ? "Admin Console" : "Boards Workspace"}
+            </div>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="grid gap-2 px-2 py-2">
-          <Item id="dashboard" label="Dashboard" to="/admin" />
-          <Item id="supervisors" label="Supervisors" to="/admin/supervisors" />
-          <Item id="boards" label="Boards" to="/admin/boards" />
-          <Item id="assign" label="Assign" to="/admin/assign" />
-          <Item id="reports" label="Reports" to="/admin/reports" />
+          {isAdmin ? (
+            <>
+              <Item id="dashboard" label="Dashboard" to="/admin" />
+              <Item id="supervisors" label="Supervisors" to="/admin/supervisors" />
+              <Item id="boards" label="Boards" to="/admin/boards" />
+              <Item id="assign" label="Assign" to="/admin/assign" />
+              <Item id="reports" label="Reports" to="/admin/reports" />
+            </>
+          ) : (
+            <Item id="boards" label="Boards" to="/admin/boards" />
+          )}
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 p-2">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full border border-slate-200 bg-[#e8ecff]" />
-            <div>
-              <div className="text-[13px] font-extrabold text-slate-900">Admin</div>
-              <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
+        {isAdmin ? (
+          <div className="border-t border-slate-200 p-2">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full border border-slate-200 bg-[#e8ecff]" />
+              <div>
+                <div className="text-[13px] font-extrabold text-slate-900">Admin</div>
+                <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={() => nav("/admin/supervisors")}
-            className={cn(
-              "h-11 w-full rounded-[14px] border border-slate-200 bg-slate-50",
-              "font-extrabold text-slate-900 transition",
-              "hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
-            )}
-          >
-            Manage supervisors
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => nav("/admin/supervisors")}
+              className={cn(
+                "h-11 w-full rounded-[14px] border border-slate-200 bg-slate-50",
+                "font-extrabold text-slate-900 transition",
+                "hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
+              )}
+            >
+              Manage supervisors
+            </button>
+          </div>
+        ) : null}
       </div>
     </aside>
   );
