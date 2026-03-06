@@ -868,45 +868,40 @@ export default function BoardPage() {
 
       {!loading && data && (
         <div className="grid gap-4">
-          <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="h-8 px-3 inline-flex items-center rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[12px] font-extrabold text-slate-700">
-                  {listsSorted.length} Lists
-                </span>
-                <span className="h-8 px-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-extrabold text-slate-700">
-                  {boardStats.total} Cards
-                </span>
-                <span className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-[12px] font-extrabold text-emerald-700">
-                  <CircleCheckIcon size={12} />
-                  {boardStats.done} Done
-                </span>
-                <span className="h-8 px-3 inline-flex items-center rounded-full border border-rose-200 bg-rose-50 text-[12px] font-extrabold text-rose-700">
-                  {boardStats.overdue} Overdue
-                </span>
-              </div>
+          <div className="rounded-[18px] border border-slate-200 bg-white p-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="h-8 px-3 inline-flex items-center rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[12px] font-extrabold text-slate-700">
+                {listsSorted.length} Lists
+              </span>
+              <span className="h-8 px-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-extrabold text-slate-700">
+                {boardStats.total} Cards
+              </span>
+              <span className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-[12px] font-extrabold text-emerald-700">
+                <CircleCheckIcon size={12} />
+                {boardStats.done} Done
+              </span>
+              <span className="h-8 px-3 inline-flex items-center rounded-full border border-rose-200 bg-rose-50 text-[12px] font-extrabold text-rose-700">
+                {boardStats.overdue} Overdue
+              </span>
             </div>
-          </div>
 
-          {/* add list */}
-          <div className="rounded-[18px] border border-slate-200 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.06)] p-3">
-            <form onSubmit={createList} className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc] grid place-items-center">
+            <form onSubmit={createList} className="flex items-center gap-2.5">
+              {/* <div className="h-10 w-10 rounded-xl border border-[#6d5efc]/25 bg-gradient-to-br from-[#f2f0ff] to-[#ebe8ff] text-[#6d5efc] grid place-items-center">
                 <PlusIcon />
-              </div>
+              </div> */}
 
               <input
-                className="h-11 flex-1 rounded-[14px] border border-slate-300 bg-slate-50 px-3 outline-none focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/15 focus:border-[#6d5efc]/35"
-                placeholder="Add a new list"
+                className="h-10 flex-1 rounded-xl border border-slate-300 bg-slate-50/80 px-3.5 text-[14px] font-semibold text-slate-900 outline-none transition placeholder:font-semibold placeholder:text-slate-400 focus:border-[#6d5efc]/40 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/15"
+                placeholder="Create a new list..."
                 value={newListTitle}
                 onChange={(e) => setNewListTitle(e.target.value)}
               />
 
               <button
-                className="h-11 px-4 rounded-[14px] font-extrabold text-white shadow-sm disabled:opacity-70 bg-gradient-to-r from-[#6d5efc] to-[#9a8cff]"
+                className="h-10 px-4 rounded-xl font-extrabold text-white shadow-[0_12px_26px_rgba(109,94,252,0.28)] disabled:opacity-70 bg-gradient-to-r from-[#6d5efc] to-[#9a8cff]"
                 disabled={creatingList || !newListTitle.trim()}
               >
-                {creatingList ? "..." : "Add"}
+                {creatingList ? "..." : "+"}
               </button>
             </form>
           </div>
