@@ -23,7 +23,7 @@ export default function Modal({
       aria-modal="true"
     >
       <div
-        className="modalPanelIn grid w-full max-w-[980px] grid-rows-[auto_1fr_auto] overflow-hidden rounded-[14px] border border-slate-200 bg-[#f8f9fb] text-slate-900 shadow-[0_18px_56px_rgba(15,23,42,0.2)]"
+        className="modalPanelIn grid w-full max-w-[940px] grid-rows-[auto_1fr_auto] overflow-hidden rounded-[18px] border border-slate-200 bg-white text-slate-900 shadow-[0_24px_70px_rgba(15,23,42,0.24)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -40,7 +40,7 @@ export default function Modal({
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto overflow-x-hidden p-3">{children}</div>
+        <div className="overflow-y-auto overflow-x-hidden bg-[#f7f8fb] p-4">{children}</div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-2.5">

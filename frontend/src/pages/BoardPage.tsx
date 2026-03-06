@@ -109,6 +109,16 @@ function GroupIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function PencilIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="m12 6 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M14 4l2-2 4 4-2 2" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function BinIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -866,6 +876,7 @@ export default function BoardPage() {
   const pageTitle = data ? data.name : `Board #${boardID}`;
   const from = new URLSearchParams(location.search).get("from");
   const layoutActive = from === "boards" ? "boards" : "supervisors";
+  const isAdmin = (localStorage.getItem("role") || "").trim().toLowerCase() === "admin";
 
   return (
     <AdminLayout
@@ -921,12 +932,27 @@ export default function BoardPage() {
                   Read-only view for board participants
                 </div> */}
               </div>
-              <button
-                className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
-                onClick={() => setMembersOpen(false)}
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                {isAdmin ? (
+                  <button
+                    className="h-9 w-9 grid place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                    title="Edit members"
+                    aria-label="Edit members"
+                    onClick={() => {
+                      setMembersOpen(false);
+                      nav(`/admin/boards/${boardID}/members`);
+                    }}
+                  >
+                    <PencilIcon />
+                  </button>
+                ) : null}
+                <button
+                  className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                  onClick={() => setMembersOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {membersErr ? (

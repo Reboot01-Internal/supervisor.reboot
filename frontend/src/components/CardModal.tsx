@@ -244,6 +244,16 @@ function labelDotClass(color: string) {
   return map[color] || "bg-indigo-600";
 }
 
+const labelColorChoices = [
+  { value: "indigo", className: "bg-indigo-600" },
+  { value: "sky", className: "bg-sky-600" },
+  { value: "emerald", className: "bg-emerald-500" },
+  { value: "amber", className: "bg-amber-500" },
+  { value: "rose", className: "bg-rose-500" },
+  { value: "violet", className: "bg-violet-600" },
+  { value: "slate", className: "bg-slate-600" },
+] as const;
+
 /** slightly more compact controls */
 const inputBase =
   "h-9 w-full rounded-[10px] border border-slate-300 bg-slate-50 px-3 text-[14px] text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-3 focus:ring-[#6d5efc]/15";
@@ -261,36 +271,9 @@ const pillBase =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-extrabold";
 
 const section =
-  "rounded-[16px] border border-slate-200 bg-white p-2.5 shadow-[0_8px_22px_rgba(15,23,42,0.06)] transition hover:shadow-[0_12px_30px_rgba(15,23,42,0.09)]";
+  "rounded-[14px] border border-slate-200 bg-[#fbfcff] p-3 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]";
 const sectionHead = "mb-1.5 flex items-center justify-between gap-2";
 const sectionTitle = "text-[13px] font-black text-slate-900";
-
-type TabKey = "overview" | "details" | "discussion" | "activity";
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "h-9 rounded-full px-3.5 text-[12px] font-extrabold transition border",
-        active
-          ? "border-[#6d5efc]/30 bg-[#6d5efc]/10 text-slate-900"
-          : "border-slate-300 bg-white text-slate-600 hover:border-[#6d5efc]/25 hover:bg-[#f7f6ff]",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
 
 export default function CardModal({
   open,
@@ -305,8 +288,6 @@ export default function CardModal({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
-  const [tab, setTab] = useState<TabKey>("overview");
-
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -337,6 +318,7 @@ export default function CardModal({
   const [assigneeOpen, setAssigneeOpen] = useState(false);
 
   const [doneAnimId, setDoneAnimId] = useState<number | null>(null);
+  const [rightTab, setRightTab] = useState<"comments" | "activity">("comments");
 
   const assigneeIds = useMemo(() => new Set(assignees.map((a) => a.user_id)), [assignees]);
 
@@ -401,8 +383,6 @@ export default function CardModal({
   useEffect(() => {
     if (!open || !cardId) return;
 
-    setTab("overview");
-
     setAssigneeQuery("");
     setAssigneeOpen(false);
     setSubtaskTitle("");
@@ -415,6 +395,7 @@ export default function CardModal({
     setCommentBody("");
     setEditingCommentId(null);
     setEditingBody("");
+    setRightTab("comments");
 
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -501,23 +482,6 @@ export default function CardModal({
     } catch (e: any) {
       setErr(e.message || "Failed to update subtask");
       setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, is_done: !isDone } : s)));
-    }
-  }
-
-  async function updateSubtaskDue(id: number, due: string) {
-    setErr("");
-    setMsg("");
-    const prevDue = subtasks.find((s) => s.id === id)?.due_date || "";
-    setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, due_date: due } : s)));
-
-    try {
-      await apiFetch("/admin/card/subtasks/due", {
-        method: "POST",
-        body: JSON.stringify({ subtask_id: id, due_date: due || "" }),
-      });
-    } catch (e: any) {
-      setErr(e.message || "Failed to update subtask due date");
-      setSubtasks((prev) => prev.map((s) => (s.id === id ? { ...s, due_date: prevDue } : s)));
     }
   }
 
@@ -717,6 +681,7 @@ export default function CardModal({
 
   const cardDueKind: "overdue" | "soon" | "none" =
     isOverdue ? "overdue" : card?.due_date ? "soon" : "none";
+  const dueBadgeText = isOverdue ? "Overdue" : card?.due_date ? "Scheduled" : "None";
   const isDone = card?.status === "done";
   const currentRole = (localStorage.getItem("role") || "").toLowerCase();
   const canDeleteCard = currentRole === "admin" || currentRole === "supervisor";
@@ -765,136 +730,102 @@ export default function CardModal({
             <div className="text-[13px] font-semibold text-slate-500">No card loaded.</div>
           ) : (
             <>
-              {/* Tabs */}
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                <TabButton active={tab === "overview"} onClick={() => setTab("overview")}>
-                  Overview
-                </TabButton>
-                <TabButton active={tab === "details"} onClick={() => setTab("details")}>
-                  Details
-                </TabButton>
-                <TabButton active={tab === "discussion"} onClick={() => setTab("discussion")}>
-                  Discussion
-                </TabButton>
-                <TabButton active={tab === "activity"} onClick={() => setTab("activity")}>
-                  Activity
-                </TabButton>
-              </div>
-
-              {/* Tab content (scroll only inside content area) */}
-              <div className="dropdownAnim max-h-[58vh] overflow-y-auto overflow-x-hidden pr-[2px]">
-                {tab === "overview" && (
-                  <div className="grid gap-2">
+              <div className="dropdownAnim max-h-[62vh] overflow-y-auto overflow-x-hidden pr-[2px]">
+                <div className="grid items-start gap-2.5 xl:grid-cols-[1.25fr_0.95fr]">
+                  <div className="grid gap-2.5">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>Card #{card.id}</span>
-                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>
-                        Due: {card.due_date || "None"}
+                      <span className={`${pillBase} ${pillStatusClass(card.status)}`}>
+                        <CheckIcon size={12} />
+                        {isDone ? "Done" : "Open"}
                       </span>
-                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>
-                        {assignees.length} assignee{assignees.length === 1 ? "" : "s"}
+                      <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>
+                        {prettyPriority(card.priority)}
                       </span>
-                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-700`}>
-                        {cardLabels.length} label{cardLabels.length === 1 ? "" : "s"}
+                      <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-600`}>
+                        Mark done from board card
                       </span>
                     </div>
 
                     <div className="grid gap-2 xl:grid-cols-12">
-                    {/* Row 1: Title + Due */}
-                    <div className={`${section} xl:col-span-8`}>
-                      <div className={sectionHead}>
-                        <div className={sectionTitle}>Title</div>
-                        <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
-                          #{card.id}
-                        </span>
+                      <div className={`${section} xl:col-span-7`}>
+                        <div className={sectionHead}>
+                          <div className={sectionTitle}>Title</div>
+                          <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
+                            #{card.id}
+                          </span>
+                        </div>
+                        <input
+                          className={inputBase}
+                          value={card.title}
+                          onChange={(e) => setCard({ ...card, title: e.target.value })}
+                          placeholder="Card title"
+                        />
                       </div>
 
-                      <input
-                        className={inputBase}
-                        value={card.title}
-                        onChange={(e) => setCard({ ...card, title: e.target.value })}
-                        placeholder="Card title"
+                      <div className={`${section} min-w-0 overflow-hidden xl:col-span-5`}>
+                        <div className={sectionHead}>
+                          <div className="flex items-center gap-1.5 whitespace-nowrap text-[12px] font-black tracking-[0.02em] text-slate-800">
+                            <ClockIcon /> Due date
+                          </div>
+                          <span className={`${pillBase} shrink-0 ${duePillClass(cardDueKind)} gap-1.5`}>
+                            <ClockIcon size={12} />
+                            {dueBadgeText}
+                          </span>
+                        </div>
+                        <div className="grid gap-2">
+                          <input
+                            className={
+                              inputBase +
+                              " min-w-0" +
+                              " h-10 text-[15px] [color-scheme:light] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70"
+                            }
+                            type="date"
+                            value={card.due_date || ""}
+                            onChange={(e) => setCard({ ...card, due_date: e.target.value })}
+                          />
+                          <button
+                            className="h-9 rounded-[10px] border border-slate-300 bg-white px-3 text-[13px] font-extrabold text-slate-700 hover:bg-slate-50"
+                            type="button"
+                            onClick={() => setCard({ ...card, due_date: "" })}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={section}>
+                      <div className={sectionHead}>
+                        <div className={sectionTitle}>Description</div>
+                      </div>
+                      <textarea
+                        className={inputBase + " h-auto min-h-[100px] py-2.5"}
+                        value={card.description}
+                        onChange={(e) => setCard({ ...card, description: e.target.value })}
+                        placeholder="Notes, requirements, links..."
+                        rows={4}
                       />
                     </div>
 
-                    <div className={`${section} xl:col-span-4`}>
-                      <div className={sectionHead}>
-                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
-                          <ClockIcon /> Due date
-                        </div>
-
-                        <span className={`${pillBase} ${duePillClass(cardDueKind)} gap-2`}>
-                          <ClockIcon />
-                          {card.due_date || "None"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input
-                          className={inputBase}
-                          type="date"
-                          value={card.due_date || ""}
-                          onChange={(e) => setCard({ ...card, due_date: e.target.value })}
-                        />
-                        <button className="h-9 rounded-[10px] border border-slate-300 bg-white px-3 text-[13px] font-extrabold text-slate-700 hover:bg-slate-50" type="button" onClick={() => setCard({ ...card, due_date: "" })}>
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Row 2: Completion/Priority + Assignees */}
-                    <div className={`${section} xl:col-span-7`}>
-                      <div className={sectionHead}>
-                        <div className={sectionTitle}>Completion & Priority</div>
-                        <div className="flex flex-wrap gap-2">
-                          <span className={`${pillBase} ${pillStatusClass(card.status)}`}>
-                            <CheckIcon size={13} />
-                            {isDone ? "Completed" : "Open"}
-                          </span>
-                          <span className={`${pillBase} ${pillPriorityClass(card.priority)}`}>
-                            {prettyPriority(card.priority)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-2 sm:grid-cols-1">
-                        <div>
-                          <select
-                            className={inputBase}
-                            value={card.priority || "medium"}
-                            onChange={(e) => setCard({ ...card, priority: e.target.value as any })}
-                          >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={`${section} xl:col-span-5`}>
+                    <div className={section}>
                       <div className={sectionHead}>
                         <div className={sectionTitle}>Assignees</div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
                           {assignees.length}
                         </span>
                       </div>
-
                       {assignees.length === 0 ? (
                         <div className="text-[13px] font-semibold text-slate-500">No assignees yet.</div>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {assignees.map((a) => (
-                            <div
-                              key={a.user_id}
-                              className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 pr-1`}
-                            >
+                            <div key={a.user_id} className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 pr-1`}>
                               <span className="grid h-[22px] w-[22px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[11px] font-black">
                                 {initials(a.full_name)}
                               </span>
                               <span className="text-[12px] font-black">{a.full_name}</span>
                               <button
-                                className="h-[32px] rounded-[12px] border border-slate-900/10 bg-white/70 px-2.5 font-black hover:bg-rose-500/10"
+                                className="h-[26px] rounded-[10px] border border-slate-900/10 bg-white/70 px-2 text-[12px] font-black hover:bg-rose-500/10"
                                 type="button"
                                 onClick={() => removeAssignee(a.user_id)}
                                 title="Remove"
@@ -910,7 +841,7 @@ export default function CardModal({
 
                       {studentsOnly.length === 0 ? (
                         <div className="text-[13px] font-semibold text-slate-500">
-                          No students in this board yet. Add them from “Members”.
+                          No students in this board yet. Add them from members.
                         </div>
                       ) : (
                         <div className="relative">
@@ -925,7 +856,6 @@ export default function CardModal({
                             onFocus={() => setAssigneeOpen(true)}
                             onBlur={() => setTimeout(() => setAssigneeOpen(false), 120)}
                           />
-
                           {assigneeOpen && availableStudents.length > 0 && (
                             <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-[14px] border border-slate-900/10 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
                               <div className="grid gap-2">
@@ -941,20 +871,12 @@ export default function CardModal({
                                       <span className="grid h-[24px] w-[24px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black">
                                         {initials(m.full_name)}
                                       </span>
-
                                       <span className="min-w-0">
-                                        <span className="block truncate text-[13px] font-black text-slate-900">
-                                          {m.full_name}
-                                        </span>
-                                        <span className="block truncate text-[12px] font-semibold text-slate-500">
-                                          {m.email}
-                                        </span>
+                                        <span className="block truncate text-[13px] font-black text-slate-900">{m.full_name}</span>
+                                        <span className="block truncate text-[12px] font-semibold text-slate-500">{m.email}</span>
                                       </span>
                                     </span>
-
-                                    <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                                      Add
-                                    </span>
+                                    <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>Add</span>
                                   </button>
                                 ))}
                               </div>
@@ -964,120 +886,14 @@ export default function CardModal({
                       )}
                     </div>
 
-                    {/* Row 3: Labels (two-column inside, no wasted horizontal space) */}
-                    <div className={`${section} xl:col-span-12`}>
-                      <div className={sectionHead}>
-                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
-                          <TagIcon /> Labels
-                        </div>
-                        <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                          {cardLabels.length}
-                        </span>
-                      </div>
-
-                      <div className="grid gap-2 lg:grid-cols-[1fr_360px] lg:items-start">
-                        {/* Existing labels list */}
-                        <div>
-                          {boardLabels.length === 0 ? (
-                            <div className="text-[13px] font-semibold text-slate-500">No labels yet.</div>
-                          ) : (
-                            <div className="grid gap-2 sm:grid-cols-2">
-                              {boardLabels.map((l) => {
-                                const active = cardLabelIds.has(l.id);
-                                return (
-                                  <button
-                                    key={l.id}
-                                    type="button"
-                                    onClick={() => toggleLabel(l.id)}
-                                    className={[
-                                      "flex h-10 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold",
-                                      "text-[13px]",
-                                      active
-                                        ? "border-indigo-500/35 bg-indigo-500/10"
-                                        : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
-                                    ].join(" ")}
-                                  >
-                                    <span className={`h-2.5 w-2.5 rounded-full ${labelDotClass(l.color)}`} />
-                                    <span className="min-w-0 flex-1 truncate">{l.name}</span>
-                                    <span className="text-[11px] font-extrabold text-slate-500">
-                                      {active ? "On" : "Off"}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Create label box */}
-                        <div className="rounded-[12px] border border-slate-900/10 bg-slate-50 p-2.5">
-                          <div className="mb-2 text-[12px] font-extrabold text-slate-700">Create a new label</div>
-                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                            <input
-                              className={inputBase}
-                              placeholder="Label name..."
-                              value={newLabelName}
-                              onChange={(e) => setNewLabelName(e.target.value)}
-                            />
-                            <select
-                              className={inputBase}
-                              value={newLabelColor}
-                              onChange={(e) => setNewLabelColor(e.target.value)}
-                            >
-                              <option value="indigo">Indigo</option>
-                              <option value="sky">Sky</option>
-                              <option value="emerald">Emerald</option>
-                              <option value="amber">Amber</option>
-                              <option value="rose">Rose</option>
-                              <option value="violet">Violet</option>
-                              <option value="slate">Slate</option>
-                            </select>
-                          </div>
-
-                          <div className="mt-2 flex justify-end">
-                            <button
-                              className={btnPrimary}
-                              type="button"
-                              onClick={createLabel}
-                              disabled={!newLabelName.trim() || !boardId}
-                            >
-                              Create
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-                )}
-
-                {tab === "details" && (
-                  <div className="grid gap-2.5">
-                    <div className={section}>
-                      <div className={sectionHead}>
-                        <div className={sectionTitle}>Description</div>
-                        <span className={`${pillBase} border-slate-200 bg-slate-50 text-slate-600`}>
-                          Notes
-                        </span>
-                      </div>
-
-                      <textarea
-                        className={inputBase + " h-auto min-h-[120px] py-2.5"}
-                        value={card.description}
-                        onChange={(e) => setCard({ ...card, description: e.target.value })}
-                        placeholder="Notes, requirements, links..."
-                        rows={5}
-                      />
-                    </div>
-
                     <div className={section}>
                       <div className={sectionHead}>
                         <div>
                           <div className={`flex items-center gap-2 ${sectionTitle}`}>
-                            <CheckIcon /> Checklist
+                            <CheckIcon /> Things to do
                           </div>
                           <div className="mt-[1px] text-[11px] font-semibold text-slate-500">
-                            {progress ? `${progress.done}/${progress.total} completed` : "No subtasks yet"}
+                            {progress ? `${progress.done}/${progress.total} completed` : "No items yet"}
                           </div>
                         </div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
@@ -1102,7 +918,7 @@ export default function CardModal({
                         <div className="flex flex-wrap items-center gap-2">
                           <input
                             className={inputBase}
-                            placeholder="Add a subtask..."
+                            placeholder="Add an item..."
                             value={subtaskTitle}
                             onChange={(e) => setSubtaskTitle(e.target.value)}
                             onKeyDown={(e) => {
@@ -1121,14 +937,12 @@ export default function CardModal({
                           <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
                             <ClockIcon /> Due (optional)
                           </span>
-
                           <input
                             className={inputBase + " max-w-[220px]"}
                             type="date"
                             value={subtaskDue}
                             onChange={(e) => setSubtaskDue(e.target.value)}
                           />
-
                           <button className={btnSoft} type="button" onClick={() => setSubtaskDue("")}>
                             Clear
                           </button>
@@ -1153,14 +967,12 @@ export default function CardModal({
                                 ].join(" ")}
                               >
                                 <style>{`@keyframes cmPop{from{transform:scale(.98)}to{transform:scale(1)}}`}</style>
-
                                 <div className="flex flex-wrap items-center gap-3">
                                   <input
                                     type="checkbox"
                                     checked={s.is_done}
                                     onChange={(e) => toggleSubtask(s.id, e.target.checked)}
                                   />
-
                                   <div
                                     className={[
                                       "flex-1 text-[13px] font-semibold",
@@ -1169,7 +981,6 @@ export default function CardModal({
                                   >
                                     {s.title}
                                   </div>
-
                                   <span
                                     className={[
                                       pillBase,
@@ -1182,24 +993,8 @@ export default function CardModal({
                                     <ClockIcon />
                                     {s.due_date || "No due"}
                                   </span>
-
                                   <button className={btnSoft} type="button" onClick={() => deleteSubtask(s.id)}>
                                     Remove
-                                  </button>
-                                </div>
-
-                                <div className="mt-2 flex flex-wrap items-center gap-2">
-                                  <div className="text-[11px] font-semibold text-slate-500">Subtask due</div>
-
-                                  <input
-                                    className={inputBase + " max-w-[220px]"}
-                                    type="date"
-                                    value={s.due_date || ""}
-                                    onChange={(e) => updateSubtaskDue(s.id, e.target.value)}
-                                  />
-
-                                  <button className={btnSoft} type="button" onClick={() => updateSubtaskDue(s.id, "")}>
-                                    Clear
                                   </button>
                                 </div>
                               </div>
@@ -1208,126 +1003,224 @@ export default function CardModal({
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
 
-                {tab === "discussion" && (
-                  <div className="grid gap-2.5">
                     <div className={section}>
                       <div className={sectionHead}>
                         <div className={`flex items-center gap-2 ${sectionTitle}`}>
-                          <ChatIcon /> Comments
+                          <TagIcon /> Labels
                         </div>
                         <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                          {comments.length}
+                          {cardLabels.length}
                         </span>
                       </div>
 
-                      <div className="grid gap-2">
-                        <textarea
-                          className={inputBase + " h-auto py-2.5"}
-                          placeholder="Write a comment..."
-                          value={commentBody}
-                          onChange={(e) => setCommentBody(e.target.value)}
-                          rows={2}
-                        />
-                        <div className="flex justify-end">
-                          <button className={btnPrimary} type="button" onClick={addComment} disabled={!commentBody.trim()}>
-                            Add comment
-                          </button>
+                      <div className="grid gap-2 lg:grid-cols-2 lg:items-start">
+                        <div className="rounded-[12px] border border-slate-200 bg-white p-2.5">
+                          <div className="mb-2 text-[12px] font-extrabold text-slate-700">Available labels</div>
+                          {boardLabels.length === 0 ? (
+                            <div className="text-[13px] font-semibold text-slate-500">No labels yet.</div>
+                          ) : (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {boardLabels.map((l) => {
+                                const active = cardLabelIds.has(l.id);
+                                return (
+                                  <button
+                                    key={l.id}
+                                    type="button"
+                                    onClick={() => toggleLabel(l.id)}
+                                    className={[
+                                      "flex h-10 w-full items-center gap-3 rounded-xl border px-3 text-left font-extrabold text-[13px]",
+                                      active
+                                        ? "border-indigo-500/35 bg-indigo-500/10"
+                                        : "border-slate-900/10 bg-white/85 hover:bg-indigo-500/[0.04]",
+                                    ].join(" ")}
+                                  >
+                                    <span className={`h-2.5 w-2.5 rounded-full ${labelDotClass(l.color)}`} />
+                                    <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                                    <span className="text-[11px] font-extrabold text-slate-500">
+                                      {active ? "On" : "Off"}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-[12px] border border-slate-200 bg-white p-2.5">
+                          <div className="mb-2 text-[12px] font-extrabold text-slate-700">Create a new label</div>
+                          <div className="grid gap-2">
+                            <input
+                              className={inputBase}
+                              placeholder="Label name..."
+                              value={newLabelName}
+                              onChange={(e) => setNewLabelName(e.target.value)}
+                            />
+                            <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-slate-300 bg-slate-50 p-2">
+                              {labelColorChoices.map((c) => {
+                                const active = newLabelColor === c.value;
+                                return (
+                                  <button
+                                    key={c.value}
+                                    type="button"
+                                    onClick={() => setNewLabelColor(c.value)}
+                                    className={[
+                                      "grid h-7 w-7 place-items-center rounded-full border transition",
+                                      active
+                                        ? "border-slate-900/50 bg-white shadow-[0_0_0_2px_rgba(99,102,241,0.22)]"
+                                        : "border-slate-300 bg-white hover:border-slate-400",
+                                    ].join(" ")}
+                                    title={c.value}
+                                    aria-label={`Choose ${c.value}`}
+                                  >
+                                    <span className={`h-4 w-4 rounded-full ${c.className}`} />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              className={btnPrimary}
+                              type="button"
+                              onClick={createLabel}
+                              disabled={!newLabelName.trim() || !boardId}
+                            >
+                              Create
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      {comments.length === 0 ? (
-                        <div className="mt-3 text-[13px] font-semibold text-slate-500">No comments yet.</div>
-                      ) : (
-                        <div className="mt-2 grid gap-2">
-                          {comments.slice(0, 60).map((c) => (
-                            <div
-                              key={c.id}
-                              className="flex gap-2.5 rounded-[12px] border border-slate-200 bg-white/90 p-2.5"
-                            >
-                              <div className="grid h-[30px] w-[30px] place-items-center rounded-full border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-800">
-                                {initials(c.actor_name)}
-                              </div>
-
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-baseline justify-between gap-3">
-                                  <div className="truncate text-[13px] font-black text-slate-900">{c.actor_name}</div>
-                                  <div className="shrink-0 text-[11px] font-semibold text-slate-500">{c.created_at}</div>
-                                </div>
-
-                                {editingCommentId === c.id ? (
-                                  <div className="mt-2 grid gap-2">
-                                    <textarea
-                                      className={inputBase + " h-auto py-2.5"}
-                                      value={editingBody}
-                                      onChange={(e) => setEditingBody(e.target.value)}
-                                      rows={2}
-                                    />
-                                    <div className="flex justify-end gap-2">
-                                      <button
-                                        className={btnGhost}
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingCommentId(null);
-                                          setEditingBody("");
-                                        }}
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        className={btnPrimary}
-                                        type="button"
-                                        onClick={saveEditComment}
-                                        disabled={!editingBody.trim()}
-                                      >
-                                        Save
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="mt-1.5 whitespace-pre-wrap text-[13px] font-semibold text-slate-900">
-                                    {c.body}
-                                  </div>
-                                )}
-
-                                {editingCommentId !== c.id && (
-                                  <div className="mt-2 flex gap-2">
-                                    <button className={btnSoft} type="button" onClick={() => startEditComment(c)}>
-                                      Edit
-                                    </button>
-                                    <button className={btnSoft} type="button" onClick={() => deleteComment(c.id)}>
-                                      Delete
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
-                )}
 
-                {tab === "activity" && (
-                  <div className="grid gap-2.5">
-                    <div className={section}>
-                      <div className={sectionHead}>
-                        <div className={`flex items-center gap-2 ${sectionTitle}`}>
-                          <ActivityIcon /> Activity
-                        </div>
-                        <span className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 text-slate-900`}>
-                          {activities.length}
-                        </span>
+                  <div className="grid gap-2.5 xl:sticky xl:top-0">
+                    <div className={`${section} min-h-[320px]`}>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className={[
+                            "inline-flex h-9 items-center gap-1.5 rounded-[11px] border px-3 text-[13px] font-extrabold transition",
+                            rightTab === "comments"
+                              ? "border-indigo-500/35 bg-indigo-500/12 text-slate-900"
+                              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+                          ].join(" ")}
+                          onClick={() => setRightTab("comments")}
+                        >
+                          <ChatIcon />
+                          Comments
+                          <span className="rounded-full bg-white/85 px-2 py-0.5 text-[11px]">{comments.length}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={[
+                            "inline-flex h-9 items-center gap-1.5 rounded-[11px] border px-3 text-[13px] font-extrabold transition",
+                            rightTab === "activity"
+                              ? "border-indigo-500/35 bg-indigo-500/12 text-slate-900"
+                              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+                          ].join(" ")}
+                          onClick={() => setRightTab("activity")}
+                        >
+                          <ActivityIcon />
+                          Activity
+                          <span className="rounded-full bg-white/85 px-2 py-0.5 text-[11px]">{activities.length}</span>
+                        </button>
                       </div>
 
-                      {activities.length === 0 ? (
-                        <div className="text-[13px] font-semibold text-slate-500">No activity yet.</div>
+                      {rightTab === "comments" ? (
+                        <>
+                          <div className="grid gap-2">
+                            <textarea
+                              className={inputBase + " h-auto py-2.5"}
+                              placeholder="Write a comment..."
+                              value={commentBody}
+                              onChange={(e) => setCommentBody(e.target.value)}
+                              rows={2}
+                            />
+                            <div className="flex justify-end">
+                              <button className={btnPrimary} type="button" onClick={addComment} disabled={!commentBody.trim()}>
+                                Add comment
+                              </button>
+                            </div>
+                          </div>
+
+                          {comments.length === 0 ? (
+                            <div className="mt-3 rounded-[12px] border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-[13px] font-semibold text-slate-500">
+                              No comments yet.
+                            </div>
+                          ) : (
+                            <div className="mt-2 grid max-h-[45vh] gap-2 overflow-y-auto pr-1">
+                              {comments.slice(0, 40).map((c) => (
+                                <div key={c.id} className="flex gap-2.5 rounded-[12px] border border-slate-200 bg-white/90 p-2.5">
+                                  <div className="grid h-[30px] w-[30px] place-items-center rounded-full border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-800">
+                                    {initials(c.actor_name)}
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-baseline justify-between gap-3">
+                                      <div className="truncate text-[13px] font-black text-slate-900">{c.actor_name}</div>
+                                      <div className="shrink-0 text-[11px] font-semibold text-slate-500">{c.created_at}</div>
+                                    </div>
+
+                                    {editingCommentId === c.id ? (
+                                      <div className="mt-2 grid gap-2">
+                                        <textarea
+                                          className={inputBase + " h-auto py-2.5"}
+                                          value={editingBody}
+                                          onChange={(e) => setEditingBody(e.target.value)}
+                                          rows={2}
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                          <button
+                                            className={btnGhost}
+                                            type="button"
+                                            onClick={() => {
+                                              setEditingCommentId(null);
+                                              setEditingBody("");
+                                            }}
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button
+                                            className={btnPrimary}
+                                            type="button"
+                                            onClick={saveEditComment}
+                                            disabled={!editingBody.trim()}
+                                          >
+                                            Save
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="mt-1.5 whitespace-pre-wrap text-[13px] font-semibold text-slate-900">
+                                        {c.body}
+                                      </div>
+                                    )}
+
+                                    {editingCommentId !== c.id && (
+                                      <div className="mt-2 flex gap-2">
+                                        <button className={btnSoft} type="button" onClick={() => startEditComment(c)}>
+                                          Edit
+                                        </button>
+                                        <button className={btnSoft} type="button" onClick={() => deleteComment(c.id)}>
+                                          Delete
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : activities.length === 0 ? (
+                        <div className="rounded-[12px] border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-[13px] font-semibold text-slate-500">
+                          No activity yet.
+                        </div>
                       ) : (
-                        <div className="grid gap-2">
-                          {activities.slice(0, 80).map((a) => (
+                        <div className="grid max-h-[56vh] gap-2 overflow-y-auto pr-1">
+                          {activities.slice(0, 60).map((a) => (
                             <div
                               key={a.id}
                               className="rounded-[12px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-[12px]"
@@ -1343,7 +1236,7 @@ export default function CardModal({
                       )}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </>
           )}
