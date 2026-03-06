@@ -48,6 +48,14 @@ type BoardFull = {
   labels: Label[];
 };
 
+type BoardMember = {
+  user_id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  role_in_board: string;
+};
+
 type CardPreview = {
   card_id: number;
   done: number;
@@ -86,6 +94,17 @@ function CircleCheckIcon({ size = 14 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
       <path d="M8 12.5 10.8 15 16.2 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function GroupIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M16 21v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 19.5V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="10" cy="9" r="3.5" stroke="currentColor" strokeWidth="2" />
+      <path d="M20 21v-1.5A3.5 3.5 0 0 0 17 16.03" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M15.5 5.2a3.5 3.5 0 0 1 0 7.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -538,6 +557,10 @@ export default function BoardPage() {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   const [previews, setPreviews] = useState<Record<number, CardPreview | undefined>>({});
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersErr, setMembersErr] = useState("");
+  const [members, setMembers] = useState<BoardMember[]>([]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -585,6 +608,21 @@ export default function BoardPage() {
       }
     }
     setPreviews((prev) => ({ ...prev, ...next }));
+  }
+
+  async function openMembersModal() {
+    setMembersOpen(true);
+    setMembersErr("");
+    setMembersLoading(true);
+    try {
+      const res = await apiFetch(`/admin/board-members?board_id=${boardID}`);
+      setMembers(Array.isArray(res) ? res : []);
+    } catch (e: any) {
+      setMembersErr(e?.message || "Failed to load members");
+      setMembers([]);
+    } finally {
+      setMembersLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -835,12 +873,22 @@ export default function BoardPage() {
       title={pageTitle}
       subtitle="Drag cards across lists. Double click a card to open."
       right={
-        <button
-          className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
-          onClick={() => nav(-1)}
-        >
-          Back
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="h-10 w-10 grid place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+            onClick={openMembersModal}
+            title="Board members"
+            aria-label="Board members"
+          >
+            <GroupIcon />
+          </button>
+          <button
+            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
+            onClick={() => nav(-1)}
+          >
+            Back
+          </button>
+        </div>
       }
     >
       <CardModal
@@ -857,6 +905,66 @@ export default function BoardPage() {
           await load();
         }}
       />
+      {membersOpen && (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/40 p-4"
+          onClick={() => setMembersOpen(false)}
+        >
+          <div
+            className="w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[18px] font-black text-slate-900">Board Members</div>
+                {/* <div className="text-[12px] font-semibold text-slate-500">
+                  Read-only view for board participants
+                </div> */}
+              </div>
+              <button
+                className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                onClick={() => setMembersOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            {membersErr ? (
+              <div className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                {membersErr}
+              </div>
+            ) : null}
+
+            {membersLoading ? (
+              <div className="text-sm font-semibold text-slate-500">Loading members...</div>
+            ) : members.length === 0 ? (
+              <div className="text-sm font-semibold text-slate-500">No members found.</div>
+            ) : (
+              <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                {members.map((m) => (
+                  <div
+                    key={m.user_id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
+                      <div className="truncate text-xs font-semibold text-slate-500">{m.email}</div>
+                    </div>
+                    <div className="flex flex-none items-center gap-2">
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
+                        {m.role}
+                      </span>
+                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">
+                        {m.role_in_board || "member"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {err && (
         <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-800">
