@@ -276,7 +276,10 @@ export default function AdminBoardsPage() {
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [membersBoard, setMembersBoard] = useState<BoardRow | null>(null);
 
-  const isAdmin = (localStorage.getItem("role") || "").trim().toLowerCase() === "admin";
+  const role = (localStorage.getItem("role") || "").trim().toLowerCase();
+  const isAdmin = role === "admin";
+  const isSupervisor = role === "supervisor";
+  const canManageMembers = isAdmin || isSupervisor;
 
   async function load() {
     setLoading(true);
@@ -334,7 +337,24 @@ export default function AdminBoardsPage() {
   }
 
   return (
-    <AdminLayout active="boards" title="Boards" subtitle="All boards across supervisors">
+    <AdminLayout
+      active="boards"
+      title="Boards"
+      subtitle={isSupervisor ? "Your boards and members" : "All boards across supervisors"}
+      right={
+        isSupervisor ? (
+          <button
+            type="button"
+            onClick={() => nav("/workspace")}
+            className="h-10 w-10 grid place-items-center rounded-xl border border-[#6d5efc]/25 bg-[#6d5efc] text-white hover:bg-[#5f50f6]"
+            title="Workspace"
+            aria-label="Open workspace"
+          >
+            <BoardIcon size={16} />
+          </button>
+        ) : null
+      }
+    >
       <div className="w-full">
         {/* Toolbar */}
         <div className="mb-4 flex items-start justify-between gap-3 max-[1020px]:flex-col">
@@ -632,7 +652,7 @@ export default function AdminBoardsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {isAdmin && membersBoard ? (
+                {canManageMembers && membersBoard ? (
                   <button
                     className="h-9 w-9 grid place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
                     title="Edit members"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
 
@@ -9,6 +9,15 @@ type Board = {
   name: string;
   description: string;
   created_by: number;
+  created_at: string;
+};
+
+type SupervisorLookup = {
+  supervisor_user_id: number;
+  full_name: string;
+  email: string;
+  nickname?: string;
+  file_id: number;
   created_at: string;
 };
 
@@ -73,7 +82,13 @@ function BoardIcon({ size = 16 }: { size?: number }) {
 export default function SupervisorFilePage() {
   const nav = useNavigate();
   const { fileId } = useParams();
-  const fileID = Number(fileId);
+  const role = (localStorage.getItem("role") || "").trim().toLowerCase();
+  const isAdmin = role === "admin";
+  const isSupervisor = role === "supervisor";
+  const email = (localStorage.getItem("email") || "").trim().toLowerCase();
+  const login = (localStorage.getItem("login") || "").trim().toLowerCase();
+  const fileIDParam = Number(fileId);
+  const [resolvedFileID, setResolvedFileID] = useState<number>(Number.isFinite(fileIDParam) ? fileIDParam : 0);
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +101,31 @@ export default function SupervisorFilePage() {
   const [editingBoardID, setEditingBoardID] = useState<number | null>(null);
   const [editingBoardName, setEditingBoardName] = useState("");
   const [renaming, setRenaming] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    async function resolveSupervisorFile() {
+      if (!isSupervisor || Number.isFinite(fileIDParam)) return;
+      try {
+        const rows: SupervisorLookup[] = await apiFetch("/admin/supervisors");
+        if (!alive) return;
+        const match = (rows || []).find((r) => {
+          const em = String(r.email || "").trim().toLowerCase();
+          const nn = String(r.nickname || "").trim().toLowerCase();
+          return (email && em === email) || (login && nn === login);
+        });
+        setResolvedFileID(match?.file_id || 0);
+      } catch {
+        setResolvedFileID(0);
+      }
+    }
+    resolveSupervisorFile();
+    return () => {
+      alive = false;
+    };
+  }, [isSupervisor, fileIDParam, email, login]);
+
+  const fileID = Number.isFinite(fileIDParam) ? fileIDParam : resolvedFileID;
 
   async function loadBoards() {
     setErr("");
@@ -106,6 +146,10 @@ export default function SupervisorFilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileID]);
 
+  if (!isAdmin && !isSupervisor) {
+    return <Navigate to="/admin/boards" replace />;
+  }
+
   async function createBoard(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
@@ -113,6 +157,7 @@ export default function SupervisorFilePage() {
     setCreating(true);
 
     try {
+      if (!fileID) throw new Error("Workspace file is not ready yet.");
       await apiFetch("/admin/boards", {
         method: "POST",
         body: JSON.stringify({
@@ -191,20 +236,32 @@ export default function SupervisorFilePage() {
 
   return (
     <AdminLayout
-      active="supervisors"
+      active={isAdmin ? "supervisors" : "boards"}
       title="Workspace"
-      subtitle={loading ? "Loading…" : `Supervisor File #${fileID} • ${boards.length} board(s)`}
+      subtitle={
+        !fileID
+          ? "Loading workspace..."
+          : loading
+          ? "Loading…"
+          : `Supervisor File #${fileID} • ${boards.length} board(s)`
+      }
       right={
         <div className="flex items-center gap-2">
           <button
             className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 hover:border-violet-200 hover:bg-violet-50"
-            onClick={() => nav("/admin/supervisors")}
+            onClick={() => nav(isAdmin ? "/admin/supervisors" : "/admin/boards")}
           >
             Back
           </button>
         </div>
       }
     >
+      {!fileID ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
+          Could not resolve your workspace file yet. Ask admin to ensure your supervisor file exists.
+        </div>
+      ) : null}
+
       <section className="grid gap-4 lg:grid-cols-[1.25fr_0.95fr]">
         {/* Left */}
         <div className="grid gap-4">
@@ -277,7 +334,7 @@ export default function SupervisorFilePage() {
               <div className="mt-1 flex items-center gap-2">
                 <button
                   className="h-11 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={creating || !name.trim()}
+                  disabled={creating || !name.trim() || !fileID}
                 >
                   {creating ? "Creating..." : "Create"}
                 </button>

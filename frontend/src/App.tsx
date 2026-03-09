@@ -77,6 +77,13 @@ function RequireBoardsAccess({ children }: { children: JSX.Element }) {
   return children;
 }
 
+function RequireManageBoards({ children }: { children: JSX.Element }) {
+  if (!hasValidJwt()) return <Navigate to="/login" replace />;
+  const role = getRole();
+  if (role !== "admin" && role !== "supervisor") return <Navigate to="/admin/boards" replace />;
+  return children;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -120,9 +127,18 @@ export default function App() {
       <Route
         path="/admin/files/:fileId"
         element={
-          <RequireAdmin>
+          <RequireManageBoards>
             <SupervisorFilePage />
-          </RequireAdmin>
+          </RequireManageBoards>
+        }
+      />
+
+      <Route
+        path="/workspace"
+        element={
+          <RequireManageBoards>
+            <SupervisorFilePage />
+          </RequireManageBoards>
         }
       />
 
@@ -165,9 +181,9 @@ export default function App() {
       <Route
         path="/admin/boards/:boardId/members"
         element={
-          <RequireAdmin>
+          <RequireManageBoards>
             <BoardMembersPage />
-          </RequireAdmin>
+          </RequireManageBoards>
         }
       />
 

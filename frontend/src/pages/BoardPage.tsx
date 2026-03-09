@@ -940,7 +940,6 @@ export default function BoardPage() {
   const from = new URLSearchParams(location.search).get("from");
   const role = (localStorage.getItem("role") || "").trim().toLowerCase();
   const layoutActive = role === "admin" ? (from === "boards" ? "boards" : "supervisors") : "boards";
-  const isAdmin = role === "admin";
   const canManage = role === "admin" || role === "supervisor";
 
   return (
@@ -999,7 +998,7 @@ export default function BoardPage() {
                 </div> */}
               </div>
               <div className="flex items-center gap-2">
-                {isAdmin ? (
+                {canManage ? (
                   <button
                     className="h-9 w-9 grid place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
                     title="Edit members"

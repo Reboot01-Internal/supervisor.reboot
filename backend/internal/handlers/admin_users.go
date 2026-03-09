@@ -210,6 +210,34 @@ func (a *API) AdminCreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can create board")
+		return
+	}
+
+	if role == "supervisor" {
+		actor := actorID(r, a.conn)
+		var ownerID int64
+		err := a.conn.QueryRow(`
+			SELECT supervisor_user_id
+			FROM supervisor_files
+			WHERE id = ?
+			LIMIT 1
+		`, req.SupervisorFileID).Scan(&ownerID)
+		if err != nil || ownerID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid supervisor file")
+			return
+		}
+		if ownerID != actor {
+			writeErr(w, http.StatusForbidden, "cannot create board in another supervisor workspace")
+			return
+		}
+	}
+
 	createdBy := actorID(r, a.conn)
 	boardID, err := db.CreateBoard(a.conn, req.SupervisorFileID, req.Name, req.Description, createdBy)
 	if err != nil {
@@ -233,6 +261,33 @@ func (a *API) AdminListBoardsByFile(w http.ResponseWriter, r *http.Request) {
 	if err != nil || fileID <= 0 {
 		writeErr(w, http.StatusBadRequest, "invalid file_id")
 		return
+	}
+
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can list boards")
+		return
+	}
+	if role == "supervisor" {
+		actor := actorID(r, a.conn)
+		var ownerID int64
+		err := a.conn.QueryRow(`
+			SELECT supervisor_user_id
+			FROM supervisor_files
+			WHERE id = ?
+			LIMIT 1
+		`, fileID).Scan(&ownerID)
+		if err != nil || ownerID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid file_id")
+			return
+		}
+		if ownerID != actor {
+			writeErr(w, http.StatusForbidden, "cannot access another supervisor workspace")
+			return
+		}
 	}
 
 	boards, err := db.ListBoardsBySupervisorFile(a.conn, fileID)

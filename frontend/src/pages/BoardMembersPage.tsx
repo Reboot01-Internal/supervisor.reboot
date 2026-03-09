@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
 
@@ -182,6 +182,9 @@ export default function BoardMembersPage() {
   const nav = useNavigate();
   const { boardId } = useParams();
   const boardID = Number(boardId);
+  const role = (localStorage.getItem("role") || "").trim().toLowerCase();
+  const isSupervisor = role === "supervisor";
+  const canManage = role === "admin" || role === "supervisor";
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +192,9 @@ export default function BoardMembersPage() {
   const [msg, setMsg] = useState("");
 
   const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "supervisor">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "supervisor">(
+    isSupervisor ? "student" : "all"
+  );
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -202,6 +207,10 @@ export default function BoardMembersPage() {
     () => members.filter((m) => (m.role_in_board || "").toLowerCase() !== "owner"),
     [members]
   );
+
+  if (!canManage) {
+    return <Navigate to={Number.isFinite(boardID) ? `/admin/boards/${boardID}` : "/admin/boards"} replace />;
+  }
 
   async function loadMembers() {
     setErr("");
@@ -227,9 +236,11 @@ export default function BoardMembersPage() {
     setErr("");
     setSearching(true);
     try {
-      const url = `/admin/eligible-users?board_id=${boardID}&role=${encodeURIComponent(
-        roleFilter
-      )}&q=${encodeURIComponent(q)}`;
+      const url = isSupervisor
+        ? `/supervisor/eligible-students?board_id=${boardID}&q=${encodeURIComponent(q)}`
+        : `/admin/eligible-users?board_id=${boardID}&role=${encodeURIComponent(
+            roleFilter
+          )}&q=${encodeURIComponent(q)}`;
       const res = await apiFetch(url);
       setResults(res);
       setSelectedResultIds(new Set());
@@ -277,7 +288,7 @@ export default function BoardMembersPage() {
     try {
       await Promise.all(
         ids.map((userId) =>
-          apiFetch("/admin/board-members", {
+          apiFetch(isSupervisor ? "/supervisor/board-members" : "/admin/board-members", {
             method: "POST",
             body: JSON.stringify({
               board_id: boardID,
@@ -411,10 +422,11 @@ export default function BoardMembersPage() {
                 className="h-11 w-[170px] rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-900 outline-none focus:ring-4 focus:ring-violet-200"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as any)}
+                disabled={isSupervisor}
               >
-                <option value="all">All roles</option>
+                <option value="all">{isSupervisor ? "Students only" : "All roles"}</option>
                 <option value="student">Students</option>
-                <option value="supervisor">Supervisors</option>
+                {!isSupervisor ? <option value="supervisor">Supervisors</option> : null}
               </select>
 
               <button
