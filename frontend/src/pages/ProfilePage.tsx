@@ -346,6 +346,14 @@ export default function ProfilePage() {
           >
             Back
           </button>
+        ) : role === "supervisor" || role === "student" ? (
+          <button
+            type="button"
+            onClick={() => nav("/admin/boards")}
+            className="h-10 rounded-[14px] border border-[#6d5efc]/25 bg-[#6d5efc] px-3 font-extrabold text-white transition hover:bg-[#5f50f6]"
+          >
+            Back
+          </button>
         ) : null
       }
     >
