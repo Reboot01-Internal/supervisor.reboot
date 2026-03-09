@@ -7,6 +7,7 @@ import BoardMembersPage from "./pages/BoardMembersPage";
 import type { JSX } from "react";
 import BoardPage from "./pages/BoardPage";
 import AdminBoardsPage from "./pages/AdminBoardsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 import AssignPage from "./pages/AssignPage";
 import ProfilePage from "./pages/ProfilePage";
 
@@ -130,6 +131,24 @@ export default function App() {
           <RequireBoardsAccess>
             <AdminBoardsPage />
           </RequireBoardsAccess>
+        }
+      />
+
+      <Route
+        path="/admin/users"
+        element={
+          <RequireAdmin>
+            <AdminUsersPage />
+          </RequireAdmin>
+        }
+      />
+
+      <Route
+        path="/admin/users/:userId/profile"
+        element={
+          <RequireAdmin>
+            <ProfilePage />
+          </RequireAdmin>
         }
       />
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
 
@@ -240,9 +240,13 @@ async function loadRebootGender(login: string, jwt: string): Promise<string> {
 }
 
 export default function ProfilePage() {
+  const nav = useNavigate();
+  const params = useParams<{ userId?: string }>();
   const role = (localStorage.getItem("role") || "").trim().toLowerCase();
-  const login = (localStorage.getItem("login") || "").trim();
+  const ownLogin = (localStorage.getItem("login") || "").trim();
   const jwt = (localStorage.getItem("jwt") || "").trim().replace(/^"|"$/g, "");
+  const targetUserID = Number(params.userId || 0);
+  const isAdminViewingUser = role === "admin" && Number.isFinite(targetUserID) && targetUserID > 0;
 
   const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
   const [rebootProfile, setRebootProfile] = useState<RebootProfile | null>(null);
@@ -258,10 +262,12 @@ export default function ProfilePage() {
       setLoading(true);
       setErr("");
       try {
-        const [local, reboot] = await Promise.all([
-          apiFetch("/admin/profile/summary"),
-          login && jwt ? loadRebootProfile(login, jwt) : Promise.resolve(null),
-        ]);
+        const local = await apiFetch(
+          isAdminViewingUser ? `/admin/profile/summary?user_id=${targetUserID}` : "/admin/profile/summary"
+        );
+        const targetLogin =
+          String(local?.user?.nickname || "").trim() || (isAdminViewingUser ? "" : ownLogin);
+        const reboot = targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt) : null;
         if (!mounted) return;
         setLocalProfile(local);
         setRebootProfile(reboot);
@@ -276,7 +282,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [login, jwt]);
+  }, [isAdminViewingUser, ownLogin, jwt, targetUserID]);
 
   const displayName = useMemo(() => {
     if (rebootProfile?.user?.firstName || rebootProfile?.user?.lastName) {
@@ -319,14 +325,29 @@ export default function ProfilePage() {
     }
   }
 
-  if (role === "admin") return <Navigate to="/admin" replace />;
-  if (role !== "supervisor" && role !== "student") return <Navigate to="/login" replace />;
+  if (role === "admin" && !isAdminViewingUser) return <Navigate to="/admin" replace />;
+  if (!isAdminViewingUser && role !== "supervisor" && role !== "student") return <Navigate to="/login" replace />;
 
   return (
     <AdminLayout
-      active="profile"
-      title="My Profile"
-      subtitle="Personal info, role details, and assignment overview."
+      active={isAdminViewingUser ? "users" : "profile"}
+      title={isAdminViewingUser ? "User Profile" : "My Profile"}
+      subtitle={
+        isAdminViewingUser
+          ? "User details, role information, and assignment overview."
+          : "Personal info, role details, and assignment overview."
+      }
+      right={
+        isAdminViewingUser ? (
+          <button
+            type="button"
+            onClick={() => nav("/admin/users")}
+            className="h-10 rounded-[14px] border border-slate-200 bg-slate-50 px-3 font-extrabold text-slate-900 transition hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
+          >
+            Back
+          </button>
+        ) : null
+      }
     >
       {err ? (
         <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-800">

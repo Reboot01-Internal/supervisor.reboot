@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -86,6 +87,19 @@ type profileTaskSection struct {
 
 func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 	uid := actorID(r, a.conn)
+	reqRole := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+
+	// Admin can inspect any user profile by id.
+	if reqRole == "admin" {
+		if v := strings.TrimSpace(r.URL.Query().Get("user_id")); v != "" {
+			targetID, err := strconv.ParseInt(v, 10, 64)
+			if err != nil || targetID <= 0 {
+				writeErr(w, http.StatusBadRequest, "invalid user_id")
+				return
+			}
+			uid = targetID
+		}
+	}
 
 	var out profileSummaryResp
 	err := a.conn.QueryRow(`

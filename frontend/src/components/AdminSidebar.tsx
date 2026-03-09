@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-type Props = { active?: "dashboard" | "supervisors" | "boards" | "reports" | "assign" | "profile" };
+type Props = { active?: "dashboard" | "supervisors" | "boards" | "reports" | "assign" | "profile" | "users" };
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -81,6 +81,7 @@ export default function AdminSidebar({ active }: Props) {
               <Item id="supervisors" label="Supervisors" to="/admin/supervisors" />
               <Item id="boards" label="Boards" to="/admin/boards" />
               <Item id="assign" label="Assign" to="/admin/assign" />
+              <Item id="users" label="Users" to="/admin/users" />
               <Item id="reports" label="Reports" to="/admin/reports" />
             </>
           ) : (
