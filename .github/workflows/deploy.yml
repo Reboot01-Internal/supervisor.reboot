@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /home/forge/supervisor.reboot
+            git pull origin main
+            sudo ./deploy.sh --api-url https://supervisor.reboot01.com/api
+
+            # Check if service is running
+            sleep 3
+            if systemctl is-active --quiet supervisor-reboot; then
+              echo "Deployment successful - service is running"
+            else
+              echo "Deployment FAILED - service is not running"
+              journalctl -u supervisor-reboot --no-pager -n 20
+              exit 1
+            fi
