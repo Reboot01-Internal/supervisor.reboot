@@ -16,16 +16,28 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -e
+
             cd /home/forge/supervisor.reboot
             git pull origin main
+
             sudo ./deploy.sh --api-url https://supervisor.reboot01.com/api
 
-            # Check if service is running
+            # Verify service is running
             sleep 3
             if systemctl is-active --quiet supervisor-reboot; then
               echo "Deployment successful - service is running"
             else
-              echo "Deployment FAILED - service is not running"
-              journalctl -u supervisor-reboot --no-pager -n 20
+              echo "DEPLOY FAILED - service not running"
+              echo "--- Last 30 log lines ---"
+              journalctl -u supervisor-reboot --no-pager -n 30
+              exit 1
+            fi
+
+            # Verify backend responds
+            if curl -sf -o /dev/null --max-time 5 http://localhost:4500; then
+              echo "Health check passed"
+            else
+              echo "DEPLOY FAILED - backend not responding on port 4500"
               exit 1
             fi
