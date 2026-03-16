@@ -294,6 +294,7 @@ export default function AdminBoardsPage() {
   const { isAdmin, isSupervisor } = useAuth();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const canManageMembers = isAdmin || isSupervisor;
+  const canDeleteBoards = isAdmin || isSupervisor;
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
 
@@ -591,19 +592,21 @@ export default function AdminBoardsPage() {
                           <UsersIcon />
                         </button>
 
-                        <button
-                          type="button"
-                          className="h-8 w-8 grid place-items-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                          title={deletingBoardID === b.id ? "Deleting..." : "Delete board"}
-                          aria-label={deletingBoardID === b.id ? "Deleting board" : "Delete board"}
-                          disabled={deletingBoardID === b.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteBoard(b);
-                          }}
-                        >
-                          <BinIcon size={14} />
-                        </button>
+                        {canDeleteBoards ? (
+                          <button
+                            type="button"
+                            className="h-8 w-8 grid place-items-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            title={deletingBoardID === b.id ? "Deleting..." : "Delete board"}
+                            aria-label={deletingBoardID === b.id ? "Deleting board" : "Delete board"}
+                            disabled={deletingBoardID === b.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteBoard(b);
+                            }}
+                          >
+                            <BinIcon size={14} />
+                          </button>
+                        ) : null}
                       </div>
                     </div>
 
