@@ -21,7 +21,7 @@ jobs:
             cd /home/forge/supervisor.reboot
             git pull origin main
 
-            sudo ./deploy.sh --api-url https://supervisor.reboot01.com/api
+            sudo ./deploy.sh --api-url https://taskflow.reboot01.com/api
 
             # Verify service is running
             sleep 3
@@ -35,7 +35,7 @@ jobs:
             fi
 
             # Verify backend responds
-            if curl -sf -o /dev/null --max-time 5 http://localhost:4500; then
+            if curl -sf -o /dev/null --max-time 5 http://localhost:4500/health; then
               echo "Health check passed"
             else
               echo "DEPLOY FAILED - backend not responding on port 4500"

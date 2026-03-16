@@ -1,5 +1,5 @@
 # Backend
-backend/.env
+backend/.env*
 backend/data/*.db
 backend/data/*.sql
 
