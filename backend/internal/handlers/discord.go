@@ -252,6 +252,32 @@ func (a *API) notifyCardCompleted(cardID, actorID int64) bool {
 	return true
 }
 
+func (a *API) resolveDiscordMention(userID int64, fallback string) string {
+	fallback = strings.TrimSpace(fallback)
+	if fallback == "" {
+		fallback = "Someone"
+	}
+
+	if discordUserID, err := db.GetUserDiscordID(a.conn, userID); err == nil && strings.TrimSpace(discordUserID) != "" {
+		return "<@" + strings.TrimSpace(discordUserID) + ">"
+	}
+
+	if a.discord != nil && a.discord.Enabled() && fallback != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
+		resolvedID, err := a.discord.ResolveMemberByNickname(ctx, fallback)
+		cancel()
+		if err == nil && strings.TrimSpace(resolvedID) != "" {
+			if err := db.UpdateUserDiscordID(a.conn, userID, resolvedID); err != nil {
+				log.Printf("discord user id save failed for user %d: %v", userID, err)
+			} else {
+				return "<@" + strings.TrimSpace(resolvedID) + ">"
+			}
+		}
+	}
+
+	return "@" + strings.TrimPrefix(fallback, "@")
+}
+
 func (a *API) notifyMeetingBooked(meetingID, actorID int64) bool {
 	if a.discord == nil || !a.discord.Enabled() {
 		return false
@@ -272,13 +298,19 @@ func (a *API) notifyMeetingBooked(meetingID, actorID int64) bool {
 	}
 
 	actorName := meeting.CreatedByName
+	actorMention := actorName
 	if actorID > 0 {
 		if displayName, err := db.GetUserDisplayName(a.conn, actorID); err == nil && strings.TrimSpace(displayName) != "" {
 			actorName = displayName
+			actorMention = displayName
 		}
+		actorMention = a.resolveDiscordMention(actorID, actorName)
 	}
 	if strings.TrimSpace(actorName) == "" {
 		actorName = "Someone"
+	}
+	if strings.TrimSpace(actorMention) == "" {
+		actorMention = actorName
 	}
 
 	startAt, err := time.Parse(time.RFC3339, strings.TrimSpace(meeting.StartsAt))
@@ -294,7 +326,7 @@ func (a *API) notifyMeetingBooked(meetingID, actorID int64) bool {
 
 	message := fmt.Sprintf(
 		"%s booked a new meeting for **%s** in **%s**.\nLocation: **%s**\nTime: `%s - %s`",
-		actorName,
+		actorMention,
 		meeting.Title,
 		meeting.BoardName,
 		meeting.Location,
