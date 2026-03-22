@@ -141,9 +141,35 @@ type Meeting struct {
 	Title         string `json:"title"`
 	Location      string `json:"location"`
 	Notes         string `json:"notes"`
+	Status        string `json:"status"`
+	OutcomeNotes  string `json:"outcome_notes"`
 	StartsAt      string `json:"starts_at"`
 	EndsAt        string `json:"ends_at"`
 	CreatedAt     string `json:"created_at"`
+}
+
+type MeetingParticipant struct {
+	MeetingID         int64  `json:"meeting_id"`
+	UserID            int64  `json:"user_id"`
+	FullName          string `json:"full_name"`
+	Nickname          string `json:"nickname"`
+	Email             string `json:"email"`
+	Role              string `json:"role"`
+	RoleInBoard       string `json:"role_in_board"`
+	RSVPStatus        string `json:"rsvp_status"`
+	AttendanceStatus  string `json:"attendance_status"`
+	UpdatedAt         string `json:"updated_at"`
+}
+
+type AppNotification struct {
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
+	Kind      string `json:"kind"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	Link      string `json:"link"`
+	IsRead    bool   `json:"is_read"`
+	CreatedAt string `json:"created_at"`
 }
 
 type MeetingRoomNotification struct {

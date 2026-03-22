@@ -349,6 +349,43 @@ func (a *API) notifyMeetingBooked(meetingID, actorID int64) bool {
 	return true
 }
 
+func (a *API) notifyMeetingChanged(meeting models.Meeting, verb string) bool {
+	if a.discord == nil || !a.discord.Enabled() {
+		return false
+	}
+
+	channelID, err := db.GetBoardDiscordChannelID(a.conn, meeting.BoardID)
+	if err != nil || strings.TrimSpace(channelID) == "" {
+		return false
+	}
+
+	startAt, err := time.Parse(time.RFC3339, strings.TrimSpace(meeting.StartsAt))
+	if err != nil {
+		return false
+	}
+	endAt, err := time.Parse(time.RFC3339, strings.TrimSpace(meeting.EndsAt))
+	if err != nil {
+		return false
+	}
+
+	message := fmt.Sprintf(
+		"Meeting update: **%s** was %s in **%s**.\nLocation: **%s**\nTime: `%s - %s`",
+		meeting.Title,
+		verb,
+		meeting.BoardName,
+		meeting.Location,
+		startAt.Local().Format("02 Jan 2006 03:04 PM"),
+		endAt.Local().Format("03:04 PM"),
+	)
+	if strings.TrimSpace(meeting.OutcomeNotes) != "" && (meeting.Status == "completed" || meeting.Status == "canceled") {
+		message += "\nNotes: " + strings.TrimSpace(meeting.OutcomeNotes)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
+	defer cancel()
+	return a.discord.SendChannelMessage(ctx, channelID, message) == nil
+}
+
 func formatRoomTime(t time.Time) string {
 	return strings.ToLower(t.Format("3:04 pm"))
 }
@@ -458,6 +495,72 @@ func (a *API) runMeetingRoomBookingSweep(location *time.Location) {
 	}
 }
 
+func (a *API) runMeetingReminderSweep(location *time.Location) {
+	items, err := db.ListMeetings(a.conn, "admin", 0)
+	if err != nil {
+		log.Printf("meeting reminder sweep failed: %v", err)
+		return
+	}
+
+	now := time.Now().In(location)
+	for _, meeting := range items {
+		if meeting.Status != "scheduled" {
+			continue
+		}
+
+		startAt, err := time.Parse(time.RFC3339, strings.TrimSpace(meeting.StartsAt))
+		if err != nil {
+			continue
+		}
+		startLocal := startAt.In(location)
+		diff := startLocal.Sub(now)
+
+		reminderType := ""
+		title := ""
+		body := ""
+		switch {
+		case diff >= 0 && diff < 5*time.Minute:
+			reminderType = "start"
+			title = "Meeting starting now"
+			body = fmt.Sprintf("%s starts now in %s.", meeting.Title, meeting.Location)
+		case diff > 0 && diff <= time.Hour:
+			reminderType = "hour_before"
+			title = "Meeting in about 1 hour"
+			body = fmt.Sprintf("%s starts at %s in %s.", meeting.Title, startLocal.Format("3:04 PM"), meeting.Location)
+		default:
+			today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location)
+			meetingDay := time.Date(startLocal.Year(), startLocal.Month(), startLocal.Day(), 0, 0, 0, 0, location)
+			if meetingDay.Sub(today) == 24*time.Hour {
+				reminderType = "day_before"
+				title = "Meeting tomorrow"
+				body = fmt.Sprintf("%s is tomorrow at %s in %s.", meeting.Title, startLocal.Format("3:04 PM"), meeting.Location)
+			}
+		}
+
+		if reminderType == "" {
+			continue
+		}
+
+		participants, err := db.ListMeetingParticipants(a.conn, meeting.ID)
+		if err != nil {
+			continue
+		}
+		for _, participant := range participants {
+			sent, err := db.HasMeetingReminderEvent(a.conn, meeting.ID, participant.UserID, reminderType, meeting.StartsAt)
+			if err != nil || sent {
+				continue
+			}
+
+			if err := db.CreateNotification(a.conn, participant.UserID, "meeting_reminder", title, body, "/calendar"); err != nil {
+				continue
+			}
+			if err := db.MarkMeetingReminderEvent(a.conn, meeting.ID, participant.UserID, reminderType, meeting.StartsAt); err != nil {
+				log.Printf("meeting reminder mark failed for meeting %d user %d: %v", meeting.ID, participant.UserID, err)
+			}
+		}
+	}
+}
+
 func (a *API) runDiscordDueReminderSweep() {
 	if a.discord == nil || !a.discord.Enabled() {
 		return
@@ -556,6 +659,26 @@ func (a *API) StartDiscordReminderWorker() {
 			case <-timer.C:
 				a.runDiscordDueReminderSweep()
 				a.runMeetingRoomBookingSweep(location)
+			}
+		}
+	}()
+
+	go func() {
+		location, err := time.LoadLocation("Asia/Bahrain")
+		if err != nil {
+			log.Printf("meeting reminder worker disabled: failed to load Bahrain timezone: %v", err)
+			return
+		}
+
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			a.runMeetingReminderSweep(location)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 		}
 	}()

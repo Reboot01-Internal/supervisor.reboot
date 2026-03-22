@@ -38,6 +38,8 @@ func GetMeetingByID(conn *sql.DB, meetingID int64) (models.Meeting, error) {
 			m.title,
 			m.location,
 			IFNULL(m.notes, ''),
+			LOWER(TRIM(COALESCE(m.status, 'scheduled'))),
+			IFNULL(m.outcome_notes, ''),
 			m.starts_at,
 			m.ends_at,
 			m.created_at
@@ -58,6 +60,8 @@ func GetMeetingByID(conn *sql.DB, meetingID int64) (models.Meeting, error) {
 		&meeting.Title,
 		&meeting.Location,
 		&meeting.Notes,
+		&meeting.Status,
+		&meeting.OutcomeNotes,
 		&meeting.StartsAt,
 		&meeting.EndsAt,
 		&meeting.CreatedAt,
@@ -80,9 +84,119 @@ func UpdateMeeting(conn *sql.DB, meetingID, boardID int64, title, location, note
 	return err
 }
 
+func UpdateMeetingStatus(conn *sql.DB, meetingID int64, status, outcomeNotes string) error {
+	status = strings.ToLower(strings.TrimSpace(status))
+	outcomeNotes = strings.TrimSpace(outcomeNotes)
+	_, err := conn.Exec(`
+		UPDATE meetings
+		SET status = ?, outcome_notes = ?
+		WHERE id = ?
+	`, status, outcomeNotes, meetingID)
+	return err
+}
+
 func DeleteMeeting(conn *sql.DB, meetingID int64) error {
 	_, err := conn.Exec(`DELETE FROM meetings WHERE id = ?`, meetingID)
 	return err
+}
+
+func SyncMeetingParticipants(conn *sql.DB, meetingID, boardID int64) error {
+	_, err := conn.Exec(`
+		INSERT INTO meeting_participants (meeting_id, user_id)
+		SELECT ?, bm.user_id
+		FROM board_members bm
+		WHERE bm.board_id = ?
+		ON CONFLICT(meeting_id, user_id) DO NOTHING
+	`, meetingID, boardID)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Exec(`
+		DELETE FROM meeting_participants
+		WHERE meeting_id = ?
+		  AND user_id NOT IN (
+		    SELECT bm.user_id
+		    FROM board_members bm
+		    WHERE bm.board_id = ?
+		  )
+	`, meetingID, boardID)
+	return err
+}
+
+func ListMeetingParticipants(conn *sql.DB, meetingID int64) ([]models.MeetingParticipant, error) {
+	rows, err := conn.Query(`
+		SELECT
+			mp.meeting_id,
+			mp.user_id,
+			u.full_name,
+			IFNULL(u.nickname, ''),
+			u.email,
+			u.role,
+			IFNULL(bm.role_in_board, ''),
+			LOWER(TRIM(COALESCE(mp.rsvp_status, 'pending'))),
+			LOWER(TRIM(COALESCE(mp.attendance_status, 'pending'))),
+			mp.updated_at
+		FROM meeting_participants mp
+		JOIN users u ON u.id = mp.user_id
+		LEFT JOIN meetings m ON m.id = mp.meeting_id
+		LEFT JOIN board_members bm ON bm.board_id = m.board_id AND bm.user_id = mp.user_id
+		WHERE mp.meeting_id = ?
+		ORDER BY
+			CASE LOWER(u.role) WHEN 'supervisor' THEN 0 WHEN 'student' THEN 1 ELSE 2 END,
+			u.full_name ASC
+	`, meetingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []models.MeetingParticipant{}
+	for rows.Next() {
+		var item models.MeetingParticipant
+		if err := rows.Scan(
+			&item.MeetingID,
+			&item.UserID,
+			&item.FullName,
+			&item.Nickname,
+			&item.Email,
+			&item.Role,
+			&item.RoleInBoard,
+			&item.RSVPStatus,
+			&item.AttendanceStatus,
+			&item.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func UpdateMeetingParticipant(conn *sql.DB, meetingID, userID int64, rsvpStatus, attendanceStatus string) error {
+	rsvpStatus = strings.ToLower(strings.TrimSpace(rsvpStatus))
+	attendanceStatus = strings.ToLower(strings.TrimSpace(attendanceStatus))
+	_, err := conn.Exec(`
+		UPDATE meeting_participants
+		SET rsvp_status = ?, attendance_status = ?, updated_at = datetime('now')
+		WHERE meeting_id = ? AND user_id = ?
+	`, rsvpStatus, attendanceStatus, meetingID, userID)
+	return err
+}
+
+func CountMeetingLocationConflicts(conn *sql.DB, meetingID int64, location, startsAt, endsAt string) (int, error) {
+	location = strings.ToLower(strings.TrimSpace(location))
+	var count int
+	err := conn.QueryRow(`
+		SELECT COUNT(1)
+		FROM meetings
+		WHERE LOWER(TRIM(COALESCE(location, ''))) = ?
+		  AND LOWER(TRIM(COALESCE(status, 'scheduled'))) <> 'canceled'
+		  AND id <> ?
+		  AND starts_at < ?
+		  AND ends_at > ?
+	`, location, meetingID, endsAt, startsAt).Scan(&count)
+	return count, err
 }
 
 func ListMeetings(conn *sql.DB, role string, actorID int64) ([]models.Meeting, error) {
@@ -98,6 +212,8 @@ func ListMeetings(conn *sql.DB, role string, actorID int64) ([]models.Meeting, e
 			m.title,
 			m.location,
 			IFNULL(m.notes, ''),
+			LOWER(TRIM(COALESCE(m.status, 'scheduled'))),
+			IFNULL(m.outcome_notes, ''),
 			m.starts_at,
 			m.ends_at,
 			m.created_at
@@ -149,6 +265,8 @@ func ListMeetings(conn *sql.DB, role string, actorID int64) ([]models.Meeting, e
 			&meeting.Title,
 			&meeting.Location,
 			&meeting.Notes,
+			&meeting.Status,
+			&meeting.OutcomeNotes,
 			&meeting.StartsAt,
 			&meeting.EndsAt,
 			&meeting.CreatedAt,

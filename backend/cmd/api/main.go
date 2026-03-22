@@ -156,11 +156,17 @@ func main() {
 		ar.Post("/card/reminders/delete", api.AdminDeleteReminder)
 
 		ar.Get("/all-boards", api.AdminAllBoards)
-			ar.Get("/meetings", api.AdminListMeetings)
-			ar.Post("/meetings", api.AdminCreateMeeting)
-			ar.Post("/meetings/update", api.AdminUpdateMeeting)
-			ar.Post("/meetings/delete", api.AdminDeleteMeeting)
-			ar.Get("/profile/summary", api.ProfileSummary)
+		ar.Get("/meetings", api.AdminListMeetings)
+		ar.Post("/meetings", api.AdminCreateMeeting)
+		ar.Post("/meetings/update", api.AdminUpdateMeeting)
+		ar.Post("/meetings/status", api.AdminUpdateMeetingStatus)
+		ar.Post("/meetings/delete", api.AdminDeleteMeeting)
+		ar.Get("/meeting-participants", api.AdminListMeetingParticipants)
+		ar.Post("/meeting-participants/update", api.AdminUpdateMeetingParticipant)
+		ar.Get("/notifications", api.ListNotifications)
+		ar.Post("/notifications/read", api.MarkNotificationRead)
+		ar.Post("/notifications/read-all", api.MarkAllNotificationsRead)
+		ar.Get("/profile/summary", api.ProfileSummary)
 
 		// supervisor-student assignments
 		ar.Get("/assign/supervisors", api.AdminAssignListSupervisors)
@@ -211,6 +217,8 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/009_discord_managed_users.sql",
 		"migrations/010_meetings.sql",
 		"migrations/011_meeting_room_notifications.sql",
+		"migrations/012_meeting_phase1.sql",
+		"migrations/013_notifications_phase2.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 
@@ -250,6 +258,57 @@ func runMigrations(conn *sql.DB) error {
 				)
 			`); err != nil {
 				return err
+			}
+			continue
+		}
+		if f == "migrations/012_meeting_phase1.sql" {
+			if _, err := conn.Exec(`
+				CREATE TABLE IF NOT EXISTS meeting_participants (
+				  meeting_id INTEGER NOT NULL,
+				  user_id INTEGER NOT NULL,
+				  rsvp_status TEXT NOT NULL DEFAULT 'pending',
+				  attendance_status TEXT NOT NULL DEFAULT 'pending',
+				  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+				  PRIMARY KEY (meeting_id, user_id),
+				  FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+				  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+				)
+			`); err != nil {
+				return err
+			}
+
+			rows, err := conn.Query(`PRAGMA table_info(meetings)`)
+			if err != nil {
+				return err
+			}
+			hasStatus := false
+			hasOutcomeNotes := false
+			for rows.Next() {
+				var cid int
+				var name, ctype string
+				var notnull, pk int
+				var dflt sql.NullString
+				if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+					rows.Close()
+					return err
+				}
+				if name == "status" {
+					hasStatus = true
+				}
+				if name == "outcome_notes" {
+					hasOutcomeNotes = true
+				}
+			}
+			rows.Close()
+			if !hasStatus {
+				if _, err := conn.Exec(`ALTER TABLE meetings ADD COLUMN status TEXT NOT NULL DEFAULT 'scheduled'`); err != nil {
+					return err
+				}
+			}
+			if !hasOutcomeNotes {
+				if _, err := conn.Exec(`ALTER TABLE meetings ADD COLUMN outcome_notes TEXT NOT NULL DEFAULT ''`); err != nil {
+					return err
+				}
 			}
 			continue
 		}

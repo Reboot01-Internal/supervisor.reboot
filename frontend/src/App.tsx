@@ -12,6 +12,7 @@ import AssignPage from "./pages/AssignPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminReportsPage from "./pages/AdminReportsPage";
 import MeetingsCalendarPage from "./pages/MeetingsCalendarPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -137,6 +138,11 @@ export default function App() {
       <Route
         path="/calendar"
         element={<RequireBoardsAccess><MeetingsCalendarPage /></RequireBoardsAccess>}
+      />
+
+      <Route
+        path="/notifications"
+        element={<RequireBoardsAccess><NotificationsPage /></RequireBoardsAccess>}
       />
 
       <Route

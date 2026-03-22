@@ -4,7 +4,7 @@ import { useAuth } from "../lib/auth";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
-  active?: "dashboard" | "supervisors" | "boards" | "assign" | "reports" | "profile" | "users" | "meetings";
+  active?: "dashboard" | "supervisors" | "boards" | "assign" | "reports" | "profile" | "users" | "meetings" | "notifications";
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
@@ -78,6 +78,18 @@ export default function AdminLayout({
                       <path d="M7 3v3M17 3v3M4 9h16" stroke="#b45309" strokeWidth="2" strokeLinecap="round" />
                       <rect x="4" y="5" width="16" height="15" rx="3" stroke="#b45309" strokeWidth="2" />
                       <path d="M8 13h3v3H8z" fill="#f59e0b" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => nav("/notifications")}
+                    className="relative grid h-12 w-12 place-items-center rounded-full border border-[#f2d7ad] bg-[#fff7e8] font-black text-[#334155] transition hover:border-[#f0bf6b] hover:bg-[#fff1d5]"
+                    title="Notifications"
+                    aria-label="Open notifications"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                      <path d="M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 1 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17h-4Z" stroke="#d97706" strokeWidth="2" strokeLinejoin="round" />
+                      <path d="M10 20a2 2 0 0 0 4 0" stroke="#d97706" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                   </button>
                   <button
