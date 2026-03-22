@@ -340,7 +340,7 @@ func (a *API) notifyMeetingBooked(meetingID, actorID int64) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	defer cancel()
 
-	if err := a.discord.SendChannelMessage(ctx, channelID, message); err != nil {
+	if err := a.discord.SendChannelMessagePinned(ctx, channelID, message); err != nil {
 		log.Printf("discord meeting notify failed for meeting %d: %v", meetingID, err)
 		return false
 	}

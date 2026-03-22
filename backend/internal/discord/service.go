@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	permissionViewChannel        = 1024
-	permissionSendMessages       = 2048
-	permissionReadMessageHistory = 65536
-	permissionManageChannels     = 16
+	permissionManageChannels     int64 = 16
+	permissionViewChannel        int64 = 1024
+	permissionSendMessages       int64 = 2048
+	permissionManageMessages     int64 = 8192
+	permissionReadMessageHistory int64 = 65536
+	permissionPinMessages        int64 = 1 << 51
 )
 
 var channelSanitizer = regexp.MustCompile(`[^a-z0-9-]+`)
@@ -83,6 +85,10 @@ type updateChannelRequest struct {
 
 type messageRequest struct {
 	Content string `json:"content"`
+}
+
+type messageResponse struct {
+	ID string `json:"id"`
 }
 
 func NewFromEnv() *Service {
@@ -224,14 +230,34 @@ func (s *Service) ListGuildMembers(ctx context.Context) ([]guildMemberResult, er
 }
 
 func (s *Service) SendChannelMessage(ctx context.Context, channelID, content string) error {
+	_, err := s.sendChannelMessage(ctx, channelID, content)
+	return err
+}
+
+func (s *Service) SendChannelMessagePinned(ctx context.Context, channelID, content string) error {
+	messageID, err := s.sendChannelMessage(ctx, channelID, content)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(messageID) == "" {
+		return fmt.Errorf("discord returned empty message id")
+	}
+	return s.doJSON(ctx, http.MethodPut, fmt.Sprintf("https://discord.com/api/v10/channels/%s/messages/pins/%s", channelID, messageID), nil, nil)
+}
+
+func (s *Service) sendChannelMessage(ctx context.Context, channelID, content string) (string, error) {
 	body := messageRequest{
 		Content: strings.TrimSpace(content),
 	}
 	if body.Content == "" {
-		return nil
+		return "", nil
 	}
 
-	return s.doJSON(ctx, http.MethodPost, fmt.Sprintf("https://discord.com/api/v10/channels/%s/messages", channelID), body, nil)
+	var out messageResponse
+	if err := s.doJSON(ctx, http.MethodPost, fmt.Sprintf("https://discord.com/api/v10/channels/%s/messages", channelID), body, &out); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out.ID), nil
 }
 
 func (s *Service) DeleteChannel(ctx context.Context, channelID string) error {
@@ -248,7 +274,7 @@ func (s *Service) GetChannelPermissionOverwrites(ctx context.Context, channelID 
 
 func (s *Service) permissionOverwrites(members []MemberAccess) []permissionOverwrite {
 	viewAndChat := fmt.Sprintf("%d", permissionViewChannel+permissionSendMessages+permissionReadMessageHistory)
-	botAllow := fmt.Sprintf("%d", permissionViewChannel+permissionSendMessages+permissionReadMessageHistory+permissionManageChannels)
+	botAllow := fmt.Sprintf("%d", permissionViewChannel+permissionSendMessages+permissionManageMessages+permissionReadMessageHistory+permissionManageChannels+permissionPinMessages)
 
 	seen := map[string]bool{}
 	overwrites := []permissionOverwrite{
