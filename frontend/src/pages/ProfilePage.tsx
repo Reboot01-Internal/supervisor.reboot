@@ -32,6 +32,7 @@ type LocalProfile = {
     boards: {
       id: number;
       name: string;
+      group: string;
       supervisor: { id: number; full_name: string; nickname: string; email: string };
     }[];
   };
@@ -302,11 +303,13 @@ export default function ProfilePage() {
           id: b.id,
           name: b.name,
           subtitle: `Supervisor: ${b.supervisor.full_name} (${withAt(b.supervisor.nickname)})`,
+          group: b.group || "member",
         }))
       : (localProfile?.supervisor?.boards || []).map((b) => ({
           id: b.id,
           name: b.name,
           subtitle: `${b.students_count} students`,
+          group: "",
         }));
 
   async function toggleMembers(boardID: number) {
@@ -418,6 +421,9 @@ export default function ProfilePage() {
 
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <SnapshotItem label="Boards" value={String(boardRows.length)} />
+              {localProfile.student ? (
+                <SnapshotItem label="Supervisors" value={String(localProfile.student?.supervisors?.length || 0)} />
+              ) : null}
               <SnapshotItem label="Assigned Tasks" value={String(localProfile.tasks?.total || 0)} />
               <SnapshotItem label="Completed" value={String(localProfile.tasks?.done || 0)} />
             </div>
@@ -441,6 +447,13 @@ export default function ProfilePage() {
                         <div className="min-w-0">
                           <div className="truncate text-[13px] font-black text-slate-900">{b.name}</div>
                           <div className="mt-0.5 text-[12px] font-semibold text-slate-500">{b.subtitle}</div>
+                          {"group" in b && b.group ? (
+                            <div className="mt-1.5">
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-black capitalize text-amber-800">
+                                Group: {b.group}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
                         <button
                           type="button"
@@ -585,6 +598,23 @@ export default function ProfilePage() {
                     {localProfile.tasks?.total || 0} total
                   </span>
                 </div>
+
+                {(localProfile.student?.supervisors || []).length > 0 ? (
+                  <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="mb-2 text-[13px] font-black text-slate-900">Supervisors</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(localProfile.student?.supervisors || []).map((s) => (
+                        <span
+                          key={s.id}
+                          className="inline-flex items-center gap-2 rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2.5 py-1 text-[11px] font-black text-slate-800"
+                        >
+                          <span>{s.full_name}</span>
+                          <span className="text-slate-500">{withAt(s.nickname)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="mb-2 flex items-center justify-between text-[12px] font-bold text-slate-600">
