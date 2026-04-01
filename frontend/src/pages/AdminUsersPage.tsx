@@ -132,11 +132,11 @@ export default function AdminUsersPage() {
                 key={u.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => nav(`/admin/users/${u.id}/profile`)}
+                onClick={() => nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    nav(`/admin/users/${u.id}/profile`);
+                    nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
                   }
                 }}
                 className="cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"

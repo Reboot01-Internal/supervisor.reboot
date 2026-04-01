@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { SkeletonBlock } from "../components/Skeleton";
 import { apiFetch } from "../lib/api";
@@ -244,6 +244,7 @@ async function loadRebootGender(login: string, jwt: string): Promise<string> {
 
 export default function ProfilePage() {
   const nav = useNavigate();
+  const location = useLocation();
   const params = useParams<{ userId?: string }>();
   const { role, login: ownLogin, jwt } = useAuth();
   const targetUserID = Number(params.userId || 0);
@@ -251,6 +252,10 @@ export default function ProfilePage() {
     Number.isFinite(targetUserID) && targetUserID > 0 && (role === "admin" || role === "supervisor");
   const isAdminViewingUser = role === "admin" && isTargetUserView;
   const isSupervisorViewingStudent = role === "supervisor" && isTargetUserView;
+  const adminBackTo = isAdminViewingUser
+    ? String((location.state as { backTo?: string } | null)?.backTo || "/admin/users")
+    : "";
+  const activeSection = isAdminViewingUser ? (adminBackTo === "/profile" ? "profile" : "users") : "profile";
 
   const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
   const [rebootProfile, setRebootProfile] = useState<RebootProfile | null>(null);
@@ -338,7 +343,7 @@ export default function ProfilePage() {
 
   return (
     <AdminLayout
-      active={isAdminViewingUser ? "users" : "profile"}
+      active={activeSection}
       title={isTargetUserView ? "User Profile" : "My Profile"}
       subtitle={
         isTargetUserView
@@ -349,7 +354,7 @@ export default function ProfilePage() {
         isAdminViewingUser ? (
           <button
             type="button"
-            onClick={() => nav("/admin/users")}
+            onClick={() => nav(adminBackTo)}
             className="h-10 rounded-[14px] border border-slate-200 bg-slate-50 px-3 font-extrabold text-slate-900 transition hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
           >
             Back
@@ -555,7 +560,7 @@ export default function ProfilePage() {
                         key={s.id}
                         type="button"
                         onClick={() => {
-                          if (role === "admin") nav(`/admin/users/${s.id}/profile`);
+                          if (role === "admin") nav(`/admin/users/${s.id}/profile`, { state: { backTo: "/profile" } });
                           else if (role === "supervisor") nav(`/profile/${s.id}`);
                         }}
                         className={[
