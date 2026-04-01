@@ -209,7 +209,7 @@ func (a *API) authorizeMeetingAccess(role string, actor int64, meetingID int64) 
 
 func (a *API) validateMeetingWrite(role string, actor int64, req createMeetingReq) (string, string, int64, error) {
 	req.Title = strings.TrimSpace(req.Title)
-	req.Location = strings.TrimSpace(req.Location)
+	req.Location = normalizeMeetingRoomLabel(req.Location)
 	req.Notes = strings.TrimSpace(req.Notes)
 	if req.BoardID == 0 || req.Title == "" || req.StartsAt == "" || req.EndsAt == "" {
 		return "", "", 0, errors.New("board_id, title, starts_at and ends_at required")
@@ -239,7 +239,9 @@ func (a *API) validateMeetingWrite(role string, actor int64, req createMeetingRe
 		return "", "", 0, errors.New("can only schedule meetings for your own boards")
 	}
 
-	if req.Location != "" {
+	if config, ok := meetingLocationConfig(req.Location); req.Location != "" && !ok {
+		return "", "", 0, errors.New("invalid location")
+	} else if ok && config.BlocksRoomSlot {
 		conflicts, err := db.CountMeetingLocationConflicts(a.conn, req.MeetingID, req.Location, startsAt, endsAt)
 		if err != nil {
 			return "", "", 0, errors.New("failed to check room conflicts")

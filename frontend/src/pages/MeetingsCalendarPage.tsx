@@ -42,6 +42,12 @@ type BoardRow = {
   supervisor_name: string;
 };
 
+const MEETING_LOCATIONS = ["Sandbox", "Quest", "Pixel", "Online"] as const;
+
+function normalizeMeetingLocation(value: string) {
+  return MEETING_LOCATIONS.includes(value as (typeof MEETING_LOCATIONS)[number]) ? value : "Sandbox";
+}
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
@@ -138,7 +144,7 @@ export default function MeetingsCalendarPage() {
   const [form, setForm] = useState({
     board_id: "",
     title: "",
-    location: "",
+    location: "Sandbox",
     notes: "",
     date: toLocalDateInput(),
     start_time: "10:00",
@@ -302,7 +308,7 @@ export default function MeetingsCalendarPage() {
     setForm({
       board_id: "",
       title: "",
-      location: "",
+      location: "Sandbox",
       notes: "",
       date: selectedDate,
       start_time: "10:00",
@@ -318,7 +324,7 @@ export default function MeetingsCalendarPage() {
     setForm({
       board_id: String(meeting.board_id),
       title: meeting.title,
-      location: meeting.location,
+      location: normalizeMeetingLocation(meeting.location),
       notes: meeting.notes || "",
       date: toLocalDateInput(start),
       start_time: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
@@ -757,7 +763,9 @@ export default function MeetingsCalendarPage() {
                     <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
                   </Field>
                   <Field label="Location (optional)">
-                    <input value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" placeholder="Quest / Sandbox / Pixel" />
+                    <select value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300">
+                      {MEETING_LOCATIONS.map((location) => <option key={location} value={location}>{location}</option>)}
+                    </select>
                   </Field>
                   <Field label="Start time">
                     <input required type="time" value={form.start_time} onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />

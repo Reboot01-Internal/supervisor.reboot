@@ -394,6 +394,10 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 	if a.discord == nil || !a.discord.Enabled() {
 		return false
 	}
+	locationConfig, ok := meetingLocationConfig(meeting.Location)
+	if !ok || !locationConfig.SendRoomNotice {
+		return false
+	}
 	channelID, roleID := a.roomBookingConfig()
 	mention := ""
 	if roleID != "" {
@@ -473,6 +477,9 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 func (a *API) notifyMeetingRoomBookingIfDue(meetingID int64) bool {
 	meeting, err := db.GetMeetingByID(a.conn, meetingID)
 	if err != nil || meeting.ID == 0 || strings.TrimSpace(meeting.Location) == "" {
+		return false
+	}
+	if config, ok := meetingLocationConfig(meeting.Location); !ok || !config.SendRoomNotice {
 		return false
 	}
 
