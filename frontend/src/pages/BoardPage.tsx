@@ -114,6 +114,16 @@ function GroupIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function CalendarIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 3v3M17 3v3M4 9h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 13h3v3H8z" fill="currentColor" opacity="0.75" />
+    </svg>
+  );
+}
+
 function PencilIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -960,6 +970,16 @@ export default function BoardPage() {
       subtitle="Drag cards across lists. Double click a card to open."
       right={
         <div className="flex items-center gap-2">
+          {isAdmin ? (
+            <button
+              className="h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition"
+              onClick={() => nav(`/admin/boards/${boardID}/meetings`)}
+              title="Board meetings"
+              aria-label="Board meetings"
+            >
+              <CalendarIcon />
+            </button>
+          ) : null}
           <button
             className="h-10 w-10 grid place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
             onClick={openMembersModal}

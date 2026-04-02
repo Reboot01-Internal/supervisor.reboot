@@ -13,6 +13,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminReportsPage from "./pages/AdminReportsPage";
 import MeetingsCalendarPage from "./pages/MeetingsCalendarPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import BoardMeetingsPage from "./pages/BoardMeetingsPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -118,6 +119,11 @@ export default function App() {
       <Route
         path="/admin/boards/:boardId/members"
         element={<RequireManageBoards><BoardMembersPage /></RequireManageBoards>}
+      />
+
+      <Route
+        path="/admin/boards/:boardId/meetings"
+        element={<RequireAdmin><BoardMeetingsPage /></RequireAdmin>}
       />
 
       <Route
