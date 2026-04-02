@@ -55,6 +55,17 @@ function RoleIcon({ role }: { role: Role }) {
   );
 }
 
+function BinIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19 6v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 10v6M14 10v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function initialsOf(name: string) {
   const n = (name || "").trim();
   if (!n) return "?";
@@ -268,8 +279,7 @@ export default function AssignPage() {
       subtitle="Select a supervisor, then assign multiple students at once."
       right={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2 overflow-hidden">
-          <BackButton onClick={() => nav("/admin/supervisors")} />
-          <button
+             <button
             className={cn(
               "h-10 md:h-11 rounded-[14px] px-3 md:px-4 text-[12.5px] md:text-[13px] font-black text-white",
               "shadow-[0_18px_45px_rgba(15,23,42,0.08)]",
@@ -282,6 +292,8 @@ export default function AssignPage() {
           >
             {saving ? "Adding..." : `Add Selected (${selectedStuIds.size})`}
           </button>
+          <BackButton onClick={() => nav("/admin/supervisors")} />
+       
         </div>
       }
     >
@@ -557,16 +569,18 @@ export default function AssignPage() {
 
                     <button
                       className={cn(
-                        "h-9 flex-none rounded-[10px] border px-3 text-[12.5px] font-black",
-                        "border-red-300/60 bg-red-50 text-red-800",
-                        "hover:border-red-400/70 hover:shadow-[0_10px_18px_rgba(239,68,68,0.10)]",
+                        "grid h-9 w-9 flex-none place-items-center rounded-full border",
+                        "border-red-200 bg-red-50 text-red-700",
+                        "hover:bg-red-100",
                         "disabled:opacity-50 disabled:cursor-not-allowed"
                       )}
                       type="button"
                       disabled={saving}
                       onClick={() => removeStudent(s.id)}
+                      title="Remove student"
+                      aria-label="Remove student"
                     >
-                      Remove
+                      <BinIcon />
                     </button>
                   </div>
                 ))}

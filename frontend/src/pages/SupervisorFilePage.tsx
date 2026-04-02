@@ -157,7 +157,7 @@ export default function SupervisorFilePage() {
     let alive = true;
 
     async function loadSupervisors() {
-      if (!isAdmin) return;
+      if (!isAdmin && !isSupervisor) return;
       try {
         const rows: SupervisorLookup[] = await apiFetch("/admin/supervisors");
         if (!alive) return;
@@ -172,9 +172,13 @@ export default function SupervisorFilePage() {
     return () => {
       alive = false;
     };
-  }, [isAdmin]);
+  }, [isAdmin, isSupervisor]);
 
   const fileID = Number.isFinite(fileIDParam) ? fileIDParam : resolvedFileID;
+  const currentSupervisor = useMemo(
+    () => supervisors.find((item) => item.file_id === fileID) || null,
+    [supervisors, fileID]
+  );
 
   async function loadBoards() {
     setErr("");
@@ -440,7 +444,7 @@ export default function SupervisorFilePage() {
           ? "Loading workspace..."
           : loading
           ? "Loading…"
-          : `Supervisor File #${fileID} • ${boards.length} board(s)`
+          : `${currentSupervisor?.full_name || "Workspace"} • ${boards.length} board(s)`
       }
       right={
         <div className="flex items-center gap-2">
@@ -466,7 +470,7 @@ export default function SupervisorFilePage() {
                   </span>
                   Create board
                 </div>
-                <div className="mt-2 text-[13px] text-slate-500">Name + optional description.</div>
+                {/* <div className="mt-2 text-[13px] text-slate-500">Name + optional description.</div> */}
               </div>
 
               <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[12px] font-black text-slate-900">
@@ -490,7 +494,7 @@ export default function SupervisorFilePage() {
                   maxLength={nameMax}
                   onChange={(e) => setName(e.target.value)}
                 />
-                <span className="text-[12px] text-slate-500">Make it short and clear.</span>
+                {/* <span className="text-[12px] text-slate-500">Make it short and clear.</span> */}
               </label>
 
               <label className="grid gap-2">
@@ -503,12 +507,12 @@ export default function SupervisorFilePage() {
 
                 <input
                   className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/50"
-                  placeholder="Optional (example: tasks to finish before Sunday)"
+                  // placeholder="Optional (example: tasks to finish before Sunday)"
                   value={description}
                   maxLength={descMax}
                   onChange={(e) => setDescription(e.target.value)}
                 />
-                <span className="text-[12px] text-slate-500">Optional — helps students understand the board.</span>
+                {/* <span className="text-[12px] text-slate-500">Optional — helps students understand the board.</span> */}
               </label>
 
               {err ? (
