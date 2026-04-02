@@ -542,13 +542,6 @@ func (a *API) AdminUpdateMeetingStatus(w http.ResponseWriter, r *http.Request) {
 		adminDetail += " Notes: " + strings.TrimSpace(req.OutcomeNotes)
 	}
 	a.notifyAdmins("meeting_status", title, meetingAdminBody(updatedMeeting, a.adminActorLabel(actor), adminDetail))
-	verb := "updated"
-	if status == "completed" {
-		verb = "completed"
-	} else if status == "canceled" {
-		verb = "canceled"
-	}
-	_ = a.notifyMeetingChanged(updatedMeeting, verb)
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
