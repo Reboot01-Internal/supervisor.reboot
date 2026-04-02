@@ -738,12 +738,12 @@ export default function MeetingsCalendarPage() {
                       const canEditParticipant = canManage || matchesSelf;
                       return (
                         <div key={participant.user_id} className="rounded-[14px] border border-slate-200 bg-white px-3 py-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="text-[13px] font-black text-slate-900">{participant.full_name}</div>
-                              <div className="mt-1 text-[11px] font-semibold text-slate-500">{participant.nickname ? `@${participant.nickname}` : participant.email}</div>
+                          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px] md:items-start">
+                            <div className="min-w-0">
+                              <div className="text-[13px] font-black leading-5 text-slate-900">{participant.full_name}</div>
+                              <div className="mt-1 truncate text-[11px] font-semibold text-slate-500">{participant.nickname ? `@${participant.nickname}` : participant.email}</div>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="md:justify-self-end">
                               <SelectField
                                 label="RSVP"
                                 value={participant.rsvp_status}
@@ -757,7 +757,9 @@ export default function MeetingsCalendarPage() {
                                 ]}
                                 onChange={(value) => saveParticipant(selectedMeeting.id, participant, value, canManage ? participant.attendance_status : "pending")}
                               />
-                              {canManage ? (
+                            </div>
+                            {canManage ? (
+                              <div className="md:justify-self-end">
                                 <SelectField
                                   label="Attendance"
                                   value={participant.attendance_status}
@@ -771,8 +773,8 @@ export default function MeetingsCalendarPage() {
                                   ]}
                                   onChange={(value) => saveParticipant(selectedMeeting.id, participant, participant.rsvp_status, value)}
                                 />
-                              ) : null}
-                            </div>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       );
