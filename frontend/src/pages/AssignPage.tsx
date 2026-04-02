@@ -100,6 +100,7 @@ export default function AssignPage() {
   const [assignedQ, setAssignedQ] = useState("");
 
   const [selectedStuIds, setSelectedStuIds] = useState<Set<number>>(new Set());
+  const [selectedAssignedIds, setSelectedAssignedIds] = useState<Set<number>>(new Set());
 
   const [loadingAssigned, setLoadingAssigned] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,6 +119,7 @@ export default function AssignPage() {
       setSelectedSup(null);
       setAssigned([]);
       setSelectedStuIds(new Set());
+      setSelectedAssignedIds(new Set());
     } catch (e: any) {
       setErr(e.message || "Failed to load");
     }
@@ -130,9 +132,11 @@ export default function AssignPage() {
     try {
       const res = await apiFetch(`/admin/assign/list?supervisor_id=${supervisorId}`);
       setAssigned(res || []);
+      setSelectedAssignedIds(new Set());
     } catch (e: any) {
       setErr(e.message || "Failed to load assigned students");
       setAssigned([]);
+      setSelectedAssignedIds(new Set());
     } finally {
       setLoadingAssigned(false);
     }
@@ -146,6 +150,7 @@ export default function AssignPage() {
     if (selectedSup) {
       loadAssigned(selectedSup.id);
       setSelectedStuIds(new Set());
+      setSelectedAssignedIds(new Set());
       setAssignedQ("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,6 +219,27 @@ export default function AssignPage() {
     setSelectedStuIds(new Set());
   }
 
+  function toggleAssigned(id: number) {
+    setSelectedAssignedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllAssignedVisible() {
+    setSelectedAssignedIds((prev) => {
+      const next = new Set(prev);
+      visibleAssigned.forEach((s) => next.add(s.id));
+      return next;
+    });
+  }
+
+  function clearAssignedSelection() {
+    setSelectedAssignedIds(new Set());
+  }
+
   async function addSelected() {
     if (!selectedSup) {
       setErr("Select a supervisor first.");
@@ -250,21 +276,29 @@ export default function AssignPage() {
     }
   }
 
-  async function removeStudent(studentId: number) {
-    if (!selectedSup || saving) return;
+  async function removeSelectedAssigned() {
+    if (!selectedSup || saving || selectedAssignedIds.size === 0) return;
+
+    const ids = Array.from(selectedAssignedIds);
     setErr("");
     setOk("");
     setSaving(true);
     try {
-      await apiFetch("/admin/assign/remove", {
-        method: "POST",
-        body: JSON.stringify({ supervisor_id: selectedSup.id, student_id: studentId }),
-      });
+      await Promise.all(
+        ids.map((studentId) =>
+          apiFetch("/admin/assign/remove", {
+            method: "POST",
+            body: JSON.stringify({ supervisor_id: selectedSup.id, student_id: studentId }),
+          })
+        )
+      );
       await loadAssigned(selectedSup.id);
       const refreshed = await apiFetch("/admin/assign/students");
       setStudents(refreshed || []);
+      setSelectedAssignedIds(new Set());
+      setOk(`Removed ${ids.length} student(s).`);
     } catch (e: any) {
-      setErr(e.message || "Failed to unassign");
+      setErr(e.message || "Failed to unassign selected students");
     } finally {
       setSaving(false);
     }
@@ -279,19 +313,6 @@ export default function AssignPage() {
       subtitle="Select a supervisor, then assign multiple students at once."
       right={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            className={cn(
-              "inline-flex h-10 md:h-11 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3 md:px-4 text-[12.5px] md:text-[13px] font-black text-[#6d5efc]",
-              "shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]",
-              "disabled:cursor-not-allowed disabled:opacity-70",
-              "max-w-full"
-            )}
-            disabled={addDisabled}
-            onClick={addSelected}
-          >
-            {saving ? "Adding..." : `Add selected ${selectedStuIds.size}`}
-          </button>
           <BackButton onClick={() => nav("/admin/supervisors")} />
        
         </div>
@@ -350,7 +371,7 @@ export default function AssignPage() {
                     className={cn(
                       "w-full rounded-2xl border px-3 py-2.5 text-left transition",
                       "flex items-center gap-3 bg-white/80",
-                      "hover:-translate-y-[1px] hover:border-[#6d5efc]/25 hover:shadow-[0_10px_22px_rgba(109,94,252,0.10)]",
+                      "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_22px_rgba(109,94,252,0.10)]",
                       active
                         ? "border-[#6d5efc]/40 bg-[#6d5efc]/10 shadow-[0_12px_26px_rgba(109,94,252,0.12)]"
                         : "border-slate-200/70"
@@ -400,34 +421,6 @@ export default function AssignPage() {
                 <div className="mt-1 text-[12px] font-bold text-slate-500">Select students, then Add Selected.</div>
               </div>
 
-              <div className="flex flex-none items-center gap-2">
-                <button
-                  className={cn(
-                    "h-9 rounded-[10px] border px-4 text-[12.5px] font-semibold whitespace-nowrap",
-                    "bg-white/90 text-slate-800 shadow-sm",
-                    "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
-                    "disabled:cursor-not-allowed disabled:opacity-60"
-                  )}
-                  type="button"
-                  onClick={selectAllVisible}
-                  disabled={!selectedSup || visibleStudents.length === 0}
-                >
-                  Select all
-                </button>
-                <button
-                  className={cn(
-                    "h-9 rounded-[10px] border px-3 text-[12.5px] font-black",
-                    "bg-white/90 text-slate-800 shadow-sm",
-                    "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
-                    "disabled:cursor-not-allowed disabled:opacity-60"
-                  )}
-                  type="button"
-                  onClick={clearSelected}
-                  disabled={selectedStuIds.size === 0}
-                >
-                  Clear
-                </button>
-              </div>
             </div>
 
             <input
@@ -441,6 +434,47 @@ export default function AssignPage() {
               onChange={(e) => setStuQ(e.target.value)}
               disabled={!selectedSup}
             />
+
+            {selectedSup ? (
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <button
+                  className={cn(
+                    "h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700",
+                    "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
+                    "disabled:cursor-not-allowed disabled:opacity-60"
+                  )}
+                  type="button"
+                  onClick={selectAllVisible}
+                  disabled={visibleStudents.length === 0}
+                >
+                  Select all
+                </button>
+                <button
+                  className={cn(
+                    "h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700",
+                    "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
+                    "disabled:cursor-not-allowed disabled:opacity-60"
+                  )}
+                  type="button"
+                  onClick={clearSelected}
+                  disabled={selectedStuIds.size === 0}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3 text-[12px] font-black text-[#6d5efc]",
+                    "shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]",
+                    "disabled:cursor-not-allowed disabled:opacity-70"
+                  )}
+                  disabled={addDisabled}
+                  onClick={addSelected}
+                >
+                  {saving ? "Adding..." : `Add selected ${selectedStuIds.size}`}
+                </button>
+              </div>
+            ) : null}
 
             {!selectedSup ? (
               <div className="rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-3 py-2 text-[13px] font-bold text-slate-700">
@@ -457,7 +491,7 @@ export default function AssignPage() {
                         "flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
                         checked
                           ? "border-emerald-300/60 bg-emerald-50/50 shadow-[0_10px_22px_rgba(16,185,129,0.08)]"
-                          : "border-slate-200/70 bg-white/80 hover:-translate-y-[1px] hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]"
+                          : "border-slate-200/70 bg-white/80 hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]"
                       )}
                     >
                       <input type="checkbox" checked={checked} onChange={() => toggleStudent(s.id)} className="h-4 w-4" />
@@ -525,6 +559,48 @@ export default function AssignPage() {
               />
             ) : null}
 
+            {selectedSup ? (
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={cn(
+                    "h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700",
+                    "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
+                    "disabled:cursor-not-allowed disabled:opacity-60"
+                  )}
+                  onClick={selectAllAssignedVisible}
+                  disabled={visibleAssigned.length === 0}
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700",
+                    "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
+                    "disabled:cursor-not-allowed disabled:opacity-60"
+                  )}
+                  onClick={clearAssignedSelection}
+                  disabled={selectedAssignedIds.size === 0}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex h-9 items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 text-[12px] font-black text-red-700",
+                    "shadow-[0_8px_18px_rgba(239,68,68,0.08)] transition hover:bg-red-100",
+                    "disabled:cursor-not-allowed disabled:opacity-60"
+                  )}
+                  onClick={removeSelectedAssigned}
+                  disabled={selectedAssignedIds.size === 0 || saving}
+                >
+                  <BinIcon size={14} />
+                  {saving ? "Removing..." : `Remove selected ${selectedAssignedIds.size}`}
+                </button>
+              </div>
+            ) : null}
+
             {!selectedSup ? (
               <div className="rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-3 py-2 text-[13px] font-bold text-slate-700">
                 Pick a supervisor first.
@@ -535,12 +611,25 @@ export default function AssignPage() {
               </div>
             ) : (
               <div className="mt-2 flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
-                {visibleAssigned.map((s) => (
-                  <div
+                {visibleAssigned.map((s) => {
+                  const checked = selectedAssignedIds.has(s.id);
+                  return (
+                  <label
                     key={s.id}
-                    className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white/80 px-3 py-2.5"
+                    className={cn(
+                      "flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 transition",
+                      checked
+                        ? "border-red-200 bg-red-50/35 shadow-[0_10px_22px_rgba(239,68,68,0.06)]"
+                        : "border-slate-200/70 bg-white/80 hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]"
+                    )}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAssigned(s.id)}
+                        className="h-4 w-4 flex-none"
+                      />
                       <div className="grid h-10 w-10 flex-none place-items-center rounded-full border border-slate-200 bg-slate-50 font-black text-slate-800">
                         {initialsOf(s.full_name)}
                       </div>
@@ -567,23 +656,8 @@ export default function AssignPage() {
                       </div>
                     </div>
 
-                    <button
-                      className={cn(
-                        "grid h-9 w-9 flex-none place-items-center rounded-full border",
-                        "border-red-200 bg-red-50 text-red-700",
-                        "hover:bg-red-100",
-                        "disabled:opacity-50 disabled:cursor-not-allowed"
-                      )}
-                      type="button"
-                      disabled={saving}
-                      onClick={() => removeStudent(s.id)}
-                      title="Remove student"
-                      aria-label="Remove student"
-                    >
-                      <BinIcon />
-                    </button>
-                  </div>
-                ))}
+                  </label>
+                )})}
 
                 {visibleAssigned.length === 0 && (
                   <div className="rounded-[14px] border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-[13px] font-bold text-slate-500">
