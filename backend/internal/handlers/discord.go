@@ -377,9 +377,6 @@ func (a *API) notifyMeetingChanged(meeting models.Meeting, verb string) bool {
 		startAt.In(location).Format("02 Jan 2006 03:04 PM"),
 		endAt.In(location).Format("03:04 PM"),
 	)
-	if strings.TrimSpace(meeting.OutcomeNotes) != "" && (meeting.Status == "completed" || meeting.Status == "canceled") {
-		message += "\nNotes: " + strings.TrimSpace(meeting.OutcomeNotes)
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	defer cancel()
