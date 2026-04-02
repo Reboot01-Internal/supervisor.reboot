@@ -279,18 +279,18 @@ export default function AssignPage() {
       subtitle="Select a supervisor, then assign multiple students at once."
       right={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2 overflow-hidden">
-             <button
+          <button
+            type="button"
             className={cn(
-              "h-10 md:h-11 rounded-[14px] px-3 md:px-4 text-[12.5px] md:text-[13px] font-black text-white",
-              "shadow-[0_18px_45px_rgba(15,23,42,0.08)]",
-              "bg-gradient-to-br from-[#6d5efc] to-[#9a8cff]",
+              "inline-flex h-10 md:h-11 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3 md:px-4 text-[12.5px] md:text-[13px] font-black text-[#6d5efc]",
+              "shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]",
               "disabled:cursor-not-allowed disabled:opacity-70",
               "max-w-full"
             )}
             disabled={addDisabled}
             onClick={addSelected}
           >
-            {saving ? "Adding..." : `Add Selected (${selectedStuIds.size})`}
+            {saving ? "Adding..." : `Add selected ${selectedStuIds.size}`}
           </button>
           <BackButton onClick={() => nav("/admin/supervisors")} />
        

@@ -24,6 +24,10 @@ type User = {
   role: string;
 };
 
+type BoardLite = {
+  name?: string;
+};
+
 function initials(name: string) {
   const parts = (name || "").trim().split(/\s+/).slice(0, 2);
   const v = parts.map((p) => p[0]?.toUpperCase() ?? "").join("");
@@ -204,6 +208,7 @@ export default function BoardMembersPage() {
   const canManage = isAdmin || isSupervisor;
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [boardName, setBoardName] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
@@ -240,9 +245,19 @@ export default function BoardMembersPage() {
     }
   }
 
+  async function loadBoardName() {
+    try {
+      const res: BoardLite = await apiFetch(`/admin/board?board_id=${boardID}`);
+      setBoardName(String(res?.name || "").trim());
+    } catch {
+      setBoardName("");
+    }
+  }
+
   useEffect(() => {
     if (!boardID || Number.isNaN(boardID)) return;
     loadMembers();
+    void loadBoardName();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardID]);
 
@@ -389,8 +404,8 @@ export default function BoardMembersPage() {
 
   const subtitle = useMemo(() => {
     if (loading) return "Loading…";
-    return `Board #${boardID} • ${members.length} member(s)`;
-  }, [loading, boardID, members.length]);
+    return `${boardName || `Board #${boardID}`} • ${members.length} member(s)`;
+  }, [loading, boardID, boardName, members.length]);
   const backTo =
     typeof location.state === "object" && location.state && "backTo" in location.state
       ? String((location.state as { backTo?: string }).backTo || "/admin/boards")

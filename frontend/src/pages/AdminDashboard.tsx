@@ -163,17 +163,24 @@ export default function AdminDashboard() {
         <StatCard
           label="Supervisors"
           value={statsLoading ? "..." : totalSupervisors}
-          icon={<span className="h-2.5 w-2.5 rounded-full bg-blue-600 shadow-[0_0_0_0_rgba(37,99,235,0.25)] animate-[admPulse_1.5s_ease-in-out_infinite]" />}
+          icon={
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
+              <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="10" cy="8" r="3.5" stroke="#2563eb" strokeWidth="2" />
+              <path d="M20 20v-1.5A3.5 3.5 0 0 0 17 15.1" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+              <path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          }
         />
         <StatCard
           label="Students"
           value={statsLoading ? "..." : studentCount}
           icon={
-            <div className="flex h-11 w-11 items-end justify-center gap-1 px-2">
-              <span className="h-2.5 w-1.5 rounded bg-emerald-500 animate-bounce [animation-duration:1.1s]" />
-              <span className="h-4 w-1.5 rounded bg-emerald-500 animate-bounce [animation-duration:1.1s] [animation-delay:.12s]" />
-              <span className="h-3 w-1.5 rounded bg-emerald-500 animate-bounce [animation-duration:1.1s] [animation-delay:.24s]" />
-            </div>
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
+              <path d="M12 3l10 5-10 5L2 8l10-5Z" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
+              <path d="M22 8v6" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           }
         />
         <StatCard
