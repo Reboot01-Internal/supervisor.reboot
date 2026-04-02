@@ -6,6 +6,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
 const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
+const BAHRAIN_TIMEZONE = "Asia/Bahrain";
 
 type LocalProfile = {
   user: {
@@ -115,6 +116,24 @@ function normalizeGender(v: string) {
   if (g.includes("female") || g === "f" || g === "woman" || g === "girl") return "female";
   if (g.includes("male") || g === "m" || g === "man" || g === "boy") return "male";
   return "unspecified";
+}
+
+function formatBahrainDateTime(value: string) {
+  const raw = String(value || "").trim();
+  if (!raw) return "-";
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)
+    ? raw.replace(" ", "T") + "Z"
+    : raw;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString(undefined, {
+    timeZone: BAHRAIN_TIMEZONE,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 async function loadRebootProfile(login: string, jwt: string): Promise<RebootProfile> {
@@ -803,7 +822,7 @@ export default function ProfilePage() {
                                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 capitalize">
                                   {note.author_role || "staff"}
                                 </span>
-                                <span>{new Date(note.created_at).toLocaleString()}</span>
+                                <span>{formatBahrainDateTime(note.created_at)}</span>
                               </div>
                             </div>
                           </div>
