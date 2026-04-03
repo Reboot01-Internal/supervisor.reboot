@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
+import { useConfirm } from "../lib/useConfirm";
 
 type UserRow = {
   id: number;
@@ -217,11 +218,14 @@ function RoleIcon({ role }: { role: CreateRole }) {
 
 export default function AdminUsersPage() {
   const nav = useNavigate();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [q, setQ] = useState("");
   const [role, setRole] = useState<"all" | "supervisor" | "student">("all");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+  const [deletingUsers, setDeletingUsers] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createRole, setCreateRole] = useState<CreateRole>("supervisor");
@@ -256,6 +260,17 @@ export default function AdminUsersPage() {
     }, 180);
     return () => clearTimeout(t);
   }, [q, role]);
+
+  useEffect(() => {
+    setSelectedUserIds((prev) => {
+      const visibleIds = new Set(rows.map((row) => row.id));
+      const next = new Set<number>();
+      prev.forEach((id) => {
+        if (visibleIds.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [rows]);
 
   useEffect(() => {
     const needle = lookup.trim();
@@ -317,6 +332,62 @@ export default function AdminUsersPage() {
     () => queue.filter((u) => !u.role_exists),
     [queue]
   );
+
+  const selectedRows = useMemo(
+    () => rows.filter((u) => selectedUserIds.has(u.id)),
+    [rows, selectedUserIds]
+  );
+
+  function toggleUserSelection(id: number) {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllVisibleUsers() {
+    setSelectedUserIds(new Set(rows.map((u) => u.id)));
+  }
+
+  function clearSelectedUsers() {
+    setSelectedUserIds(new Set());
+  }
+
+  async function deleteSelectedUsers() {
+    if (selectedRows.length === 0 || deletingUsers) return;
+
+    const ok = await confirm({
+      title: "Delete selected users",
+      message:
+        selectedRows.length === 1
+          ? `Delete ${selectedRows[0].full_name}?`
+          : `Delete ${selectedRows.length} selected users?`,
+    });
+    if (!ok) return;
+
+    setDeletingUsers(true);
+    setErr("");
+
+    const results = await Promise.allSettled(
+      selectedRows.map((u) =>
+        apiFetch("/admin/users/delete", {
+          method: "POST",
+          body: JSON.stringify({ email: u.email, role: u.role }),
+        })
+      )
+    );
+
+    const failed = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+    if (failed.length > 0) {
+      setErr(failed[0]?.reason?.message || "Some users could not be deleted.");
+    }
+
+    await loadUsers(q, role);
+    setSelectedUserIds(new Set());
+    setDeletingUsers(false);
+  }
 
   function resetCreateFlow() {
     setLookup("");
@@ -403,29 +474,31 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <AdminLayout
-      active="users"
-      title="Users"
-      subtitle="Browse users and build a clean create queue from Reboot."
-      right={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setCreateOpen((prev) => {
-                const next = !prev;
-                if (!next) resetCreateFlow();
-                return next;
-              });
-            }}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
-          >
-            <UserPlusIcon size={15} />
-            {createOpen ? "Close create users" : "Create users"}
-          </button>
-        </div>
-      }
-    >
+    <>
+      {confirmDialog}
+      <AdminLayout
+        active="users"
+        title="Users"
+        subtitle="Browse users and build a clean create queue from Reboot."
+        right={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateOpen((prev) => {
+                  const next = !prev;
+                  if (!next) resetCreateFlow();
+                  return next;
+                });
+              }}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
+            >
+              <UserPlusIcon size={15} />
+              {createOpen ? "Close create users" : "Create users"}
+            </button>
+          </div>
+        }
+      >
       {err ? (
         <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700">
           {err}
@@ -669,6 +742,33 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={selectAllVisibleUsers}
+            disabled={rows.length === 0}
+            className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            onClick={clearSelectedUsers}
+            disabled={selectedUserIds.size === 0}
+            className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={deleteSelectedUsers}
+            disabled={selectedUserIds.size === 0 || deletingUsers}
+            className="inline-flex h-10 items-center rounded-full border border-rose-200 bg-white px-4 text-[13px] font-black text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            {deletingUsers ? "Deleting..." : `Delete selected ${selectedUserIds.size}`}
+          </button>
+        </div>
+
         <div className="mb-3 grid gap-2 sm:grid-cols-3">
           <Counter label="All users" value={counters.all} />
           <Counter label="Supervisors" value={counters.sup} />
@@ -697,9 +797,26 @@ export default function AdminUsersPage() {
                     nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
                   }
                 }}
-                className="cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
+                className={[
+                  "cursor-pointer rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
+                  selectedUserIds.has(u.id)
+                    ? "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
+                    : "border-slate-200 bg-slate-50 hover:border-[#6d5efc]/20 hover:bg-white",
+                ].join(" ")}
               >
                 <div className="flex items-start gap-3">
+                  <label
+                    className="mt-1 inline-flex h-5 w-5 flex-none cursor-pointer items-center justify-center"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedUserIds.has(u.id)}
+                      onChange={() => toggleUserSelection(u.id)}
+                      className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
+                    />
+                  </label>
                   <div className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
                     {initialsOf(u.full_name)}
                   </div>
@@ -724,7 +841,8 @@ export default function AdminUsersPage() {
           </div>
         )}
       </section>
-    </AdminLayout>
+      </AdminLayout>
+    </>
   );
 }
 
