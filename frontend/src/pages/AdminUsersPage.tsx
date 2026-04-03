@@ -226,6 +226,7 @@ export default function AdminUsersPage() {
   const [err, setErr] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [deletingUsers, setDeletingUsers] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createRole, setCreateRole] = useState<CreateRole>("supervisor");
@@ -260,6 +261,12 @@ export default function AdminUsersPage() {
     }, 180);
     return () => clearTimeout(t);
   }, [q, role]);
+
+  useEffect(() => {
+    if (!deleteMode) {
+      setSelectedUserIds(new Set());
+    }
+  }, [deleteMode]);
 
   useEffect(() => {
     setSelectedUserIds((prev) => {
@@ -745,28 +752,45 @@ export default function AdminUsersPage() {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={selectAllVisibleUsers}
-            disabled={rows.length === 0}
-            className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => setDeleteMode((prev) => !prev)}
+            className={[
+              "inline-flex h-10 items-center rounded-full border px-4 text-[13px] font-black transition",
+              deleteMode
+                ? "border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+            ].join(" ")}
           >
-            Select all
+            {deleteMode ? "Done selecting" : "Select users to delete"}
           </button>
-          <button
-            type="button"
-            onClick={clearSelectedUsers}
-            disabled={selectedUserIds.size === 0}
-            className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            onClick={deleteSelectedUsers}
-            disabled={selectedUserIds.size === 0 || deletingUsers}
-            className="inline-flex h-10 items-center rounded-full border border-rose-200 bg-white px-4 text-[13px] font-black text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            {deletingUsers ? "Deleting..." : `Delete selected ${selectedUserIds.size}`}
-          </button>
+
+          {deleteMode ? (
+            <>
+              <button
+                type="button"
+                onClick={selectAllVisibleUsers}
+                disabled={rows.length === 0}
+                className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={clearSelectedUsers}
+                disabled={selectedUserIds.size === 0}
+                className="inline-flex h-10 items-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={deleteSelectedUsers}
+                disabled={selectedUserIds.size === 0 || deletingUsers}
+                className="inline-flex h-10 items-center rounded-full border border-rose-200 bg-white px-4 text-[13px] font-black text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {deletingUsers ? "Deleting..." : `Delete selected ${selectedUserIds.size}`}
+              </button>
+            </>
+          ) : null}
         </div>
 
         <div className="mb-3 grid gap-2 sm:grid-cols-3">
@@ -790,33 +814,46 @@ export default function AdminUsersPage() {
                 key={u.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } })}
+                onClick={() => {
+                  if (deleteMode) {
+                    toggleUserSelection(u.id);
+                    return;
+                  }
+                  nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
+                    if (deleteMode) {
+                      toggleUserSelection(u.id);
+                      return;
+                    }
                     nav(`/admin/users/${u.id}/profile`, { state: { backTo: "/admin/users" } });
                   }
                 }}
                 className={[
-                  "cursor-pointer rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
-                  selectedUserIds.has(u.id)
+                  "rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
+                  deleteMode ? "cursor-pointer" : "cursor-pointer",
+                  deleteMode && selectedUserIds.has(u.id)
                     ? "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
                     : "border-slate-200 bg-slate-50 hover:border-[#6d5efc]/20 hover:bg-white",
                 ].join(" ")}
               >
                 <div className="flex items-start gap-3">
-                  <label
-                    className="mt-1 inline-flex h-5 w-5 flex-none cursor-pointer items-center justify-center"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUserIds.has(u.id)}
-                      onChange={() => toggleUserSelection(u.id)}
-                      className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
-                    />
-                  </label>
+                  {deleteMode ? (
+                    <label
+                      className="mt-1 inline-flex h-5 w-5 flex-none cursor-pointer items-center justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.has(u.id)}
+                        onChange={() => toggleUserSelection(u.id)}
+                        className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
+                      />
+                    </label>
+                  ) : null}
                   <div className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-[13px] font-black text-slate-800">
                     {initialsOf(u.full_name)}
                   </div>
