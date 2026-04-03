@@ -121,6 +121,20 @@ function ViewGridIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+function EyeIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export default function SupervisorsPage() {
   const nav = useNavigate();
 
@@ -210,7 +224,7 @@ export default function SupervisorsPage() {
               type="button"
               onClick={() => setViewMode("cards")}
               className={[
-                "inline-flex h-10 items-center gap-2 rounded-[14px] border border-transparent px-3.5 text-[13px] font-black outline-none transition duration-200 focus-visible:border-[#6d5efc]/18 focus-visible:ring-4 focus-visible:ring-[#6d5efc]/10",
+                "inline-flex h-10 items-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition",
                 viewMode === "cards"
                   ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
@@ -223,7 +237,7 @@ export default function SupervisorsPage() {
               type="button"
               onClick={() => setViewMode("workspaces")}
               className={[
-                "inline-flex h-10 items-center gap-2 rounded-[14px] border border-transparent px-3.5 text-[13px] font-black outline-none transition duration-200 focus-visible:border-[#6d5efc]/18 focus-visible:ring-4 focus-visible:ring-[#6d5efc]/10",
+                "inline-flex h-10 items-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition",
                 viewMode === "workspaces"
                   ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
@@ -262,7 +276,7 @@ export default function SupervisorsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-sm font-semibold text-slate-500">No supervisors found.</div>
         ) : viewMode === "workspaces" ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((s) => {
               const workspaceName = (s.nickname || "").trim() || s.full_name.split(/\s+/)[0] || "workspace";
               return (
@@ -271,21 +285,21 @@ export default function SupervisorsPage() {
                   type="button"
                   onClick={() => nav(`/admin/files/${s.file_id}`)}
                   title="Open workspace"
-                  className="group relative flex flex-col items-center rounded-[26px] p-3 text-center transition duration-200 hover:-translate-y-[2px]"
+                  className="group relative flex flex-col items-center rounded-[22px] p-2.5 text-center transition duration-200 hover:-translate-y-[2px]"
                 >
-                  <div className="relative h-28 w-44 cursor-pointer origin-bottom [perspective:1500px]">
+                  <div className="relative h-[88px] w-[128px] cursor-pointer origin-bottom [perspective:1500px] sm:h-[96px] sm:w-[144px]">
                     <div className="absolute inset-0">
-                      <div className="absolute inset-x-0 bottom-0 h-full origin-top rounded-[18px] rounded-tl-none bg-[#7c6cf8] transition-all duration-300 ease-out after:absolute after:bottom-[99%] after:left-0 after:h-3 after:w-14 after:rounded-t-[14px] after:bg-[#7c6cf8] after:content-[''] before:absolute before:-top-[11px] before:left-[52px] before:h-3 before:w-3 before:bg-[#7c6cf8] before:[clip-path:polygon(0_35%,0%_100%,50%_100%)] before:content-[''] group-hover:shadow-[0_18px_34px_rgba(109,94,252,0.16)]" />
-                      <div className="absolute inset-1 origin-bottom rounded-[18px] bg-[#ddd8ff] transition-all duration-300 ease-out select-none group-hover:[transform:rotateX(-18deg)]" />
-                      <div className="absolute inset-1 origin-bottom rounded-[18px] bg-[#f0edff] transition-all duration-300 ease-out group-hover:[transform:rotateX(-28deg)]" />
-                      <div className="absolute inset-1 origin-bottom rounded-[18px] bg-[#faf9ff] transition-all duration-300 ease-out group-hover:[transform:rotateX(-36deg)]" />
-                      <div className="absolute bottom-0 flex h-[108px] w-full origin-bottom items-end rounded-[18px] rounded-tr-none bg-gradient-to-t from-[#6d5efc] to-[#9b90ff] transition-all duration-300 ease-out after:absolute after:bottom-[99%] after:right-0 after:h-3 after:w-[106px] after:rounded-t-[14px] after:bg-[#9b90ff] after:content-[''] before:absolute before:-top-[8px] before:right-[102px] before:size-2.5 before:bg-[#9b90ff] before:[clip-path:polygon(100%_14%,50%_100%,100%_100%)] before:content-[''] group-hover:shadow-[inset_0_18px_34px_rgba(196,188,255,0.55),_inset_0_-18px_32px_rgba(79,70,229,0.22)] group-hover:[transform:rotateX(-46deg)_translateY(1px)]">
-                        <div className="flex w-full items-end px-3.5 pb-3.5">
+                      <div className="absolute inset-x-0 bottom-0 h-full origin-top rounded-[16px] rounded-tl-none bg-[#c7bfff] transition-all duration-300 ease-out after:absolute after:bottom-[99%] after:left-0 after:h-2.5 after:w-12 after:rounded-t-[12px] after:bg-[#c7bfff] after:content-[''] before:absolute before:-top-[9px] before:left-[44px] before:h-2.5 before:w-2.5 before:bg-[#c7bfff] before:[clip-path:polygon(0_35%,0%_100%,50%_100%)] before:content-[''] group-hover:shadow-[0_16px_28px_rgba(109,94,252,0.10)]" />
+                      <div className="absolute inset-1 origin-bottom rounded-[16px] bg-[#ece8ff] transition-all duration-300 ease-out select-none group-hover:[transform:rotateX(-18deg)]" />
+                      <div className="absolute inset-1 origin-bottom rounded-[16px] bg-[#f5f3ff] transition-all duration-300 ease-out group-hover:[transform:rotateX(-28deg)]" />
+                      <div className="absolute inset-1 origin-bottom rounded-[16px] bg-[#fbfaff] transition-all duration-300 ease-out group-hover:[transform:rotateX(-36deg)]" />
+                      <div className="absolute bottom-0 flex h-[84px] w-full origin-bottom items-end rounded-[16px] rounded-tr-none bg-gradient-to-t from-[#a79dff] to-[#d8d2ff] transition-all duration-300 ease-out after:absolute after:bottom-[99%] after:right-0 after:h-2.5 after:w-[82px] after:rounded-t-[12px] after:bg-[#d8d2ff] after:content-[''] before:absolute before:-top-[7px] before:right-[79px] before:size-2 before:bg-[#d8d2ff] before:[clip-path:polygon(100%_14%,50%_100%,100%_100%)] before:content-[''] group-hover:shadow-[inset_0_16px_28px_rgba(255,255,255,0.38),_inset_0_-16px_28px_rgba(109,94,252,0.08)] group-hover:[transform:rotateX(-46deg)_translateY(1px)]">
+                        <div className="flex w-full items-end px-3 pb-3">
                           <div className="min-w-0">
-                            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/80">
+                            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/80">
                               Workspace
                             </div>
-                            <div className="mt-1 max-w-[92px] truncate text-[13px] font-black text-white">
+                            <div className="mt-1 max-w-[72px] truncate text-[11px] font-black text-white">
                               {workspaceName}
                             </div>
                           </div>
@@ -294,9 +308,9 @@ export default function SupervisorsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3">
-                    <div className="text-[15px] font-black text-slate-900">{s.full_name}</div>
-                    <div className="mt-1 text-[12px] font-bold text-[#6d5efc]">
+                  <div className="mt-2.5">
+                    <div className="text-[14px] font-black text-slate-900">{s.full_name}</div>
+                    <div className="mt-0.5 text-[11px] font-bold text-[#8d82ff]">
                       @{(s.nickname || "").trim() || s.email.split("@")[0]}
                     </div>
                   </div>

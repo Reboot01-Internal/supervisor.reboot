@@ -497,7 +497,7 @@ export default function MeetingsCalendarPage() {
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.22),_transparent_32%),linear-gradient(135deg,#ffffff,#fff8eb)] p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-[12px] font-black uppercase tracking-[0.18em] text-amber-700">Phase 1</div>
+                <div className="text-[12px] font-black uppercase tracking-[0.18em] text-amber-700"></div>
                 <div className="mt-2 text-[26px] font-black tracking-[-0.03em] text-slate-900">{monthLabel(currentMonth)}</div>
                 <div className="mt-1 text-[13px] font-semibold text-slate-600">Room conflict checks, RSVP, attendance, outcomes, and cancellation.</div>
               </div>
