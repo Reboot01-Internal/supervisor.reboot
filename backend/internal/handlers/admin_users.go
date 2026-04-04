@@ -497,7 +497,8 @@ func (a *API) AdminTaskCompletionStats(w http.ResponseWriter, r *http.Request) {
 	args := []any{}
 	if role == "supervisor" {
 		baseQuery += `
-			JOIN boards b ON b.id = c.board_id
+			JOIN lists l ON l.id = c.list_id
+			JOIN boards b ON b.id = l.board_id
 			JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
 			WHERE sf.supervisor_user_id = ?
 		`
