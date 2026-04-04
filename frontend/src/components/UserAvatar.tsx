@@ -25,7 +25,14 @@ export default function UserAvatar({
   previewable = false,
 }: UserAvatarProps) {
   const [open, setOpen] = useState(false);
-  const canPreview = Boolean(src && previewable);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+  const canPreview = Boolean(src && imgLoaded && !imgFailed && previewable);
+
+  useEffect(() => {
+    setImgLoaded(false);
+    setImgFailed(false);
+  }, [src]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,18 +72,27 @@ export default function UserAvatar({
           className
         )}
       >
-        {src ? (
+        <div className={cn("grid h-full w-full place-items-center font-black text-slate-800", textClass)}>
+          {fallback}
+        </div>
+        {src && !imgFailed ? (
           <img
             src={src}
             alt={alt}
-            className="h-full w-full scale-[1.12] object-cover object-center"
+            className={cn(
+              "absolute inset-0 h-full w-full scale-[1.12] object-cover object-center transition-opacity",
+              imgLoaded ? "opacity-100" : "opacity-0"
+            )}
+            onLoad={() => setImgLoaded(true)}
+            onError={() => {
+              setImgFailed(true);
+              setImgLoaded(false);
+            }}
           />
-        ) : (
-          <div className={cn("font-black text-slate-800", textClass)}>{fallback}</div>
-        )}
+        ) : null}
       </div>
 
-      {open && src && typeof document !== "undefined"
+      {open && src && imgLoaded && !imgFailed && typeof document !== "undefined"
         ? createPortal(
             <div
               className="fixed inset-0 z-[10000] grid place-items-center bg-slate-950/72 p-4 backdrop-blur-[4px]"
