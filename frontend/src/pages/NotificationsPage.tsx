@@ -143,7 +143,7 @@ export default function NotificationsPage() {
   const resolveSupervisorName = (item: NotificationItem) => {
     const actorLabel = extractActorLabel(item);
     const normalizedActor = normalizeFilterValue(actorLabel);
-    return supervisorDirectory.get(normalizedActor) || actorLabel;
+    return supervisorDirectory.get(normalizedActor) || "";
   };
 
   const supervisorOptions = useMemo(() => {
@@ -159,17 +159,19 @@ export default function NotificationsPage() {
     return Array.from(seen.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [items, supervisors]);
+  }, [items, supervisorDirectory]);
   const filteredItems = useMemo(
     () =>
       items.filter((item) => {
         const matchesDate = isInDateFilter(item.created_at, dateFilter, customDate);
         if (!matchesDate) return false;
         if (supervisorFilter === "all") return true;
-        const candidate = normalizeFilterValue(resolveSupervisorName(item));
+        const resolvedSupervisor = resolveSupervisorName(item);
+        if (!resolvedSupervisor) return false;
+        const candidate = normalizeFilterValue(resolvedSupervisor);
         return candidate === supervisorFilter;
       }),
-    [items, dateFilter, customDate, supervisorFilter, supervisors],
+    [items, dateFilter, customDate, supervisorFilter, supervisorDirectory],
   );
   const groupedItems = useMemo(() => {
     const groups: Array<{ label: string; items: NotificationItem[] }> = [];
