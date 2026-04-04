@@ -4,6 +4,7 @@ import (
 	// "crypto/rand"
 	// "encoding/base64"
 	"database/sql"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -543,7 +544,8 @@ func (a *API) AdminTaskCompletionStats(w http.ResponseWriter, r *http.Request) {
 	var onTimeCount int
 	var overdueCount int
 	if err := row.Scan(&tasksCount, &subtasksCount, &onTimeCount, &overdueCount); err != nil {
-		writeErr(w, http.StatusInternalServerError, "db error")
+		log.Printf("task completion stats failed: role=%s actor=%d err=%v", role, actor, err)
+		writeErr(w, http.StatusInternalServerError, "failed to load task completion: "+err.Error())
 		return
 	}
 

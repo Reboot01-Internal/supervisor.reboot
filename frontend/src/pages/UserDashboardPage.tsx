@@ -109,25 +109,45 @@ export default function UserDashboardPage() {
   const [weekMeetings, setWeekMeetings] = useState<MeetingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [meetingsError, setMeetingsError] = useState("");
+  const [taskCompletionError, setTaskCompletionError] = useState("");
 
   useEffect(() => {
     let alive = true;
     async function load() {
       setLoading(true);
       setError("");
+      setMeetingsError("");
+      setTaskCompletionError("");
       try {
-        const [summaryRes, completionRes, meetingsRes] = await Promise.all([
-          apiFetch("/admin/profile/summary"),
-          isSupervisor ? apiFetch("/admin/dashboard/task-completion") : Promise.resolve(null),
-          isSupervisor ? apiFetch("/admin/meetings") : Promise.resolve([]),
-        ]);
+        const summaryRes = await apiFetch("/admin/profile/summary");
         if (!alive) return;
         setData(summaryRes);
-        setTaskCompletion((completionRes as TaskCompletionStats | null) || null);
-        setWeekMeetings(Array.isArray(meetingsRes) ? meetingsRes : []);
+
+        if (isSupervisor) {
+          const [completionRes, meetingsRes] = await Promise.allSettled([
+            apiFetch("/admin/dashboard/task-completion"),
+            apiFetch("/admin/meetings"),
+          ]);
+          if (!alive) return;
+
+          if (completionRes.status === "fulfilled") {
+            setTaskCompletion((completionRes.value as TaskCompletionStats | null) || null);
+          } else {
+            setTaskCompletion(null);
+            setTaskCompletionError(completionRes.reason?.message || "Failed to load task completion.");
+          }
+
+          if (meetingsRes.status === "fulfilled") {
+            setWeekMeetings(Array.isArray(meetingsRes.value) ? meetingsRes.value : []);
+          } else {
+            setWeekMeetings([]);
+            setMeetingsError(meetingsRes.reason?.message || "Failed to load meetings.");
+          }
+        }
       } catch (e: any) {
         if (!alive) return;
-        setError(e?.message || "Failed to load dashboard");
+        setError(`Failed to load dashboard summary: ${e?.message || "unknown error"}`);
         setTaskCompletion(null);
         setWeekMeetings([]);
       } finally {
@@ -244,6 +264,10 @@ export default function UserDashboardPage() {
                 <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-6 text-[13px] font-semibold text-slate-500">
                   Loading meetings...
                 </div>
+              ) : meetingsError ? (
+                <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-6 text-[13px] font-semibold text-rose-700">
+                  {meetingsError}
+                </div>
               ) : upcomingMeetings.length === 0 ? (
                 <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-6 text-[13px] font-semibold text-slate-500">
                   No meetings scheduled for the next 7 days.
@@ -287,6 +311,11 @@ export default function UserDashboardPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                {taskCompletionError ? (
+                  <div className="col-span-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-semibold text-rose-700">
+                    {taskCompletionError}
+                  </div>
+                ) : null}
                 <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>

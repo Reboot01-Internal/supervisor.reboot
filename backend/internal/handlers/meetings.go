@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -263,7 +264,8 @@ func (a *API) AdminListMeetings(w http.ResponseWriter, r *http.Request) {
 
 	meetings, err := db.ListMeetings(a.conn, role, actorID(r, a.conn))
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "db error")
+		log.Printf("list meetings failed: role=%s actor=%d err=%v", role, actorID(r, a.conn), err)
+		writeErr(w, http.StatusInternalServerError, "failed to load meetings: "+err.Error())
 		return
 	}
 
