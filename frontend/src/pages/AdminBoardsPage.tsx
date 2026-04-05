@@ -43,6 +43,14 @@ function clampText(s: string, fallback: string) {
   return t ? t : fallback;
 }
 
+function roleDisplay(role: string) {
+  const normalized = String(role || "").trim().toLowerCase();
+  if (normalized === "student") return "talent";
+  if (normalized === "supervisor") return "supervisor";
+  if (normalized === "admin") return "admin";
+  return role || "-";
+}
+
 /* icons */
 function SearchIcon({ size = 16 }: { size?: number }) {
   return (
@@ -875,7 +883,7 @@ export default function AdminBoardsPage() {
                     </div>
                     <div className="flex flex-none items-center gap-2">
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
-                        {m.role}
+                        {roleDisplay(m.role)}
                       </span>
                       <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">
                         {m.role_in_board || "member"}

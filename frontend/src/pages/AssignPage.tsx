@@ -137,7 +137,7 @@ export default function AssignPage() {
       setAssigned(res || []);
       setSelectedAssignedIds(new Set());
     } catch (e: any) {
-      setErr(e.message || "Failed to load assigned students");
+      setErr(e.message || "Failed to load assigned talents");
       setAssigned([]);
       setSelectedAssignedIds(new Set());
     } finally {
@@ -298,9 +298,9 @@ export default function AssignPage() {
       const refreshed = await apiFetch("/admin/assign/students");
       setStudents(refreshed || []);
       setSelectedStuIds(new Set());
-      setOk(`Assigned ${ids.length} student(s).`);
+      setOk(`Assigned ${ids.length} talent(s).`);
     } catch (e: any) {
-      setErr(e.message || "Failed to assign selected students");
+      setErr(e.message || "Failed to assign selected talents");
     } finally {
       setSaving(false);
     }
@@ -326,9 +326,9 @@ export default function AssignPage() {
       const refreshed = await apiFetch("/admin/assign/students");
       setStudents(refreshed || []);
       setSelectedAssignedIds(new Set());
-      setOk(`Removed ${ids.length} student(s).`);
+      setOk(`Removed ${ids.length} talent(s).`);
     } catch (e: any) {
-      setErr(e.message || "Failed to unassign selected students");
+      setErr(e.message || "Failed to unassign selected talents");
     } finally {
       setSaving(false);
     }
@@ -339,8 +339,8 @@ export default function AssignPage() {
   return (
     <AdminLayout
       active="supervisors"
-      title="Assign students"
-      subtitle="Select a supervisor, then assign multiple students at once."
+      title="Assign talents"
+      subtitle="Select a supervisor, then assign multiple talents at once."
       right={
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
           <BackButton onClick={() => nav("/admin/supervisors")} />
@@ -442,12 +442,12 @@ export default function AssignPage() {
             </div>
           </section>
 
-          {/* ============== Column 2: Available Students ============== */}
+          {/* ============== Column 2: Available Talents ============== */}
           <section className="min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="text-[16px] font-black text-slate-900">Available students</div>
-                <div className="mt-1 text-[12px] font-bold text-slate-500">Select students, then Add Selected.</div>
+                <div className="text-[16px] font-black text-slate-900">Available talents</div>
+                <div className="mt-1 text-[12px] font-bold text-slate-500">Select talents, then Add Selected.</div>
               </div>
 
             </div>
@@ -458,7 +458,7 @@ export default function AssignPage() {
                 "focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10",
                 !selectedSup && "cursor-not-allowed opacity-60"
               )}
-              placeholder="Search students by name/email/nickname..."
+              placeholder="Search talents by name/email/nickname..."
               value={stuQ}
               onChange={(e) => setStuQ(e.target.value)}
               disabled={!selectedSup}
@@ -507,7 +507,7 @@ export default function AssignPage() {
 
             {!selectedSup ? (
               <div className="rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-3 py-2 text-[13px] font-bold text-slate-700">
-                Select a supervisor first to enable student selection.
+                Select a supervisor first to enable talent selection.
               </div>
             ) : (
               <div className="mt-2 flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
@@ -543,7 +543,7 @@ export default function AssignPage() {
                             <span className="text-slate-900">
                               <RoleIcon role="student" />
                             </span>
-                            student
+                            talent
                           </span>
                           <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-500">{s.email}</span>
                         </div>
@@ -554,14 +554,14 @@ export default function AssignPage() {
 
                 {visibleStudents.length === 0 && (
                   <div className="rounded-[14px] border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-[13px] font-bold text-slate-500">
-                    No available students.
+                    No available talents.
                   </div>
                 )}
               </div>
             )}
           </section>
 
-          {/* ============== Column 3: Assigned Students ============== */}
+          {/* ============== Column 3: Assigned Talents ============== */}
           <section className="min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -676,7 +676,7 @@ export default function AssignPage() {
                             <span className="text-slate-900">
                               <RoleIcon role="student" />
                             </span>
-                            student
+                            talent
                           </span>
                           <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-500">{s.email}</span>
                         </div>
@@ -688,7 +688,7 @@ export default function AssignPage() {
 
                 {visibleAssigned.length === 0 && (
                   <div className="rounded-[14px] border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-[13px] font-bold text-slate-500">
-                    {assignedQ.trim() ? "No assigned students match this search." : "No students assigned yet."}
+                    {assignedQ.trim() ? "No assigned talents match this search." : "No talents assigned yet."}
                   </div>
                 )}
               </div>

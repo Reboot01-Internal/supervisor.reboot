@@ -485,7 +485,7 @@ export default function AdminReportsPage() {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Kpi label="Boards" value={analytics.boardsTotal} />
-                  <Kpi label="Students" value={analytics.students} />
+                  <Kpi label="Talents" value={analytics.students} />
                   <Kpi label="Meetings" value={meetingAnalytics.total} />
                   <Kpi label="Overdue" value={analytics.overdue} tone={analytics.overdue > 0 ? "danger" : "good"} />
                 </div>
@@ -519,7 +519,7 @@ export default function AdminReportsPage() {
                     <Mini label="Lists" value={analytics.listsTotal} />
                     <Mini label="Cards" value={analytics.cardsTotal} />
                     <Mini label="Supervisors" value={analytics.supervisors} />
-                    <Mini label="Students" value={analytics.students} />
+                    <Mini label="Talents" value={analytics.students} />
                   </div>
                 </div>
 

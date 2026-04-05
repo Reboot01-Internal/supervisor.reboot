@@ -167,7 +167,7 @@ export default function CreateUserPanel({ onUserCreated }: Props) {
         setAccountExists(!!res?.any_exists);
         if (res?.exists) {
           setExists(true);
-          setMsg(`${role === "supervisor" ? "Supervisor" : "Student"} role already added.`);
+          setMsg(`${role === "supervisor" ? "Supervisor" : "Talent"} role already added.`);
         } else {
           setExists(false);
           setMsg(res?.any_exists ? `Account exists. You can add the ${role} role.` : "");
@@ -202,7 +202,7 @@ export default function CreateUserPanel({ onUserCreated }: Props) {
     try {
       if (!nickname.trim()) throw new Error("Enter nickname/login first.");
       if (!email) throw new Error("User not found in Reboot API.");
-      if (exists) throw new Error(`${role === "supervisor" ? "Supervisor" : "Student"} role already added.`);
+      if (exists) throw new Error(`${role === "supervisor" ? "Supervisor" : "Talent"} role already added.`);
 
       await apiFetch("/admin/users", {
         method: "POST",
@@ -216,7 +216,7 @@ export default function CreateUserPanel({ onUserCreated }: Props) {
         }),
       });
 
-      setMsg(`${role === "supervisor" ? "Supervisor" : "Student"} ${accountExists ? "role added successfully." : "created successfully."}`);
+      setMsg(`${role === "supervisor" ? "Supervisor" : "Talent"} ${accountExists ? "role added successfully." : "created successfully."}`);
       setNickname("");
       setFullName("");
       setEmail("");
@@ -334,7 +334,7 @@ export default function CreateUserPanel({ onUserCreated }: Props) {
               <RoleIcon role="student" />
             </span>
             <span className="grid">
-              <span className="leading-tight font-black text-slate-900">Student</span>
+              <span className="leading-tight font-black text-slate-900">Talent</span>
               <span className="mt-0.5 text-xs font-bold text-slate-500">Can be added to boards & tasks</span>
             </span>
           </button>
@@ -361,7 +361,7 @@ export default function CreateUserPanel({ onUserCreated }: Props) {
               </div>
               <div className="min-w-0">
                 <div className="truncate font-black text-slate-900">
-                  {fullName || (nickname.trim() ? nickname.trim() : role === "supervisor" ? "New Supervisor" : "New Student")}
+                  {fullName || (nickname.trim() ? nickname.trim() : role === "supervisor" ? "New Supervisor" : "New Talent")}
                 </div>
                 {nickname.trim() ? (
                   <div className="mt-1 text-xs font-extrabold text-slate-500">
@@ -386,7 +386,7 @@ export default function CreateUserPanel({ onUserCreated }: Props) {
                 ) : null}
                 {exists ? (
                   <div className="mt-2 text-xs font-extrabold text-amber-700">
-                    {role === "supervisor" ? "Supervisor" : "Student"} access already added.
+                    {role === "supervisor" ? "Supervisor" : "Talent"} access already added.
                   </div>
                 ) : null}
                 {!exists && accountExists ? (

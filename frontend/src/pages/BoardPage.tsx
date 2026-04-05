@@ -61,6 +61,14 @@ type BoardMember = {
   role_in_board: string;
 };
 
+function roleDisplay(role: string) {
+  const normalized = String(role || "").trim().toLowerCase();
+  if (normalized === "student") return "talent";
+  if (normalized === "supervisor") return "supervisor";
+  if (normalized === "admin") return "admin";
+  return role || "-";
+}
+
 type CardPreview = {
   card_id: number;
   done: number;
@@ -1081,7 +1089,7 @@ export default function BoardPage() {
                     </div>
                     <div className="flex flex-none items-center gap-2">
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
-                        {m.role}
+                        {roleDisplay(m.role)}
                       </span>
                       <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">
                         {m.role_in_board || "member"}

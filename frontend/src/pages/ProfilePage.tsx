@@ -129,6 +129,14 @@ function normalizeCohort(value: string) {
   return cohort;
 }
 
+function roleDisplay(role: string) {
+  const normalized = String(role || "").trim().toLowerCase();
+  if (normalized === "student") return "Talent";
+  if (normalized === "supervisor") return "Supervisor";
+  if (normalized === "admin") return "Admin";
+  return role || "-";
+}
+
 function formatBahrainDateTime(value: string) {
   const raw = String(value || "").trim();
   if (!raw) return "-";
@@ -352,7 +360,7 @@ export default function ProfilePage() {
     }
     return localProfile?.user?.full_name || "Profile";
   }, [localProfile?.user?.full_name, rebootProfile?.user?.firstName, rebootProfile?.user?.lastName]);
-  const roleLabel = localProfile?.user?.role || role;
+  const roleLabel = roleDisplay(localProfile?.user?.role || role);
   const genderRaw = rebootProfile?.user?.gender || "";
   const genderNormalized = normalizeGender(genderRaw);
   const boardRows =
@@ -366,7 +374,7 @@ export default function ProfilePage() {
       : (localProfile?.supervisor?.boards || []).map((b) => ({
           id: b.id,
           name: b.name,
-          subtitle: `${b.students_count} students`,
+          subtitle: `${b.students_count} talents`,
           group: "",
         }));
   const canViewPrivateNotes =
@@ -599,7 +607,7 @@ export default function ProfilePage() {
             {localProfile.supervisor ? (
               <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] lg:min-h-[450px]">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="text-[18px] font-black text-slate-900">Assigned Students</div>
+                  <div className="text-[18px] font-black text-slate-900">Assigned Talents</div>
                   <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
                     {localProfile.supervisor?.assigned_students_overall || 0} total
                   </span>
@@ -640,7 +648,7 @@ export default function ProfilePage() {
 
                 <div className="mt-3 space-y-2 overflow-y-auto pr-1 lg:max-h-[300px]">
                   {(localProfile.supervisor?.assigned_students || []).length === 0 ? (
-                    <div className="text-[13px] font-semibold text-slate-500">No assigned students yet.</div>
+                    <div className="text-[13px] font-semibold text-slate-500">No assigned talents yet.</div>
                   ) : (
                     (localProfile.supervisor?.assigned_students || []).map((s) => (
                       <button
@@ -656,7 +664,7 @@ export default function ProfilePage() {
                             ? "cursor-pointer hover:border-[#6d5efc]/30 hover:bg-[#f7f5ff]"
                             : "cursor-default",
                         ].join(" ")}
-                        title={role === "admin" || role === "supervisor" ? "Open student profile" : undefined}
+                        title={role === "admin" || role === "supervisor" ? "Open talent profile" : undefined}
                       >
                         <div className="truncate text-[13px] font-black text-slate-900">{s.full_name}</div>
                         <div className="mt-0.5 text-[12px] font-semibold text-slate-500">
@@ -764,7 +772,7 @@ export default function ProfilePage() {
                 <div>
                   <div className="text-[18px] font-black text-slate-900">Private Supervisor Notes</div>
                   <div className="mt-1 text-[12px] font-bold text-slate-500">
-                    Only supervisors and admins can see these notes. Students cannot access them.
+                    Only supervisors and admins can see these notes. Talents cannot access them.
                   </div>
                 </div>
                 <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
@@ -781,7 +789,7 @@ export default function ProfilePage() {
                     value={noteDraft}
                     onChange={(e) => setNoteDraft(e.target.value)}
                     className="mt-3 min-h-[180px] w-full rounded-[14px] border border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-[#6d5efc]/35 focus:ring-4 focus:ring-[#6d5efc]/10"
-                    placeholder="Add a note about this student."
+                    placeholder="Add a note about this talent."
                   />
                   <div className="mt-3 flex flex-wrap items-end justify-between gap-3 sm:flex-nowrap">
                     <div className="max-w-[220px] text-[11px] font-bold leading-5 text-slate-500">
@@ -808,7 +816,7 @@ export default function ProfilePage() {
                     <div className="text-[13px] font-semibold text-slate-500">Loading notes...</div>
                   ) : privateNotes.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-[13px] font-semibold text-slate-500">
-                      No private notes yet for this student.
+                      No private notes yet for this talent.
                     </div>
                   ) : (
                     <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[320px]">
@@ -819,7 +827,7 @@ export default function ProfilePage() {
                               <div className="truncate text-[13px] font-black text-slate-900">{note.author_name}</div>
                               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
                                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 capitalize">
-                                  {note.author_role || "staff"}
+                                  {roleDisplay(note.author_role || "staff")}
                                 </span>
                                 <span>{formatBahrainDateTime(note.created_at)}</span>
                               </div>

@@ -146,7 +146,7 @@ function RolePill({ role }: { role: string }) {
       <span className="grid place-items-center">
         <UsersIcon />
       </span>
-      student
+      talent
     </span>
   );
 }
@@ -513,8 +513,8 @@ export default function BoardMembersPage() {
                 onChange={(e) => setRoleFilter(e.target.value as any)}
                 disabled={isSupervisor}
               >
-                <option value="all">{isSupervisor ? "Students only" : "All roles"}</option>
-                <option value="student">Students</option>
+                <option value="all">{isSupervisor ? "Talents only" : "All roles"}</option>
+                <option value="student">Talents</option>
                 {!isSupervisor ? <option value="supervisor">Supervisors</option> : null}
               </select>
 

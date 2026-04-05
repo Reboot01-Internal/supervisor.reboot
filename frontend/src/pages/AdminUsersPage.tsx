@@ -57,7 +57,15 @@ function withAt(n: string) {
 }
 
 function roleLabel(role: CreateRole) {
-  return role === "supervisor" ? "Supervisor" : "Student";
+  return role === "supervisor" ? "Supervisor" : "Talent";
+}
+
+function roleDisplay(role: string) {
+  const normalized = String(role || "").trim().toLowerCase();
+  if (normalized === "student") return "Talent";
+  if (normalized === "supervisor") return "Supervisor";
+  if (normalized === "admin") return "Admin";
+  return role || "-";
 }
 
 function normalizeCohort(value: string) {
@@ -889,7 +897,7 @@ export default function AdminUsersPage() {
                     : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
                 ].join(" ")}
               >
-                {r === "all" ? "All" : r === "supervisor" ? "Supervisors" : "Students"}
+                {r === "all" ? "All" : r === "supervisor" ? "Supervisors" : "Talents"}
               </button>
             ))}
           </div>
@@ -960,7 +968,7 @@ export default function AdminUsersPage() {
         <div className="mb-3 grid gap-2 sm:grid-cols-3">
           <Counter label="All users" value={counters.all} />
           <Counter label="Supervisors" value={counters.sup} />
-          <Counter label="Students" value={counters.stu} />
+          <Counter label="Talents" value={counters.stu} />
         </div>
 
         {loading ? (
@@ -1035,7 +1043,7 @@ export default function AdminUsersPage() {
                           {withAt(u.nickname)}
                         </span>
                         <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>
-                          {u.role}
+                          {roleDisplay(u.role)}
                         </span>
                         <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
                           {normalizeCohort(u.cohort) || "No cohort"}

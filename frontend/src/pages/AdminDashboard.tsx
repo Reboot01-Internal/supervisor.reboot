@@ -173,7 +173,7 @@ export default function AdminDashboard() {
           }
         />
         <StatCard
-          label="Students"
+          label="Talents"
           value={statsLoading ? "..." : studentCount}
           icon={
             <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">

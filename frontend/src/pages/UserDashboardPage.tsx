@@ -187,7 +187,7 @@ export default function UserDashboardPage() {
     const peopleCount = isSupervisor ? data?.supervisor?.assigned_students_overall || 0 : data?.student?.supervisors?.length || 0;
     return [
       { label: "Boards", value: boardsCount, tone: "border-[#6d5efc]/20 bg-[#f3f1ff] text-[#6d5efc]", icon: <BoardsIcon size={15} /> },
-      { label: isSupervisor ? "Students" : "Supervisors", value: peopleCount, tone: "border-sky-200 bg-sky-50 text-sky-700", icon: <PeopleIcon size={15} /> },
+      { label: isSupervisor ? "Talents" : "Supervisors", value: peopleCount, tone: "border-sky-200 bg-sky-50 text-sky-700", icon: <PeopleIcon size={15} /> },
       { label: "Tasks", value: data?.tasks?.total || 0, tone: "border-amber-200 bg-amber-50 text-amber-700", icon: <TasksIcon size={15} /> },
       { label: "Done", value: data?.tasks?.done || 0, tone: "border-emerald-200 bg-emerald-50 text-emerald-700", icon: <DoneIcon size={15} /> },
     ];

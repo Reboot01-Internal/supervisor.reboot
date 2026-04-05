@@ -288,7 +288,7 @@ export default function LoginPage() {
                   Track Progress.
                 </h2>
                 <p className="mt-3 text-[14px] font-semibold text-white/90 sm:text-[15px]">
-                  One clean workspace for admins, supervisors, and students.
+                  One clean workspace for admins, supervisors, and talents.
                 </p>
               </div>
             </div> */}

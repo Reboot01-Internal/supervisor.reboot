@@ -1159,14 +1159,14 @@ export default function CardModal({
                           <div className="h-1.5" />
                           {studentsOnly.length === 0 ? (
                             <div className="text-[13px] font-semibold text-slate-500">
-                              No students in this board yet. Add them from members.
+                              No talents in this board yet. Add them from members.
                             </div>
                           ) : (
                             <div className="relative">
                               <input
                                 ref={assigneeInputRef}
                                 className={inputBase}
-                                placeholder="Search student to assign..."
+                                placeholder="Search talent to assign..."
                                 value={assigneeQuery}
                                 onChange={(e) => {
                                   setAssigneeQuery(e.target.value);

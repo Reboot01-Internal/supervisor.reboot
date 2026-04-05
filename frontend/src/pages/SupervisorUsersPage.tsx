@@ -108,7 +108,7 @@ export default function SupervisorUsersPage() {
   }, [rows, q]);
 
   return (
-    <AdminLayout active="users" title="Users" subtitle="Browse your assigned students and open their profiles.">
+    <AdminLayout active="users" title="Users" subtitle="Browse your assigned talents and open their profiles.">
       {err ? (
         <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700">
           {err}
@@ -165,7 +165,7 @@ export default function SupervisorUsersPage() {
                           {withAt(u.nickname)}
                         </span>
                         <span className="inline-flex h-7 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-800">
-                          student
+                          talent
                         </span>
                         <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
                           {u.boards?.length || 0} board{(u.boards?.length || 0) === 1 ? "" : "s"}
