@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import AdminLayout from "../components/AdminLayout";
-import BackButton from "../components/BackButton";
 import UserAvatar from "../components/UserAvatar";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
