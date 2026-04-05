@@ -10,8 +10,9 @@ import (
 type assignUser struct {
 	ID       int    `json:"id"`
 	FullName string `json:"full_name"`
-		Nickname string `json:"nickname"`
+	Nickname string `json:"nickname"`
 	Email    string `json:"email"`
+	Cohort   string `json:"cohort"`
 	Role     string `json:"role,omitempty"`
 }
 
@@ -23,7 +24,7 @@ type assignBody struct {
 
 func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Request) {
 	rows, err := api.conn.Query(`
-		SELECT u.id, u.full_name, u.nickname, u.email, 'supervisor'
+		SELECT u.id, u.full_name, u.nickname, u.email, IFNULL(u.cohort,''), 'supervisor'
 		FROM users u
 		WHERE u.is_active=1
 		  AND (
@@ -45,7 +46,7 @@ func (api *API) AdminAssignListSupervisors(w http.ResponseWriter, r *http.Reques
 	out := []assignUser{}
 	for rows.Next() {
 		var u assignUser
-		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Cohort, &u.Role); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -68,7 +69,7 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 
 	if q == "" {
 		rows, err = api.conn.Query(`
-    SELECT u.id, u.full_name, u.nickname, u.email, 'student'
+    SELECT u.id, u.full_name, u.nickname, u.email, IFNULL(u.cohort,''), 'student'
     FROM users u
     WHERE u.is_active=1
       AND (
@@ -87,7 +88,7 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
   `)
 	} else {
 		rows, err = api.conn.Query(`
-    SELECT u.id, u.full_name, u.nickname, u.email, 'student'
+    SELECT u.id, u.full_name, u.nickname, u.email, IFNULL(u.cohort,''), 'student'
     FROM users u
     WHERE u.is_active=1
       AND (
@@ -121,7 +122,7 @@ func (api *API) AdminAssignListStudents(w http.ResponseWriter, r *http.Request) 
 	out := []assignUser{}
 	for rows.Next() {
 		var u assignUser
-		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Cohort, &u.Role); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -142,7 +143,7 @@ func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := api.conn.Query(`
-SELECT u.id, u.full_name, u.nickname, u.email
+SELECT u.id, u.full_name, u.nickname, u.email, IFNULL(u.cohort,'')
 		FROM supervisor_students ss
 		JOIN users u ON u.id = ss.student_user_id
 		WHERE ss.supervisor_user_id = ?
@@ -157,7 +158,7 @@ SELECT u.id, u.full_name, u.nickname, u.email
 	out := []assignUser{}
 	for rows.Next() {
 		var u assignUser
-		if err :=rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email); err != nil {
+		if err := rows.Scan(&u.ID, &u.FullName, &u.Nickname, &u.Email, &u.Cohort); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}

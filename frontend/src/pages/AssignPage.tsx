@@ -12,6 +12,7 @@ type User = {
   full_name: string;
   nickname: string;
   email: string;
+  cohort: string;
   role: string;
 };
 
@@ -89,6 +90,13 @@ function displayNickname(nickname: string) {
   return n.startsWith("@") ? n : `@${n}`;
 }
 
+function normalizeCohort(value: string) {
+  const cohort = String(value || "").trim();
+  if (!cohort) return "";
+  if (cohort.toLowerCase() === "unknown cohort") return "";
+  return cohort;
+}
+
 export default function AssignPage() {
   const nav = useNavigate();
   const [supervisors, setSupervisors] = useState<User[]>([]);
@@ -101,6 +109,8 @@ export default function AssignPage() {
   const [supQ, setSupQ] = useState("");
   const [stuQ, setStuQ] = useState("");
   const [assignedQ, setAssignedQ] = useState("");
+  const [stuCohort, setStuCohort] = useState("all");
+  const [assignedCohort, setAssignedCohort] = useState("all");
 
   const [selectedStuIds, setSelectedStuIds] = useState<Set<number>>(new Set());
   const [selectedAssignedIds, setSelectedAssignedIds] = useState<Set<number>>(new Set());
@@ -123,6 +133,8 @@ export default function AssignPage() {
       setAssigned([]);
       setSelectedStuIds(new Set());
       setSelectedAssignedIds(new Set());
+      setStuCohort("all");
+      setAssignedCohort("all");
     } catch (e: any) {
       setErr(e.message || "Failed to load");
     }
@@ -182,11 +194,29 @@ export default function AssignPage() {
       setSelectedStuIds(new Set());
       setSelectedAssignedIds(new Set());
       setAssignedQ("");
+      setAssignedCohort("all");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSup?.id]);
 
   const assignedIds = useMemo(() => new Set(assigned.map((a) => a.id)), [assigned]);
+
+  const availableCohortOptions = useMemo(() => {
+    return [...new Set(
+      students
+        .filter((s) => !assignedIds.has(s.id))
+        .map((s) => normalizeCohort(s.cohort))
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+  }, [students, assignedIds]);
+
+  const assignedCohortOptions = useMemo(() => {
+    return [...new Set(
+      assigned
+        .map((s) => normalizeCohort(s.cohort))
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+  }, [assigned]);
 
   // ✅ Search includes nickname
   const visibleSupervisors = useMemo(() => {
@@ -206,6 +236,7 @@ export default function AssignPage() {
     const q = stuQ.trim().toLowerCase();
     return students
       .filter((s) => !assignedIds.has(s.id))
+      .filter((s) => stuCohort === "all" || normalizeCohort(s.cohort) === stuCohort)
       .filter((s) => {
         if (!q) return true;
         return (
@@ -214,19 +245,21 @@ export default function AssignPage() {
           safeLower(s.nickname).includes(q)
         );
       });
-  }, [students, assignedIds, stuQ]);
+  }, [students, assignedIds, stuQ, stuCohort]);
 
   const visibleAssigned = useMemo(() => {
     const q = assignedQ.trim().toLowerCase();
-    return assigned.filter((s) => {
-      if (!q) return true;
-      return (
-        safeLower(s.full_name).includes(q) ||
-        safeLower(s.email).includes(q) ||
-        safeLower(s.nickname).includes(q)
-      );
-    });
-  }, [assigned, assignedQ]);
+    return assigned
+      .filter((s) => assignedCohort === "all" || normalizeCohort(s.cohort) === assignedCohort)
+      .filter((s) => {
+        if (!q) return true;
+        return (
+          safeLower(s.full_name).includes(q) ||
+          safeLower(s.email).includes(q) ||
+          safeLower(s.nickname).includes(q)
+        );
+      });
+  }, [assigned, assignedQ, assignedCohort]);
 
   function toggleStudent(id: number) {
     setSelectedStuIds((prev) => {
@@ -464,6 +497,24 @@ export default function AssignPage() {
               disabled={!selectedSup}
             />
 
+            <select
+              className={cn(
+                "mb-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none",
+                "focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10",
+                !selectedSup && "cursor-not-allowed opacity-60"
+              )}
+              value={stuCohort}
+              onChange={(e) => setStuCohort(e.target.value)}
+              disabled={!selectedSup}
+            >
+              <option value="all">All cohorts</option>
+              {availableCohortOptions.map((cohort) => (
+                <option key={cohort} value={cohort}>
+                  {cohort}
+                </option>
+              ))}
+            </select>
+
             {selectedSup ? (
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <button
@@ -545,6 +596,11 @@ export default function AssignPage() {
                             </span>
                             talent
                           </span>
+                          {normalizeCohort(s.cohort) ? (
+                            <span className="inline-flex h-7 flex-none items-center rounded-full border border-slate-200 bg-white px-2.5 text-[12px] font-black text-slate-700">
+                              {normalizeCohort(s.cohort)}
+                            </span>
+                          ) : null}
                           <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-500">{s.email}</span>
                         </div>
                       </div>
@@ -579,12 +635,26 @@ export default function AssignPage() {
             </div>
 
             {selectedSup ? (
-              <input
-                className="mb-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10"
-                placeholder="Search assigned by name/email/nickname..."
-                value={assignedQ}
-                onChange={(e) => setAssignedQ(e.target.value)}
-              />
+              <>
+                <input
+                  className="mb-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10"
+                  placeholder="Search assigned by name/email/nickname..."
+                  value={assignedQ}
+                  onChange={(e) => setAssignedQ(e.target.value)}
+                />
+                <select
+                  className="mb-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10"
+                  value={assignedCohort}
+                  onChange={(e) => setAssignedCohort(e.target.value)}
+                >
+                  <option value="all">All cohorts</option>
+                  {assignedCohortOptions.map((cohort) => (
+                    <option key={cohort} value={cohort}>
+                      {cohort}
+                    </option>
+                  ))}
+                </select>
+              </>
             ) : null}
 
             {selectedSup ? (
@@ -678,6 +748,11 @@ export default function AssignPage() {
                             </span>
                             talent
                           </span>
+                          {normalizeCohort(s.cohort) ? (
+                            <span className="inline-flex h-7 flex-none items-center rounded-full border border-slate-200 bg-white px-2.5 text-[12px] font-black text-slate-700">
+                              {normalizeCohort(s.cohort)}
+                            </span>
+                          ) : null}
                           <span className="min-w-0 truncate text-[12.5px] font-bold text-slate-500">{s.email}</span>
                         </div>
                       </div>
