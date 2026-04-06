@@ -487,7 +487,27 @@ export default function AdminBoardsPage() {
     () => supervisorOptions.find((supervisor) => supervisor.supervisor_user_id === selectedSupervisorID) || null,
     [selectedSupervisorID, supervisorOptions]
   );
+useEffect(() => {
+    const nickname = String(selectedSupervisor?.nickname || "").trim().replace(/^@/, "");
+    if (!nickname) return;
 
+    setBoardName((prev) => {
+      const current = String(prev || "").trim();
+      if (!current) return `${nickname}-`;
+
+      const prefixes = supervisorOptions
+        .map((supervisor) => String(supervisor.nickname || "").trim().replace(/^@/, ""))
+        .filter(Boolean);
+
+      for (const prefix of prefixes) {
+        if (current === `${prefix}-` || current.startsWith(`${prefix}-`)) {
+          return `${nickname}-${current.slice(prefix.length + 1)}`;
+        }
+      }
+
+      return `${nickname}-${current}`;
+    });
+  }, [selectedSupervisor, supervisorOptions]);
   async function load() {
     setLoading(true);
     setErr("");
