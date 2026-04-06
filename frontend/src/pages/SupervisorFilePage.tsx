@@ -180,6 +180,28 @@ export default function SupervisorFilePage() {
     [supervisors, fileID]
   );
 
+  useEffect(() => {
+    const nickname = String(currentSupervisor?.nickname || "").trim().replace(/^@/, "");
+    if (!nickname) return;
+
+    setName((prev) => {
+      const current = String(prev || "").trim();
+      if (!current) return `${nickname}-`;
+
+      const prefixes = supervisors
+        .map((supervisor) => String(supervisor.nickname || "").trim().replace(/^@/, ""))
+        .filter(Boolean);
+
+      for (const prefix of prefixes) {
+        if (current === `${prefix}-` || current.startsWith(`${prefix}-`)) {
+          return `${nickname}-${current.slice(prefix.length + 1)}`;
+        }
+      }
+
+      return `${nickname}-${current}`;
+    });
+  }, [currentSupervisor, supervisors]);
+
   async function loadBoards() {
     setErr("");
     setLoading(true);

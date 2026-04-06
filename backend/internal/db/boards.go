@@ -78,23 +78,28 @@ func ReassignBoardSupervisor(conn *sql.DB, boardID, nextSupervisorUserID int64) 
 	defer tx.Rollback()
 
 	var currentSupervisorUserID int64
+	var currentBoardName string
+	var currentSupervisorNickname string
 	err = tx.QueryRow(`
-		SELECT sf.supervisor_user_id
+		SELECT sf.supervisor_user_id, b.name, IFNULL(u.nickname, '')
 		FROM boards b
 		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
+		LEFT JOIN users u ON u.id = sf.supervisor_user_id
 		WHERE b.id = ?
-	`, boardID).Scan(&currentSupervisorUserID)
+	`, boardID).Scan(&currentSupervisorUserID, &currentBoardName, &currentSupervisorNickname)
 	if err != nil {
 		return err
 	}
 
 	var nextSupervisorFileID int64
+	var nextSupervisorNickname string
 	err = tx.QueryRow(`
-		SELECT id
-		FROM supervisor_files
-		WHERE supervisor_user_id = ?
+		SELECT sf.id, IFNULL(u.nickname, '')
+		FROM supervisor_files sf
+		JOIN users u ON u.id = sf.supervisor_user_id
+		WHERE sf.supervisor_user_id = ?
 		LIMIT 1
-	`, nextSupervisorUserID).Scan(&nextSupervisorFileID)
+	`, nextSupervisorUserID).Scan(&nextSupervisorFileID, &nextSupervisorNickname)
 	if err != nil {
 		return err
 	}
@@ -103,11 +108,25 @@ func ReassignBoardSupervisor(conn *sql.DB, boardID, nextSupervisorUserID int64) 
 		return nil
 	}
 
+	currentSupervisorNickname = strings.TrimSpace(strings.TrimPrefix(currentSupervisorNickname, "@"))
+	nextSupervisorNickname = strings.TrimSpace(strings.TrimPrefix(nextSupervisorNickname, "@"))
+	currentBoardName = strings.TrimSpace(currentBoardName)
+
+	nextBoardName := currentBoardName
+	if nextSupervisorNickname != "" {
+		switch {
+		case currentSupervisorNickname != "" && (currentBoardName == currentSupervisorNickname+"-" || strings.HasPrefix(currentBoardName, currentSupervisorNickname+"-")):
+			nextBoardName = nextSupervisorNickname + "-" + strings.TrimPrefix(currentBoardName, currentSupervisorNickname+"-")
+		case !strings.HasPrefix(currentBoardName, nextSupervisorNickname+"-"):
+			nextBoardName = nextSupervisorNickname + "-" + currentBoardName
+		}
+	}
+
 	res, err := tx.Exec(`
 		UPDATE boards
-		SET supervisor_file_id = ?
+		SET supervisor_file_id = ?, name = ?
 		WHERE id = ?
-	`, nextSupervisorFileID, boardID)
+	`, nextSupervisorFileID, nextBoardName, boardID)
 	if err != nil {
 		return err
 	}
