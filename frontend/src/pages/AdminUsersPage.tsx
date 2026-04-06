@@ -14,6 +14,7 @@ type UserRow = {
   role: "student" | "supervisor";
   nickname: string;
   cohort: string;
+  assigned_boards: string[];
   is_active: boolean;
   created_at: string;
 };
@@ -41,6 +42,7 @@ type AdminUsersPageState = {
   q: string;
   role: "all" | "supervisor" | "student";
   cohort: string;
+  boardFilter: "all" | "unassigned";
   scrollY: number;
 };
 
@@ -57,6 +59,7 @@ function readAdminUsersPageState(): AdminUsersPageState | null {
           ? parsed.role
           : "all",
       cohort: String(parsed?.cohort || "all"),
+      boardFilter: parsed?.boardFilter === "unassigned" ? "unassigned" : "all",
       scrollY: Number.isFinite(Number(parsed?.scrollY)) ? Number(parsed.scrollY) : 0,
     };
   } catch {
@@ -175,6 +178,7 @@ async function fetchRebootUserByLogin(login: string): Promise<RebootCandidate | 
     .filter((value: number) => Number.isFinite(value))
     .sort((a: number, b: number) => a - b)
     .filter((value: number, index: number, all: number[]) => index === 0 || value !== all[index - 1]);
+    const assignedstudenttoboard = (json?.data?.assignedStudentToBoard || []).map((row: any) => String(row?.login || "").trim());
 
   let cohort = "";
   if (userEventID > 0 && moduleEventIDs.length > 0) {
@@ -390,6 +394,7 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState(initialPageState.current?.q || "");
   const [role, setRole] = useState<"all" | "supervisor" | "student">(initialPageState.current?.role || "all");
   const [cohort, setCohort] = useState(initialPageState.current?.cohort || "all");
+  const [boardFilter, setBoardFilter] = useState<"all" | "unassigned">(initialPageState.current?.boardFilter || "all");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
@@ -438,9 +443,10 @@ export default function AdminUsersPage() {
       q,
       role,
       cohort,
+      boardFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
     });
-  }, [q, role, cohort]);
+  }, [q, role, cohort, boardFilter]);
 
   useEffect(() => {
     function handleScroll() {
@@ -448,13 +454,14 @@ export default function AdminUsersPage() {
         q,
         role,
         cohort,
+        boardFilter,
         scrollY: window.scrollY,
       });
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [q, role, cohort]);
+  }, [q, role, cohort, boardFilter]);
 
   const cohortOptions = useMemo(
     () =>
@@ -465,8 +472,13 @@ export default function AdminUsersPage() {
   );
 
   const visibleRows = useMemo(
-    () => rows.filter((row) => cohort === "all" || normalizeCohort(row.cohort) === cohort),
-    [rows, cohort]
+    () =>
+      rows.filter((row) => {
+        if (cohort !== "all" && normalizeCohort(row.cohort) !== cohort) return false;
+        if (boardFilter === "unassigned" && (row.assigned_boards || []).length > 0) return false;
+        return true;
+      }),
+    [rows, cohort, boardFilter]
   );
 
   useEffect(() => {
@@ -995,7 +1007,7 @@ export default function AdminUsersPage() {
       ) : null}
 
       <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-        <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_150px_150px]">
+        <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_150px_150px_190px]">
           <input
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             placeholder="Search by name, email, or nickname..."
@@ -1022,6 +1034,26 @@ export default function AdminUsersPage() {
                 {option}
               </option>
             ))}
+          </select>
+          {/* <select
+            className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+            value={cohort}
+            onChange={(e) => setCohort(e.target.value)}
+          >
+            <option value="all">All cohorts</option>
+            {cohortOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select> */}
+          <select
+            className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+            value={boardFilter}
+            onChange={(e) => setBoardFilter(e.target.value as "all" | "unassigned")}
+          >
+            <option value="all">All board states</option>
+            <option value="unassigned">Not assigned to board</option>
           </select>
         </div>
 
