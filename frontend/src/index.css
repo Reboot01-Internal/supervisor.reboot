@@ -234,17 +234,17 @@ body, button, input, select, textarea {
 }
 
 .admin-dark .supervisors-page [class*="border"] {
-  border-color: #25324a !important;
+  border-color: #24304a !important;
 }
 
 .admin-dark .supervisors-search {
-  background: #1a263b !important;
-  border-color: #2a3852 !important;
+  background: #0e1525 !important;
+  border-color: #24304a !important;
   box-shadow: none !important;
 }
 
 .admin-dark .supervisors-search:focus-within {
-  border-color: #3b4d6e !important;
+  border-color: #344665 !important;
   box-shadow: none !important;
 }
 
@@ -254,13 +254,13 @@ body, button, input, select, textarea {
 }
 
 .admin-dark .supervisors-count-card {
-  background: #151f32 !important;
-  border-color: #25324a !important;
+  background: #0e1525 !important;
+  border-color: #24304a !important;
   box-shadow: none !important;
 }
 
 .admin-dark .supervisors-count-icon {
-  background: #1c2a43 !important;
+  background: #263654 !important;
   border-color: transparent !important;
   color: #8fb3ff !important;
 }
@@ -277,26 +277,26 @@ body, button, input, select, textarea {
 }
 
 .admin-dark .supervisors-list-panel {
-  background: #111a2c !important;
-  border-color: #243149 !important;
+  background: #0e1525 !important;
+  border-color: #24304a !important;
   box-shadow: none !important;
 }
 
 .admin-dark .supervisors-list-row {
-  background: #151f32 !important;
-  border-color: #2a3852 !important;
+  background: #0e1525 !important;
+  border-color: #24304a !important;
   box-shadow: none !important;
 }
 
 .admin-dark .supervisors-list-row:hover {
-  background: #18253b !important;
-  border-color: #3b4d6e !important;
+  background: #111a2c !important;
+  border-color: #344665 !important;
   box-shadow: none !important;
 }
 
 .admin-dark .supervisors-view-toggle {
-  background: #151f32 !important;
-  border-color: #25324a !important;
+  background: #0e1525 !important;
+  border-color: #24304a !important;
   box-shadow: none !important;
 }
 
