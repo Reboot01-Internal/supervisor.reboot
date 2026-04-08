@@ -393,7 +393,7 @@ export default function SupervisorFilePage() {
         onClick={closeReassign}
       >
         <div
-          className="w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+          className="workspace-reassign-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between gap-3">
@@ -416,7 +416,7 @@ export default function SupervisorFilePage() {
             <label className="grid gap-2">
               <span className="text-[12px] font-extrabold text-slate-500">New owner</span>
               <select
-                className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/50"
+                className="workspace-reassign-field h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/50"
                 value={nextSupervisorID}
                 onChange={(e) => setNextSupervisorID(Number(e.target.value))}
                 disabled={reassigning || eligibleSupervisors.length === 0}
@@ -433,11 +433,11 @@ export default function SupervisorFilePage() {
             </label>
 
             {eligibleSupervisors.length > 0 ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
+              <div className="workspace-warning rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
                 The current owner will be removed from this board, and Discord access will sync to the new owner.
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold text-slate-600">
+              <div className="workspace-note rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold text-slate-600">
                 Add another supervisor first, then you can transfer this board.
               </div>
             )}
@@ -543,13 +543,13 @@ export default function SupervisorFilePage() {
               </label>
 
               {err ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-900">
+              <div className="workspace-message workspace-message-error rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-900">
                   {err}
                 </div>
               ) : null}
 
               {msg ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-slate-900">
+                <div className="workspace-message workspace-message-success rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-slate-900">
                   {msg}
                 </div>
               ) : null}
@@ -595,7 +595,7 @@ export default function SupervisorFilePage() {
             <div className="h-3" />
 
             {err ? (
-              <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-900">
+              <div className="workspace-message workspace-message-error mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-900">
                 {err}
               </div>
             ) : null}

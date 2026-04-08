@@ -417,12 +417,12 @@ export default function AssignPage() {
     >
       <div className="w-full max-w-full overflow-x-hidden">
         {err && (
-          <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-800">
+          <div className="assign-message assign-message-error mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-800">
             {err}
           </div>
         )}
         {ok && (
-          <div className="mb-3 rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-slate-800">
+          <div className="assign-message assign-message-success mb-3 rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-slate-800">
             {ok}
           </div>
         )}
@@ -606,6 +606,7 @@ export default function AssignPage() {
                       key={s.id}
                       className={cn(
                         "flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
+                        checked && "assign-selected-add",
                         checked
                           ? "border-emerald-300/60 bg-emerald-50/50 shadow-[0_10px_22px_rgba(16,185,129,0.08)]"
                           : "border-slate-200/70 bg-white/80 hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]"
@@ -753,6 +754,7 @@ export default function AssignPage() {
                     key={s.id}
                     className={cn(
                       "flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 transition",
+                      checked && "assign-selected-remove",
                       checked
                         ? "border-red-200 bg-red-50/35 shadow-[0_10px_22px_rgba(239,68,68,0.06)]"
                         : "border-slate-200/70 bg-white/80 hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]"

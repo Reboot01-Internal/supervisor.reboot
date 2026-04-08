@@ -276,6 +276,10 @@ body, button, input, select, textarea {
   border-color: #5b75a3 !important;
 }
 
+.admin-dark .supervisors-username {
+  color: #8d82ff !important;
+}
+
 .admin-dark .supervisors-list-panel {
   background: #0e1525 !important;
   border-color: #24304a !important;
@@ -356,6 +360,111 @@ body, button, input, select, textarea {
 
 .admin-dark .assign-role-pill [class~="text-slate-900"] {
   color: #c9f5dc !important;
+}
+
+.admin-dark .assign-selected-add {
+  background: #172f3a !important;
+  border-color: #2a6b58 !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .assign-selected-remove {
+  background: #2c2130 !important;
+  border-color: #6f3a47 !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .assign-message {
+  box-shadow: none !important;
+}
+
+.admin-dark .assign-message-success {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #c9f5dc !important;
+}
+
+.admin-dark .assign-message-error {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ffb0ba !important;
+}
+
+.admin-dark .board-members-panel {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-members-search {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-members-search input {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.admin-dark .board-member-row-card {
+  background: #0e1525 !important;
+  border-color: #24304a !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-member-row-card:hover {
+  background: #111a2c !important;
+  border-color: #344665 !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-member-row-selected-add {
+  background: #17233c !important;
+  border-color: #4b5f91 !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-member-row-selected-remove {
+  background: #2c2130 !important;
+  border-color: #6f3a47 !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-members-page [class~="bg-violet-50"] {
+  background: #243654 !important;
+  border-color: #405478 !important;
+  color: #dce7ff !important;
+}
+
+.admin-dark .board-members-page [class~="bg-emerald-50"] {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #7ee0ae !important;
+}
+
+.admin-dark .board-members-page [class~="bg-amber-50"] {
+  background: #3b2d16 !important;
+  border-color: #82601d !important;
+  color: #f4c66a !important;
+}
+
+.admin-dark .board-members-page [class~="bg-red-50"] {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ff8f9d !important;
+}
+
+.admin-dark .board-members-message-success {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #c9f5dc !important;
+}
+
+.admin-dark .board-members-message-error {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ffb0ba !important;
 }
 
 .admin-dark .dashboard-page [class*="border"] {
@@ -512,6 +621,36 @@ body, button, input, select, textarea {
   border-color: #344665 !important;
 }
 
+.admin-dark .board-detail-page .boardCardIn [class~="bg-emerald-50"] {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #7ee0ae !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class~="bg-amber-50"] {
+  background: #3b2d16 !important;
+  border-color: #82601d !important;
+  color: #f4c66a !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class~="bg-rose-50"] {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ff8f9d !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class~="bg-sky-50"] {
+  background: #14283a !important;
+  border-color: #245878 !important;
+  color: #91d8ff !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class~="bg-slate-50"] {
+  background: #17223a !important;
+  border-color: #2b3a56 !important;
+  color: #dce7ff !important;
+}
+
 .admin-dark .board-detail-status-done {
   background: #14283a !important;
   border-color: #245845 !important;
@@ -564,6 +703,36 @@ body, button, input, select, textarea {
 
 .admin-dark .workspace-secondary-button:hover {
   background: #151f32 !important;
+}
+
+.admin-dark .workspace-message-success {
+  background: #14283a !important;
+  border-color: #245845 !important;
+  color: #c9f5dc !important;
+}
+
+.admin-dark .workspace-message-error {
+  background: #311b24 !important;
+  border-color: #7f3040 !important;
+  color: #ffb0ba !important;
+}
+
+.admin-dark .workspace-warning {
+  background: #3b2d16 !important;
+  border-color: #82601d !important;
+  color: #f4c66a !important;
+}
+
+.admin-dark .workspace-note {
+  background: #151f32 !important;
+  border-color: #25324a !important;
+  color: #a5b0c3 !important;
+}
+
+.admin-dark .workspace-reassign-field {
+  background: #111a2c !important;
+  border-color: #24304a !important;
+  color: #f4f7fb !important;
 }
 
 .admin-dark .workspace-page input,
@@ -623,24 +792,74 @@ body, button, input, select, textarea {
   max-width: max-content;
 }
 
-body.admin-dark-theme .modalPanelIn {
+body.admin-dark-theme .workspace-reassign-popup {
   background: #0e1525 !important;
+  border-color: #24304a !important;
+  color: #f4f7fb !important;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.42) !important;
+}
+
+body.admin-dark-theme .workspace-reassign-popup [class~="text-slate-900"] {
+  color: #f4f7fb !important;
+}
+
+body.admin-dark-theme .workspace-reassign-popup [class~="text-slate-700"],
+body.admin-dark-theme .workspace-reassign-popup [class~="text-slate-600"],
+body.admin-dark-theme .workspace-reassign-popup [class~="text-slate-500"] {
+  color: #a5b0c3 !important;
+}
+
+body.admin-dark-theme .workspace-reassign-popup button[class*="bg-white"],
+body.admin-dark-theme .workspace-reassign-popup button[class*="bg-slate-50"] {
+  background: #111a2c !important;
+  border-color: #25324a !important;
+  color: #dce7ff !important;
+}
+
+body.admin-dark-theme .workspace-reassign-popup .workspace-reassign-field {
+  background: #111a2c !important;
+  border-color: #24304a !important;
+  color: #f4f7fb !important;
+}
+
+body.admin-dark-theme .workspace-reassign-popup .workspace-warning {
+  background: #3b2d16 !important;
+  border-color: #82601d !important;
+  color: #f4c66a !important;
+}
+
+body.admin-dark-theme .workspace-reassign-popup .workspace-note {
+  background: #151f32 !important;
+  border-color: #25324a !important;
+  color: #a5b0c3 !important;
+}
+
+body.admin-dark-theme .modalPanelIn {
+  background: #0a1020 !important;
   border-color: #24304a !important;
   color: #f4f7fb !important;
 }
 
 body.admin-dark-theme .modalPanelIn [class*="bg-white"],
-body.admin-dark-theme .modalPanelIn [class*="bg-slate-50"],
 body.admin-dark-theme .modalPanelIn [class*="bg-[#fbfcff]"],
 body.admin-dark-theme .modalPanelIn [class*="bg-[#f7f8fb]"] {
-  background: #0e1525 !important;
-  background-color: #0e1525 !important;
+  background: #111a2c !important;
+  background-color: #111a2c !important;
+}
+
+body.admin-dark-theme .modalPanelIn [class*="bg-slate-50"],
+body.admin-dark-theme .modalPanelIn [class*="bg-slate-100"],
+body.admin-dark-theme .modalPanelIn [class*="bg-white/70"],
+body.admin-dark-theme .modalPanelIn [class*="bg-white/85"],
+body.admin-dark-theme .modalPanelIn [class*="bg-white/90"] {
+  background: #151f32 !important;
+  background-color: #151f32 !important;
 }
 
 body.admin-dark-theme .modalPanelIn input,
 body.admin-dark-theme .modalPanelIn select,
 body.admin-dark-theme .modalPanelIn textarea {
-  background: #111a2c !important;
+  background: #0d1425 !important;
   border-color: #24304a !important;
   color: #f4f7fb !important;
 }

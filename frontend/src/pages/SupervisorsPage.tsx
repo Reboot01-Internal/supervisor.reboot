@@ -336,7 +336,7 @@ export default function SupervisorsPage() {
                       />
                     </div>
                     <div className="text-[14px] font-black text-slate-900">{s.full_name}</div>
-                    <div className="mt-0.5 text-[11px] font-bold text-[#8d82ff]">
+                    <div className="supervisors-username mt-0.5 text-[11px] font-bold text-[#8d82ff]">
                       @{(s.nickname || "").trim() || s.email.split("@")[0]}
                     </div>
                   </div>
@@ -371,7 +371,7 @@ export default function SupervisorsPage() {
                         {s.full_name}
                       </div>
 
-                      <div className="mt-0.5 truncate text-xs font-extrabold text-[#6d5efc]">
+                      <div className="supervisors-username mt-0.5 truncate text-xs font-extrabold text-[#6d5efc]">
                         @{(s.nickname || "").trim() || s.email.split("@")[0]}
                       </div>
 
