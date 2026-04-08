@@ -186,10 +186,10 @@ export default function UserDashboardPage() {
     const boardsCount = isSupervisor ? data?.supervisor?.boards?.length || 0 : data?.student?.boards?.length || 0;
     const peopleCount = isSupervisor ? data?.supervisor?.assigned_students_overall || 0 : data?.student?.supervisors?.length || 0;
     return [
-      { label: "Boards", value: boardsCount, tone: "border-[#6d5efc]/20 bg-[#f3f1ff] text-[#6d5efc]", icon: <BoardsIcon size={15} /> },
-      { label: isSupervisor ? "Talents" : "Supervisors", value: peopleCount, tone: "border-sky-200 bg-sky-50 text-sky-700", icon: <PeopleIcon size={15} /> },
-      { label: "Tasks", value: data?.tasks?.total || 0, tone: "border-amber-200 bg-amber-50 text-amber-700", icon: <TasksIcon size={15} /> },
-      { label: "Done", value: data?.tasks?.done || 0, tone: "border-emerald-200 bg-emerald-50 text-emerald-700", icon: <DoneIcon size={15} /> },
+      { label: "Boards", value: boardsCount, tone: "border-[#6d5efc]/20 bg-[#f3f1ff] text-[#6d5efc]", accent: "user-dashboard-accent-blue", icon: <BoardsIcon size={15} /> },
+      { label: isSupervisor ? "Talents" : "Supervisors", value: peopleCount, tone: "border-sky-200 bg-sky-50 text-sky-700", accent: "user-dashboard-accent-green", icon: <PeopleIcon size={15} /> },
+      { label: "Tasks", value: data?.tasks?.total || 0, tone: "border-amber-200 bg-amber-50 text-amber-700", accent: "user-dashboard-accent-blue", icon: <TasksIcon size={15} /> },
+      { label: "Done", value: data?.tasks?.done || 0, tone: "border-emerald-200 bg-emerald-50 text-emerald-700", accent: "user-dashboard-accent-amber", icon: <DoneIcon size={15} /> },
     ];
   }, [data, isSupervisor]);
 
@@ -208,15 +208,19 @@ export default function UserDashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4">
+      <div className="user-dashboard-page grid gap-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => (
-            <div key={card.label} className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
-              <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border ${card.tone}`}>
-                {card.icon}
+            <div key={card.label} className="user-dashboard-stat-card rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-extrabold text-slate-500">{card.label}</div>
+                  <div className="mt-1.5 text-2xl font-black text-slate-900">{loading ? "..." : card.value}</div>
+                </div>
+                <div className={`user-dashboard-stat-icon ${card.accent} inline-flex h-11 w-11 items-center justify-center rounded-[14px] border ${card.tone}`}>
+                  {card.icon}
+                </div>
               </div>
-              <div className="mt-4 text-[28px] font-black tracking-[-0.04em] text-slate-900">{loading ? "..." : card.value}</div>
-              <div className="mt-1 text-[13px] font-bold text-slate-500">{card.label}</div>
             </div>
           ))}
         </div>
@@ -245,13 +249,13 @@ export default function UserDashboardPage() {
 
         {isSupervisor ? (
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <section className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <section className="user-dashboard-panel rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
               <div className="mb-5 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-xs font-extrabold text-slate-500">Upcoming Meetings</div>
                   <div className="mt-1.5 text-[18px] font-black text-slate-900">This week</div>
                 </div>
-                <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50 text-[#6d5efc]">
+                <div className="user-dashboard-panel-icon user-dashboard-accent-blue grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50 text-[#6d5efc]">
                   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
                     <path d="M7 3v3M17 3v3M4 9h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     <rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" strokeWidth="2" />
@@ -261,7 +265,7 @@ export default function UserDashboardPage() {
               </div>
 
               {loading ? (
-                <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-6 text-[13px] font-semibold text-slate-500">
+                <div className="user-dashboard-surface rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-6 text-[13px] font-semibold text-slate-500">
                   Loading meetings...
                 </div>
               ) : meetingsError ? (
@@ -269,19 +273,19 @@ export default function UserDashboardPage() {
                   {meetingsError}
                 </div>
               ) : upcomingMeetings.length === 0 ? (
-                <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-6 text-[13px] font-semibold text-slate-500">
+                <div className="user-dashboard-surface rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-6 text-[13px] font-semibold text-slate-500">
                   No meetings scheduled for the next 7 days.
                 </div>
               ) : (
                 <div className="space-y-3">
                   {upcomingMeetings.map((meeting) => (
-                    <div key={meeting.id} className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div key={meeting.id} className="user-dashboard-surface rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate text-[15px] font-black text-slate-900">{meeting.title}</div>
                           <div className="mt-1 text-[13px] font-semibold text-slate-500">{meeting.board_name}</div>
                         </div>
-                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
+                        <span className="user-dashboard-chip inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
                           {meeting.location || "TBA"}
                         </span>
                       </div>
@@ -296,13 +300,13 @@ export default function UserDashboardPage() {
               )}
             </section>
 
-            <section className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <section className="user-dashboard-panel rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
               <div className="mb-5 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-xs font-extrabold text-slate-500">Task Completion</div>
                   <div className="mt-1.5 text-[18px] font-black text-slate-900">Tasks and subtasks</div>
                 </div>
-                <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
+                <div className="user-dashboard-panel-icon user-dashboard-accent-green grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
                   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
                     <path d="M7 12.5l3 3 7-8" stroke="#22c55e" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                     <rect x="4" y="4" width="16" height="16" rx="4" stroke="#94a3b8" strokeWidth="1.8" />
@@ -316,25 +320,25 @@ export default function UserDashboardPage() {
                     {taskCompletionError}
                   </div>
                 ) : null}
-                <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+                <div className="user-dashboard-metric-card rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-xs font-extrabold text-slate-500">Tasks</div>
                       <div className="mt-1.5 text-2xl font-black text-slate-900">{loading ? "..." : taskCount}</div>
                     </div>
-                    <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
+                    <div className="user-dashboard-panel-icon user-dashboard-accent-blue grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
                       <TasksIcon size={18} />
                     </div>
                   </div>
                   <div className="mt-2 text-[13px] text-slate-500">All cards across your boards</div>
                 </div>
-                <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+                <div className="user-dashboard-metric-card rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-xs font-extrabold text-slate-500">Subtasks</div>
                       <div className="mt-1.5 text-2xl font-black text-slate-900">{loading ? "..." : subtaskCount}</div>
                     </div>
-                    <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50 text-violet-600">
+                    <div className="user-dashboard-panel-icon user-dashboard-accent-purple grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50 text-violet-600">
                       <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
                         <path d="M7 8h10M7 12h10M7 16h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                         <path d="M4.5 8h.01M4.5 12h.01M4.5 16h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
@@ -343,25 +347,25 @@ export default function UserDashboardPage() {
                   </div>
                   <div className="mt-2 text-[13px] text-slate-500">Checklist items included</div>
                 </div>
-                <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+                <div className="user-dashboard-metric-card rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-xs font-extrabold text-slate-500">On time</div>
                       <div className="mt-1.5 text-2xl font-black text-slate-900">{loading ? "..." : onTimeCount}</div>
                     </div>
-                    <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
+                    <div className="user-dashboard-panel-icon user-dashboard-accent-green grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
                       <span className="h-3 w-3 rounded-full bg-emerald-500" />
                     </div>
                   </div>
                   <div className="mt-2 text-[13px] text-slate-500">{loading ? "..." : `${onTimePercent}%`} on track</div>
                 </div>
-                <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+                <div className="user-dashboard-metric-card rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-xs font-extrabold text-slate-500">Overdue</div>
                       <div className="mt-1.5 text-2xl font-black text-slate-900">{loading ? "..." : overdueCount}</div>
                     </div>
-                    <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
+                    <div className="user-dashboard-panel-icon user-dashboard-accent-red grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
                       <span className="h-3 w-3 rounded-full bg-rose-500" />
                     </div>
                   </div>
@@ -369,12 +373,12 @@ export default function UserDashboardPage() {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
+              <div className="user-dashboard-surface mt-5 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3 text-[12px] font-bold text-slate-500">
                   <span>Completion overview</span>
                   <span>{loading ? "..." : `${totalTrackedItems} tracked items`}</span>
                 </div>
-                <div className="mt-3 h-3 overflow-hidden rounded-full bg-white shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)]">
+                <div className="user-dashboard-progress-track mt-3 h-3 overflow-hidden rounded-full bg-white shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)]">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 transition-all duration-500"
                     style={{ width: `${loading ? 0 : onTimePercent}%` }}

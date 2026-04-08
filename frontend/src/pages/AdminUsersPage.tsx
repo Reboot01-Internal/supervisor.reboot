@@ -828,7 +828,9 @@ export default function AdminUsersPage() {
                           : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                       ].join(" ")}
                     >
-                      <RoleIcon role={r} />
+                      <span className="users-role-switch-icon grid h-6 w-6 place-items-center rounded-full">
+                        <RoleIcon role={r} />
+                      </span>
                       {roleLabel(r)}
                     </button>
                   ))}

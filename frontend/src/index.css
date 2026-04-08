@@ -8,6 +8,16 @@ html {
 body, button, input, select, textarea {
   font: inherit;
 }
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
 /* micro animations */
 @keyframes pop {
   0% { transform: scale(1); }
@@ -93,6 +103,19 @@ body, button, input, select, textarea {
   background:
     linear-gradient(180deg, rgba(6, 10, 20, 0.96), rgba(8, 12, 23, 0.98)),
     var(--admin-bg) !important;
+}
+
+html:has(body.admin-dark-theme),
+body.admin-dark-theme,
+body.admin-dark-theme #root {
+  background:
+    linear-gradient(180deg, rgba(6, 10, 20, 0.96), rgba(8, 12, 23, 0.98)),
+    #070b16 !important;
+}
+
+html:has(body.admin-dark-theme),
+body.admin-dark-theme {
+  overscroll-behavior-y: none;
 }
 
 .admin-dark aside > div {
@@ -526,6 +549,17 @@ body, button, input, select, textarea {
   color: #dce7ff !important;
 }
 
+.admin-dark .users-role-switch-icon {
+  background: #243654 !important;
+  color: #dce7ff !important;
+}
+
+.admin-dark .users-role-switch-icon svg {
+  width: 15px !important;
+  height: 15px !important;
+  stroke-width: 2.2px;
+}
+
 .admin-dark .users-page [class~="bg-emerald-50"] {
   background: #14283a !important;
   border-color: #245845 !important;
@@ -834,6 +868,95 @@ body, button, input, select, textarea {
 .admin-dark .activity-pie {
   --activity-inactive-ring: #8f373f;
   --activity-active-ring: #2f7f55;
+}
+
+.admin-dark .user-dashboard-page [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.admin-dark .user-dashboard-stat-card,
+.admin-dark .user-dashboard-panel {
+  background: #151f32 !important;
+  border-color: #24304a !important;
+}
+
+.admin-dark .user-dashboard-metric-card,
+.admin-dark .user-dashboard-surface {
+  background: #121b2d !important;
+  border-color: #24304a !important;
+}
+
+.admin-dark .user-dashboard-chip {
+  background: #192338 !important;
+  border-color: #2a3854 !important;
+  color: #dbe5f6 !important;
+}
+
+.admin-dark .user-dashboard-panel-icon,
+.admin-dark .user-dashboard-stat-icon {
+  background: #1c2a43 !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .user-dashboard-stat-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.admin-dark .user-dashboard-stat-icon.user-dashboard-accent-blue,
+.admin-dark .user-dashboard-panel-icon.user-dashboard-accent-blue {
+  color: #4a7bff !important;
+}
+
+.admin-dark .user-dashboard-stat-icon.user-dashboard-accent-green,
+.admin-dark .user-dashboard-panel-icon.user-dashboard-accent-green {
+  color: #57c785 !important;
+}
+
+.admin-dark .user-dashboard-stat-icon.user-dashboard-accent-purple,
+.admin-dark .user-dashboard-panel-icon.user-dashboard-accent-purple {
+  color: #9f8cff !important;
+}
+
+.admin-dark .user-dashboard-stat-icon.user-dashboard-accent-amber,
+.admin-dark .user-dashboard-panel-icon.user-dashboard-accent-amber {
+  color: #f0a329 !important;
+}
+
+.admin-dark .user-dashboard-stat-icon.user-dashboard-accent-red,
+.admin-dark .user-dashboard-panel-icon.user-dashboard-accent-red {
+  color: #f16279 !important;
+}
+
+.admin-dark .user-dashboard-progress-track {
+  background: #0d1322 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.24) !important;
+}
+
+.admin-dark .user-dashboard-page [class~="bg-[#f3f1ff]"],
+.admin-dark .user-dashboard-page [class~="bg-sky-50"],
+.admin-dark .user-dashboard-page [class~="bg-amber-50"],
+.admin-dark .user-dashboard-page [class~="bg-emerald-50"] {
+  background: #1c2a43 !important;
+  background-color: #1c2a43 !important;
+}
+
+.admin-dark .user-dashboard-page [class~="border-[#6d5efc]/20"],
+.admin-dark .user-dashboard-page [class~="border-sky-200"],
+.admin-dark .user-dashboard-page [class~="border-amber-200"],
+.admin-dark .user-dashboard-page [class~="border-emerald-200"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .user-dashboard-page [class~="text-[#6d5efc]"]:not(.user-dashboard-stat-icon):not(.user-dashboard-panel-icon),
+.admin-dark .user-dashboard-page [class~="text-sky-700"]:not(.user-dashboard-stat-icon):not(.user-dashboard-panel-icon),
+.admin-dark .user-dashboard-page [class~="text-amber-700"]:not(.user-dashboard-stat-icon):not(.user-dashboard-panel-icon),
+.admin-dark .user-dashboard-page [class~="text-emerald-700"]:not(.user-dashboard-stat-icon):not(.user-dashboard-panel-icon) {
+  color: inherit !important;
+}
+
+.admin-dark .user-dashboard-page [class~="text-violet-600"] {
+  color: #9f8cff !important;
 }
 
 .admin-dark .boards-page [class*="text-slate-900/"],

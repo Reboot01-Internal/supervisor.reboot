@@ -310,8 +310,19 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
                 to="/admin/boards"
                 icon={
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
-                    <rect x="4" y="5" width="16" height="14" rx="3" stroke="#2563eb" strokeWidth="2" />
-                    <path d="M8 9h8M8 13h8M8 17h5" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
+                    <path
+                      d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-13Z"
+                      stroke="#6d5efc"
+                      strokeWidth="2"
+                      opacity="0.9"
+                    />
+                    <path
+                      d="M8 8h8M8 12h8M8 16h5"
+                      stroke="#6d5efc"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      opacity="0.8"
+                    />
                   </svg>
                 }
               />
