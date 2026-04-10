@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import BackButton from "../components/BackButton";
 import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
