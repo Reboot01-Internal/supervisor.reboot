@@ -14,6 +14,8 @@ type BoardRow = {
   name: string;
   description: string;
   supervisor_name: string;
+  supervisor_user_id: number;
+  supervisor_file_id: number;
   created_at: string;
   lists_count: number;
   cards_count: number;
@@ -270,6 +272,27 @@ function ArrowIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function ReassignIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8 7h9m0 0-3-3m3 3-3 3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 17H7m0 0 3 3m-3-3 3-3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function ViewBoardsIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -404,6 +427,9 @@ export default function AdminBoardsPage() {
   const [selectedTrack, setSelectedTrack] = useState<ProjectTrack | "">("");
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedMemberIDs, setSelectedMemberIDs] = useState<Set<number>>(new Set());
+  const [reassignBoard, setReassignBoard] = useState<BoardRow | null>(null);
+  const [nextSupervisorID, setNextSupervisorID] = useState(0);
+  const [reassigning, setReassigning] = useState(false);
 
   const { isAdmin, isSupervisor } = useAuth();
 
@@ -489,12 +515,12 @@ export default function AdminBoardsPage() {
   }, [boards]);
 
   useEffect(() => {
-    if (!createOpen || !isAdmin) return;
+    if ((!createOpen && !reassignBoard) || !isAdmin) return;
     let alive = true;
 
     async function loadSupervisors() {
       setSupervisorsLoading(true);
-      setCreateBoardErr("");
+      if (createOpen) setCreateBoardErr("");
       try {
         const res = await apiFetch("/admin/supervisors");
         if (!alive) return;
@@ -502,7 +528,9 @@ export default function AdminBoardsPage() {
       } catch (e: any) {
         if (!alive) return;
         setSupervisorOptions([]);
-        setCreateBoardErr(e?.message || "Failed to load supervisors");
+        const message = e?.message || "Failed to load supervisors";
+        if (createOpen) setCreateBoardErr(message);
+        else setErr(message);
       } finally {
         if (alive) setSupervisorsLoading(false);
       }
@@ -512,7 +540,7 @@ export default function AdminBoardsPage() {
     return () => {
       alive = false;
     };
-  }, [createOpen, isAdmin]);
+  }, [createOpen, isAdmin, reassignBoard]);
 
   useEffect(() => {
     if (!createOpen || !selectedSupervisorID) {
@@ -549,6 +577,12 @@ export default function AdminBoardsPage() {
   const canDeleteBoards = isAdmin || isSupervisor;
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
+  const closeReassignModal = useCallback(() => {
+    setReassignBoard(null);
+    setNextSupervisorID(0);
+    setReassigning(false);
+  }, []);
+  useEscClose(!!reassignBoard, closeReassignModal);
   const closeCreateModal = useCallback(() => {
     setCreateOpen(false);
     setCreatingBoard(false);
@@ -756,6 +790,44 @@ export default function AdminBoardsPage() {
     }
   }
 
+  const eligibleSupervisors = useMemo(() => {
+    if (!reassignBoard) return [];
+    return supervisorOptions.filter((supervisor) => supervisor.file_id !== reassignBoard.supervisor_file_id);
+  }, [reassignBoard, supervisorOptions]);
+
+  useEffect(() => {
+    if (!reassignBoard || nextSupervisorID || eligibleSupervisors.length === 0) return;
+    setNextSupervisorID(eligibleSupervisors[0].supervisor_user_id);
+  }, [eligibleSupervisors, nextSupervisorID, reassignBoard]);
+
+  function openReassign(board: BoardRow) {
+    const firstEligible = supervisorOptions.find((supervisor) => supervisor.file_id !== board.supervisor_file_id);
+    setErr("");
+    setReassignBoard(board);
+    setNextSupervisorID(firstEligible?.supervisor_user_id || 0);
+  }
+
+  async function submitReassign() {
+    if (!reassignBoard || !nextSupervisorID || reassigning) return;
+
+    setReassigning(true);
+    setErr("");
+    try {
+      await apiFetch("/admin/boards/reassign", {
+        method: "POST",
+        body: JSON.stringify({
+          board_id: reassignBoard.id,
+          supervisor_user_id: nextSupervisorID,
+        }),
+      });
+      closeReassignModal();
+      await load();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to reassign board ownership");
+      setReassigning(false);
+    }
+  }
+
   function toggleSelectedMember(userID: number) {
     setSelectedMemberIDs((prev) => {
       const next = new Set(prev);
@@ -808,6 +880,85 @@ export default function AdminBoardsPage() {
   return (
     <>
     {confirmDialog}
+    {reassignBoard ? (
+      <div
+        className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/40 p-4"
+        onClick={closeReassignModal}
+      >
+        <div
+          className="workspace-reassign-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[18px] font-black text-slate-900">Reassign Board Ownership</div>
+              <div className="mt-1 text-[13px] font-semibold text-slate-500">
+                Move <span className="font-black text-slate-900">{reassignBoard.name}</span> to another supervisor workspace.
+              </div>
+            </div>
+            <button
+              className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+              onClick={closeReassignModal}
+              disabled={reassigning}
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            <label className="grid gap-2">
+              <span className="text-[12px] font-extrabold text-slate-500">New owner</span>
+              <select
+                className="workspace-reassign-field h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-200/50"
+                value={nextSupervisorID}
+                onChange={(e) => setNextSupervisorID(Number(e.target.value))}
+                disabled={reassigning || supervisorsLoading || eligibleSupervisors.length === 0}
+              >
+                <option value={0}>
+                  {supervisorsLoading
+                    ? "Loading supervisors..."
+                    : eligibleSupervisors.length === 0
+                      ? "No other supervisors available"
+                      : "Select a supervisor"}
+                </option>
+                {eligibleSupervisors.map((supervisor) => (
+                  <option key={supervisor.supervisor_user_id} value={supervisor.supervisor_user_id}>
+                    {supervisor.full_name} {supervisor.nickname ? `(@${supervisor.nickname})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {eligibleSupervisors.length > 0 ? (
+              <div className="workspace-warning rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">
+                The current owner will be removed from this board, and Discord access will sync to the new owner.
+              </div>
+            ) : (
+              <div className="workspace-note rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold text-slate-600">
+                Add another supervisor first, then you can transfer this board.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              className="h-11 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={submitReassign}
+              disabled={reassigning || !nextSupervisorID}
+            >
+              {reassigning ? "Moving..." : "Move board"}
+            </button>
+            <button
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-50"
+              onClick={closeReassignModal}
+              disabled={reassigning}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
     <AdminLayout
       active="boards"
       title="Boards"
@@ -1003,7 +1154,21 @@ export default function AdminBoardsPage() {
                       </div>
 
                       <div className="flex flex-none items-center gap-2">
-                        {renderMemberPreview(b)}
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            className="board-action-reassign h-8 w-8 grid place-items-center rounded-full border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Reassign board"
+                            aria-label="Reassign board"
+                            disabled={reassigning && reassignBoard?.id === b.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openReassign(b);
+                            }}
+                          >
+                            <ReassignIcon size={14} />
+                          </button>
+                        ) : null}
                         {canDeleteBoards ? (
                           <button
                             type="button"
@@ -1046,6 +1211,10 @@ export default function AdminBoardsPage() {
                       >
                         {formatDate(b.created_at)}
                       </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {renderMemberPreview(b)}
                     </div>
                   </div>
 
@@ -1145,6 +1314,7 @@ export default function AdminBoardsPage() {
                         </span>
                         <div className="min-w-0">
                           <div className="truncate text-[15px] font-black text-slate-900">{b.name}</div>
+                          <div className="mt-2">{renderMemberPreview(b, { compact: true })}</div>
                           <div className="mt-1 line-clamp-1 text-[12px] font-semibold text-slate-500">{desc}</div>
                         </div>
                       </div>
@@ -1170,7 +1340,21 @@ export default function AdminBoardsPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 max-[920px]:justify-start">
-                      {renderMemberPreview(b, { compact: true })}
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          className="board-action-reassign h-8 w-8 grid place-items-center rounded-full border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          title="Reassign board"
+                          aria-label="Reassign board"
+                          disabled={reassigning && reassignBoard?.id === b.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openReassign(b);
+                          }}
+                        >
+                          <ReassignIcon size={14} />
+                        </button>
+                      ) : null}
                       {canDeleteBoards ? (
                         <button
                           type="button"
@@ -1393,14 +1577,97 @@ export default function AdminBoardsPage() {
                 )}
 
                 <label className="grid gap-1.5">
-                  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Board name</span>
-                  <input
-                    value={boardName}
-                    onChange={(e) => setBoardName(e.target.value)}
-                    className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-                    placeholder="Enter board name"
-                  />
-                </label>
+  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Board name</span>
+  <input
+    value={boardName}
+    onChange={(e) => setBoardName(e.target.value)}
+    className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+    placeholder="Enter board name"
+  />
+</label>
+
+<div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+  <div className="mb-1 flex items-center justify-between gap-3">
+    <div className="text-[15px] font-black text-slate-900">Board members</div>
+    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">
+      {selectedMemberIDs.size} selected
+    </span>
+  </div>
+  <div className="mb-3 text-[12px] font-semibold text-slate-500">
+    Pick members from the selected supervisor&apos;s assigned students.
+  </div>
+
+  {!selectedSupervisor ? (
+    <div className="rounded-[14px] border border-dashed border-slate-200 bg-slate-50/80 px-3 py-3 text-[13px] font-semibold text-slate-500">
+      Select a supervisor first.
+    </div>
+  ) : assignedStudentsLoading ? (
+    <div className="rounded-[14px] border border-slate-200 bg-slate-50/80 px-3 py-3 text-[13px] font-semibold text-slate-500">
+      Loading assigned students...
+    </div>
+  ) : assignedStudents.length === 0 ? (
+    <div className="rounded-[14px] border border-slate-200 bg-slate-50/80 px-3 py-3 text-[13px] font-semibold text-slate-500">
+      This supervisor has no assigned students yet.
+    </div>
+  ) : (
+    <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+      {assignedStudents.map((student) => {
+        const checked = selectedMemberIDs.has(student.id);
+        const avatarUrl =
+          avatarByLogin[String(student.nickname || student.email.split("@")[0] || "").trim().toLowerCase()] || "";
+        return (
+          <label
+            key={student.id}
+            className={[
+              "flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
+              checked
+                ? "border-emerald-300/60 bg-emerald-50/50 shadow-[0_10px_22px_rgba(16,185,129,0.08)]"
+                : "border-slate-200/70 bg-white hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",
+            ].join(" ")}
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() => toggleSelectedMember(student.id)}
+              className="h-4 w-4"
+            />
+            <UserAvatar
+              src={avatarUrl}
+              alt={student.full_name}
+              fallback={initialsOf(student.full_name)}
+              className="bg-slate-50"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[14px] font-black text-slate-900">{student.full_name}</div>
+              <div className="mt-0.5 truncate text-[12px] font-extrabold text-[#6d5efc]">
+                {(student.nickname || "").trim() ? `@${String(student.nickname).replace(/^@/, "")}` : "-"}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {student.cohort ? (
+                  <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-extrabold text-slate-700">
+                    {student.cohort}
+                  </span>
+                ) : null}
+                <span className="truncate text-[12px] font-semibold text-slate-500">{student.email}</span>
+              </div>
+            </div>
+          </label>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+{/* <label className="grid gap-1.5">
+  <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Description</span>
+  <textarea
+    value={boardDescription}
+    onChange={(e) => setBoardDescription(e.target.value)}
+    rows={4}
+    className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+    placeholder="Optional board description"
+  />
+</label> */}
 
                 <label className="grid gap-1.5">
                   <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Description</span>

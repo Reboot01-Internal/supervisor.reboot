@@ -1056,6 +1056,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			b.name,
 			b.description,
 			u.full_name,
+			sf.supervisor_user_id,
+			sf.id,
 			b.created_at,
 			COUNT(DISTINCT l.id) as lists_count,
 			COUNT(DISTINCT c.id) as cards_count
@@ -1074,6 +1076,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			b.name,
 			b.description,
 			u.full_name,
+			sf.supervisor_user_id,
+			sf.id,
 			b.created_at,
 			COUNT(DISTINCT l.id) as lists_count,
 			COUNT(DISTINCT c.id) as cards_count
@@ -1093,6 +1097,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			b.name,
 			b.description,
 			u.full_name,
+			sf.supervisor_user_id,
+			sf.id,
 			b.created_at,
 			COUNT(DISTINCT l.id) as lists_count,
 			COUNT(DISTINCT c.id) as cards_count
@@ -1117,13 +1123,15 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type Row struct {
-		ID          int64  `json:"id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Supervisor  string `json:"supervisor_name"`
-		CreatedAt   string `json:"created_at"`
-		ListsCount  int64  `json:"lists_count"`
-		CardsCount  int64  `json:"cards_count"`
+		ID               int64  `json:"id"`
+		Name             string `json:"name"`
+		Description      string `json:"description"`
+		Supervisor       string `json:"supervisor_name"`
+		SupervisorUserID int64  `json:"supervisor_user_id"`
+		SupervisorFileID int64  `json:"supervisor_file_id"`
+		CreatedAt        string `json:"created_at"`
+		ListsCount       int64  `json:"lists_count"`
+		CardsCount       int64  `json:"cards_count"`
 	}
 
 	var out []Row
@@ -1131,6 +1139,7 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 		var rr Row
 		if err := rows.Scan(
 			&rr.ID, &rr.Name, &rr.Description, &rr.Supervisor,
+			&rr.SupervisorUserID, &rr.SupervisorFileID,
 			&rr.CreatedAt, &rr.ListsCount, &rr.CardsCount,
 		); err != nil {
 			writeErr(w, 500, "scan error")
