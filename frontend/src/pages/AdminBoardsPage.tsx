@@ -79,6 +79,10 @@ function initialsOf(name: string) {
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
+function loginOf(user: { nickname?: string; email: string }) {
+  return String(user.nickname || user.email.split("@")[0] || "").trim().toLowerCase();
+}
+
 /* icons */
 function SearchIcon({ size = 16 }: { size?: number }) {
   return (
@@ -349,6 +353,7 @@ export default function AdminBoardsPage() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersErr, setMembersErr] = useState("");
   const [members, setMembers] = useState<BoardMember[]>([]);
+  const [membersByBoard, setMembersByBoard] = useState<Record<number, BoardMember[]>>({});
   const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
   const [membersBoard, setMembersBoard] = useState<BoardRow | null>(null);
@@ -371,9 +376,13 @@ export default function AdminBoardsPage() {
     let alive = true;
 
     async function loadAvatars() {
-      const logins = [...members, ...assignedStudents]
-        .map((user) => user.nickname || user.email.split("@")[0])
-        .filter(Boolean);
+      const logins = Array.from(
+        new Set(
+          [...members, ...assignedStudents, ...Object.values(membersByBoard).flat()]
+            .map((user) => loginOf(user))
+            .filter(Boolean)
+        )
+      );
       if (logins.length === 0) {
         setAvatarByLogin({});
         return;
@@ -389,7 +398,7 @@ export default function AdminBoardsPage() {
     }
 
     async function loadPhones() {
-      const logins = members.map((member) => member.nickname || member.email.split("@")[0]).filter(Boolean);
+      const logins = members.map((member) => loginOf(member)).filter(Boolean);
       if (logins.length === 0) {
         setPhoneByLogin({});
         return;
@@ -409,7 +418,40 @@ export default function AdminBoardsPage() {
     return () => {
       alive = false;
     };
-  }, [assignedStudents, members]);
+  }, [assignedStudents, members, membersByBoard]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadBoardMembersPreview() {
+      if (boards.length === 0) {
+        setMembersByBoard({});
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        boards.map(async (board) => {
+          const res = await apiFetch(`/admin/board-members?board_id=${board.id}`);
+          return [board.id, Array.isArray(res) ? (res as BoardMember[]) : []] as const;
+        })
+      );
+
+      if (!alive) return;
+
+      const next: Record<number, BoardMember[]> = {};
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const [boardId, rows] = result.value;
+        next[boardId] = rows;
+      }
+      setMembersByBoard(next);
+    }
+
+    void loadBoardMembersPreview();
+    return () => {
+      alive = false;
+    };
+  }, [boards]);
 
   useEffect(() => {
     if (!createOpen || !isAdmin) return;
@@ -546,6 +588,84 @@ useEffect(() => {
     const totalCards = boards.reduce((acc, b) => acc + (b.cards_count || 0), 0);
     return { totalBoards, totalLists, totalCards };
   }, [boards]);
+
+  function renderMemberPreview(board: BoardRow, options?: { compact?: boolean }) {
+    const compact = options?.compact ?? false;
+    const boardMembers = membersByBoard[board.id] || [];
+    const previewMembers = boardMembers.slice(0, compact ? 3 : 4);
+    const remaining = boardMembers.length - previewMembers.length;
+
+    if (boardMembers.length === 0) {
+      return (
+        <button
+          type="button"
+          className={[
+            "board-action-members inline-flex items-center rounded-full border transition",
+            compact
+              ? "h-8 px-2.5 gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              : "h-8 w-8 justify-center border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+          ].join(" ")}
+          title="Board members"
+          aria-label="Board members"
+          onClick={(e) => {
+            e.stopPropagation();
+            openMembers(board);
+          }}
+        >
+          <UsersIcon size={compact ? 13 : 14} />
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        className={[
+          "board-action-members inline-flex items-center rounded-full border transition",
+          compact
+            ? "h-8 gap-1.5 border-emerald-200 bg-emerald-50 px-2 text-emerald-700 hover:bg-emerald-100"
+            : "h-8 border-emerald-200 bg-emerald-50 px-1.5 text-emerald-700 hover:bg-emerald-100",
+        ].join(" ")}
+        title={`Board members (${boardMembers.length})`}
+        aria-label={`Board members (${boardMembers.length})`}
+        onClick={(e) => {
+          e.stopPropagation();
+          openMembers(board);
+        }}
+      >
+        <span className="flex items-center">
+          {previewMembers.map((member, index) => {
+            const avatarUrl = avatarByLogin[loginOf(member)] || "";
+            return (
+              <span
+                key={member.user_id}
+                className={index === 0 ? "" : compact ? "-ml-1.5" : "-ml-2"}
+              >
+                <UserAvatar
+                  src={avatarUrl}
+                  alt={member.full_name}
+                  fallback={initialsOf(member.full_name)}
+                  sizeClass={compact ? "h-6 w-6" : "h-7 w-7"}
+                  textClass={compact ? "text-[9px]" : "text-[10px]"}
+                  className="border-white bg-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]"
+                />
+              </span>
+            );
+          })}
+          {remaining > 0 ? (
+            <span
+              className={[
+                "grid place-items-center rounded-full border border-white bg-emerald-600 font-black text-white shadow-[0_4px_10px_rgba(16,185,129,0.22)]",
+                compact ? "ml-1 h-6 min-w-6 px-1 text-[9px]" : "ml-0.5 h-7 min-w-7 px-1.5 text-[10px]",
+              ].join(" ")}
+            >
+              +{remaining}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    );
+  }
 
   async function openMembers(board: BoardRow) {
     setMembersBoard(board);
@@ -839,19 +959,7 @@ useEffect(() => {
                       </div>
 
                       <div className="flex flex-none items-center gap-2">
-                        <button
-                          type="button"
-                          className="board-action-members h-8 w-8 grid place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
-                          title="Board members"
-                          aria-label="Board members"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openMembers(b);
-                          }}
-                        >
-                          <UsersIcon />
-                        </button>
-
+                        {renderMemberPreview(b)}
                         {canDeleteBoards ? (
                           <button
                             type="button"
@@ -1014,19 +1122,7 @@ useEffect(() => {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 max-[920px]:justify-start">
-                      <button
-                        type="button"
-                        className="board-action-members h-8 w-8 grid place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
-                        title="Board members"
-                        aria-label="Board members"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openMembers(b);
-                        }}
-                      >
-                        <UsersIcon />
-                      </button>
-
+                      {renderMemberPreview(b, { compact: true })}
                       {canDeleteBoards ? (
                         <button
                           type="button"
@@ -1107,12 +1203,23 @@ useEffect(() => {
               <div className="text-sm font-semibold text-slate-500">No members found.</div>
             ) : (
               <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
-                {members.map((m) => (
+                {members.map((m) => {
+                  const avatarUrl = avatarByLogin[loginOf(m)] || "";
+                  return (
                   <div
                     key={m.user_id}
                     className="board-member-row flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
                   >
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <UserAvatar
+                        src={avatarUrl}
+                        alt={m.full_name}
+                        fallback={initialsOf(m.full_name)}
+                        sizeClass="h-10 w-10"
+                        textClass="text-[12px]"
+                        className="bg-white"
+                      />
+                      <div className="min-w-0">
                       <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
                       {m.nickname ? (
                         <div className="truncate text-xs font-extrabold text-indigo-600">@{m.nickname}</div>
@@ -1120,6 +1227,7 @@ useEffect(() => {
                       <div className="truncate text-xs font-semibold text-slate-500">
                         {phoneByLogin[String(m.nickname || m.email.split("@")[0] || "").trim().toLowerCase()] || "-"}
                       </div>
+                    </div>
                     </div>
                     <div className="flex flex-none items-center gap-2">
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
@@ -1130,7 +1238,7 @@ useEffect(() => {
                       </span>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>
