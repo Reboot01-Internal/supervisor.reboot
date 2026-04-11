@@ -720,11 +720,11 @@ export default function AdminBoardsPage() {
   }, [filtered.length, loading]);
 
   const totals = useMemo(() => {
-    const totalBoards = boards.length;
-    const totalLists = boards.reduce((acc, b) => acc + (b.lists_count || 0), 0);
-    const totalCards = boards.reduce((acc, b) => acc + (b.cards_count || 0), 0);
+    const totalBoards = filtered.length;
+    const totalLists = filtered.reduce((acc, b) => acc + (b.lists_count || 0), 0);
+    const totalCards = filtered.reduce((acc, b) => acc + (b.cards_count || 0), 0);
     return { totalBoards, totalLists, totalCards };
-  }, [boards]);
+  }, [filtered]);
 
   const availableProjects = useMemo(
     () => (selectedTrack ? PROJECTS_BY_TRACK[selectedTrack] : []),
