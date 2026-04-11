@@ -30,6 +30,8 @@ type UserRow = {
   id: number;
   full_name: string;
   role: "student" | "supervisor";
+  cohort?: string;
+  assigned_boards?: string[];
 };
 
 type SupervisorRow = {
@@ -81,6 +83,49 @@ type ComplianceRow = {
   status: "on_track" | "missing";
 };
 
+const PROJECT_MODULES = [
+  {
+    module: "Go",
+    projects: ["go-reloaded", "ascii-art", "ascii-art-web", "groupie-tracker", "lem-in", "forum"],
+  },
+  {
+    module: "JavaScript",
+    projects: ["make-your-game", "real-time-forum", "graphql", "social-network", "mini-framework", "bomberman-dom"],
+  },
+  {
+    module: "Rust",
+    projects: ["smart-road", "filler", "rt", "localhost", "multiplayer-fps", "0-shell"],
+  },
+];
+
+const PROJECT_LOOKUP = PROJECT_MODULES.flatMap((group) =>
+  group.projects.map((project) => ({ module: group.module, project }))
+).sort((a, b) => b.project.length - a.project.length);
+
+function normalizeCohort(value: string) {
+  const raw = String(value || "").trim();
+  if (!raw) return "No cohort";
+  const match = raw.match(/(\d+)/);
+  if (match) return `Cohort ${Number(match[1])}`;
+  return raw;
+}
+
+function projectLabel(project: string) {
+  return project
+    .split("-")
+    .map((part) => (part.length <= 2 ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1)))
+    .join(" ");
+}
+
+function inferProject(boardName: string) {
+  const normalized = String(boardName || "").trim().toLowerCase();
+  if (!normalized) return null;
+  return PROJECT_LOOKUP.find(({ project }) => {
+    const escaped = project.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(^|-)${escaped}($|-)`).test(normalized);
+  }) || null;
+}
+
 function toDateOnly(v: string) {
   if (!v) return null;
   const s = String(v).trim();
@@ -127,6 +172,11 @@ export default function AdminReportsPage() {
     supervisor: "all",
     dateFrom: "",
     dateTo: "",
+  });
+  const [projectFilter, setProjectFilter] = useState({
+    cohort: "all",
+    module: "all",
+    project: "all",
   });
 
   async function load() {
@@ -366,31 +416,69 @@ export default function AdminReportsPage() {
     };
   }, [filteredMeetings, boards, meetingFilter]);
 
-  const reportHighlights = useMemo(() => {
-    const complianceMissing = meetingAnalytics.compliance.filter((row) => row.status === "missing").length;
-    const busiestRoom = meetingAnalytics.mostUsedRooms[0];
-    const topSupervisor = analytics.supervisorStats[0];
+  const projectAnalytics = useMemo(() => {
+    const studentRows = users.filter((user) => String(user.role || "").toLowerCase() === "student");
+    const counts = new Map<string, Map<string, { count: number; module: string; project: string }>>();
+    const seenStudentProject = new Set<string>();
 
-    const healthScore = Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(
-          analytics.completionPct -
-            analytics.overdue * 2 +
-            meetingAnalytics.completed * 3 -
-            meetingAnalytics.canceled * 4
-        )
-      )
-    );
+    for (const student of studentRows) {
+      const cohort = normalizeCohort(student.cohort || "");
+      for (const boardName of student.assigned_boards || []) {
+        const inferred = inferProject(boardName);
+        if (!inferred) continue;
+        if (projectFilter.cohort !== "all" && cohort !== projectFilter.cohort) continue;
+        if (projectFilter.module !== "all" && inferred.module !== projectFilter.module) continue;
+        if (projectFilter.project !== "all" && inferred.project !== projectFilter.project) continue;
+
+        const uniqueKey = `${student.id}:${cohort}:${inferred.project}`;
+        if (seenStudentProject.has(uniqueKey)) continue;
+        seenStudentProject.add(uniqueKey);
+
+        if (!counts.has(cohort)) counts.set(cohort, new Map());
+        const cohortMap = counts.get(cohort)!;
+        const current = cohortMap.get(inferred.project) || { count: 0, module: inferred.module, project: inferred.project };
+        current.count += 1;
+        cohortMap.set(inferred.project, current);
+      }
+    }
+
+    const rows = Array.from(counts.entries())
+      .map(([cohort, projectMap]) => {
+        const projects = Array.from(projectMap.values()).sort((a, b) => b.count - a.count || a.project.localeCompare(b.project));
+        return {
+          cohort,
+          projects,
+          total: projects.reduce((sum, item) => sum + item.count, 0),
+        };
+      })
+      .sort((a, b) => {
+        const aNum = Number(a.cohort.match(/\d+/)?.[0] || Number.MAX_SAFE_INTEGER);
+        const bNum = Number(b.cohort.match(/\d+/)?.[0] || Number.MAX_SAFE_INTEGER);
+        return aNum - bNum || a.cohort.localeCompare(b.cohort);
+      });
+
+    const cohortOptions = Array.from(new Set(studentRows.map((student) => normalizeCohort(student.cohort || "")))).sort((a, b) => {
+      const aNum = Number(a.match(/\d+/)?.[0] || Number.MAX_SAFE_INTEGER);
+      const bNum = Number(b.match(/\d+/)?.[0] || Number.MAX_SAFE_INTEGER);
+      return aNum - bNum || a.localeCompare(b);
+    });
+    const moduleOptions = PROJECT_MODULES.map((group) => group.module);
+    const projectOptions = PROJECT_MODULES
+      .filter((group) => projectFilter.module === "all" || group.module === projectFilter.module)
+      .flatMap((group) => group.projects.map((project) => ({ module: group.module, project })));
+    const maxCount = Math.max(1, ...rows.flatMap((row) => row.projects.map((project) => project.count)));
+    const activeProjects = rows.reduce((sum, row) => sum + row.projects.length, 0);
 
     return {
-      complianceMissing,
-      busiestRoom: busiestRoom ? `${busiestRoom.room} (${busiestRoom.count})` : "No room data",
-      topSupervisor: topSupervisor ? `${topSupervisor.supervisor} • ${topSupervisor.completionPct}%` : "No supervisor data",
-      healthScore,
+      rows,
+      cohortOptions,
+      moduleOptions,
+      projectOptions,
+      maxCount,
+      activeProjects,
+      trackedTalents: seenStudentProject.size,
     };
-  }, [analytics, meetingAnalytics]);
+  }, [projectFilter, users]);
 
   return (
     <AdminLayout
@@ -419,76 +507,118 @@ export default function AdminReportsPage() {
         </div>
       ) : (
         <div className="reports-page grid gap-4">
-          <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(109,94,252,0.16),_transparent_38%),radial-gradient(circle_at_80%_20%,_rgba(16,185,129,0.14),_transparent_30%),linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-            <div className="grid gap-4 xl:grid-cols-[1.5fr_0.9fr]">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#6d5efc]/15 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#5b50d6] backdrop-blur">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_6px_rgba(16,185,129,0.12)]" />
-                  Live operations report
-                </div>
-                <div className="max-w-3xl">
-                  <h2 className="text-[30px] font-black tracking-[-0.04em] text-slate-950 sm:text-[38px]">
-                    One view for workspace health, meeting activity, and supervisor follow-through.
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-[14px] font-semibold leading-7 text-slate-600">
-                    This page highlights operational risk first, then shows who is keeping boards active, where meetings are landing,
-                    and whether Discord room communication is configured correctly.
-                  </p>
-                </div>
-                <div className="grid gap-3 md:grid-cols-3">
-                  <SignalCard
-                    label="Workspace health"
-                    value={`${reportHighlights.healthScore}%`}
-                    detail={`${analytics.completionPct}% card completion with ${analytics.overdue} overdue cards in play.`}
-                    tone={reportHighlights.healthScore >= 70 ? "good" : reportHighlights.healthScore >= 40 ? "warning" : "danger"}
-                  />
-                  <SignalCard
-                    label="Compliance watch"
-                    value={reportHighlights.complianceMissing}
-                    detail={reportHighlights.complianceMissing === 1 ? "1 supervisor has not logged a meeting in scope." : `${reportHighlights.complianceMissing} supervisors have not logged a meeting in scope.`}
-                    tone={reportHighlights.complianceMissing === 0 ? "good" : "danger"}
-                  />
-                  <SignalCard
-                    label="Busiest room"
-                    value={reportHighlights.busiestRoom}
-                    detail="Most-used location based on the current report filters."
-                    tone="default"
-                  />
+          <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_34%),radial-gradient(circle_at_80%_20%,_rgba(16,185,129,0.15),_transparent_30%),linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <SectionEyebrow label="Cohort Project Graph" />
+                <h2 className="mt-2 text-[30px] font-black tracking-[-0.04em] text-slate-950 sm:text-[38px]">
+                  See which cohorts are carrying each module and project.
+                </h2>
+                <p className="mt-2 max-w-3xl text-[14px] font-semibold leading-7 text-slate-600">
+                  Counts are built from talent board assignments, so you can quickly spot where projects like RT,
+                  GraphQL, or Mini Framework are active by cohort.
+                </p>
+              </div>
+              <div className="grid min-w-[260px] gap-2 rounded-[22px] border border-white/70 bg-white/85 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur">
+                <InsightRow label="Cohorts shown" value={projectAnalytics.rows.length} />
+                <InsightRow label="Project cells" value={projectAnalytics.activeProjects} />
+                <InsightRow label="Talent-project links" value={projectAnalytics.trackedTalents} />
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+              <div className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+                <div className="text-[16px] font-black text-slate-950">Filters</div>
+                <div className="mt-4 grid gap-3">
+                  <ReportField label="Cohort">
+                    <select
+                      value={projectFilter.cohort}
+                      onChange={(e) => setProjectFilter((prev) => ({ ...prev, cohort: e.target.value }))}
+                      className="h-11 rounded-[16px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none transition focus:border-[#6d5efc]/30 focus:bg-white"
+                    >
+                      <option value="all">All cohorts</option>
+                      {projectAnalytics.cohortOptions.map((cohort) => (
+                        <option key={cohort} value={cohort}>{cohort}</option>
+                      ))}
+                    </select>
+                  </ReportField>
+
+                  <ReportField label="Module">
+                    <select
+                      value={projectFilter.module}
+                      onChange={(e) => setProjectFilter((prev) => ({ ...prev, module: e.target.value, project: "all" }))}
+                      className="h-11 rounded-[16px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none transition focus:border-[#6d5efc]/30 focus:bg-white"
+                    >
+                      <option value="all">All modules</option>
+                      {projectAnalytics.moduleOptions.map((module) => (
+                        <option key={module} value={module}>{module}</option>
+                      ))}
+                    </select>
+                  </ReportField>
+
+                  <ReportField label="Project">
+                    <select
+                      value={projectFilter.project}
+                      onChange={(e) => setProjectFilter((prev) => ({ ...prev, project: e.target.value }))}
+                      className="h-11 rounded-[16px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none transition focus:border-[#6d5efc]/30 focus:bg-white"
+                    >
+                      <option value="all">All projects</option>
+                      {projectAnalytics.projectOptions.map((item) => (
+                        <option key={`${item.module}:${item.project}`} value={item.project}>
+                          {projectLabel(item.project)} ({item.module})
+                        </option>
+                      ))}
+                    </select>
+                  </ReportField>
+
+                  <button
+                    type="button"
+                    onClick={() => setProjectFilter({ cohort: "all", module: "all", project: "all" })}
+                    className="h-10 rounded-[14px] border border-slate-200 bg-white px-3 text-[12px] font-black text-slate-700 transition hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
+                  >
+                    Reset graph filters
+                  </button>
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                <div className="rounded-[24px] border border-white/70 bg-white/85 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur">
-                  <div className="flex items-center justify-between">
+              <div className="rounded-[22px] border border-slate-200 bg-white/90 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+                {projectAnalytics.rows.length === 0 ? (
+                  <div className="grid min-h-[280px] place-items-center rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 text-center">
                     <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Focus now</div>
-                      <div className="mt-2 text-[20px] font-black tracking-[-0.03em] text-slate-950">
-                        {analytics.overdue > 0 ? "Overdue backlog needs attention" : "Boards are currently stable"}
+                      <div className="text-[18px] font-black text-slate-950">No project data for this filter.</div>
+                      <div className="mt-1 text-[13px] font-semibold text-slate-500">
+                        Try another cohort, module, or project.
                       </div>
                     </div>
-                    <div className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${analytics.overdue > 0 ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
-                      {analytics.overdue > 0 ? "Risk" : "Healthy"}
-                    </div>
                   </div>
-                  <div className="mt-4 grid gap-2">
-                    <InsightRow label="Top supervisor" value={reportHighlights.topSupervisor} />
-                    <InsightRow
-                      label="Upcoming meetings"
-                      value={`${meetingAnalytics.upcoming} scheduled ahead`}
-                    />
-                    <InsightRow
-                      label="Room pressure"
-                      value={reportHighlights.busiestRoom}
-                    />
+                ) : (
+                  <div className="grid gap-3">
+                    {projectAnalytics.rows.map((row) => (
+                      <div key={row.cohort} className="rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] p-3.5">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <div className="text-[15px] font-black text-slate-950">{row.cohort}</div>
+                            <div className="text-[11px] font-semibold text-slate-500">{row.total} talent-project assignment{row.total === 1 ? "" : "s"}</div>
+                          </div>
+                          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-600">
+                            {row.projects.length} project{row.projects.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        <div className="grid gap-2">
+                          {row.projects.map((project) => (
+                            <ProjectGraphBar
+                              key={`${row.cohort}:${project.project}`}
+                              count={project.count}
+                              max={projectAnalytics.maxCount}
+                              module={project.module}
+                              project={project.project}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Kpi label="Boards" value={analytics.boardsTotal} />
-                  <Kpi label="Talents" value={analytics.students} />
-                  <Kpi label="Meetings" value={meetingAnalytics.total} />
-                  <Kpi label="Overdue" value={analytics.overdue} tone={analytics.overdue > 0 ? "danger" : "good"} />
-                </div>
+                )}
               </div>
             </div>
           </section>
@@ -847,30 +977,6 @@ export default function AdminReportsPage() {
   );
 }
 
-function Kpi({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string | number;
-  tone?: "default" | "good" | "danger";
-}) {
-  const toneClass =
-    tone === "good"
-      ? "border-emerald-200 bg-[linear-gradient(180deg,#f3fff9_0%,#ecfdf5_100%)]"
-      : tone === "danger"
-        ? "border-red-200 bg-[linear-gradient(180deg,#fff7f7_0%,#fef2f2_100%)]"
-        : "border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]";
-
-  return (
-    <div className={`rounded-[18px] border p-4 ${toneClass} shadow-[0_12px_28px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]`}>
-      <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</div>
-      <div className="mt-2 text-[28px] font-black tracking-[-0.03em] text-slate-950">{value}</div>
-    </div>
-  );
-}
-
 function CompactKpi({
   label,
   value,
@@ -891,6 +997,44 @@ function CompactKpi({
     <div className={`rounded-[16px] border px-3 py-3 ${toneClass}`}>
       <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</div>
       <div className="mt-1 text-[20px] font-black tracking-[-0.03em] text-slate-950">{value}</div>
+    </div>
+  );
+}
+
+function ProjectGraphBar({
+  count,
+  max,
+  module,
+  project,
+}: {
+  count: number;
+  max: number;
+  module: string;
+  project: string;
+}) {
+  const width = Math.max(10, Math.round((count / Math.max(max, 1)) * 100));
+  const moduleClass =
+    module === "Rust"
+      ? "from-orange-500 to-amber-400 text-orange-700 border-orange-200 bg-orange-50"
+      : module === "JavaScript"
+        ? "from-sky-500 to-cyan-400 text-sky-700 border-sky-200 bg-sky-50"
+        : "from-emerald-500 to-teal-400 text-emerald-700 border-emerald-200 bg-emerald-50";
+
+  return (
+    <div className="grid gap-2 rounded-[16px] border border-slate-200 bg-white p-3 sm:grid-cols-[180px_minmax(0,1fr)_56px] sm:items-center">
+      <div className="min-w-0">
+        <div className="truncate text-[13px] font-black text-slate-950">{projectLabel(project)}</div>
+        <div className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] ${moduleClass}`}>
+          {module}
+        </div>
+      </div>
+      <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${moduleClass.split(" ").slice(0, 2).join(" ")} transition-all duration-500`}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+      <div className="text-right text-[20px] font-black tracking-[-0.03em] text-slate-950">{count}</div>
     </div>
   );
 }
@@ -947,35 +1091,6 @@ function PriorityBar({
       <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white">
         <div className={`h-full rounded-full bg-gradient-to-r ${barClass} transition-all duration-500`} style={{ width: `${width}%` }} />
       </div>
-    </div>
-  );
-}
-
-function SignalCard({
-  label,
-  value,
-  detail,
-  tone = "default",
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  tone?: "default" | "good" | "warning" | "danger";
-}) {
-  const toneClass =
-    tone === "good"
-      ? "border-emerald-200 bg-emerald-50/80"
-      : tone === "warning"
-        ? "border-amber-200 bg-amber-50/80"
-        : tone === "danger"
-          ? "border-red-200 bg-red-50/80"
-          : "border-slate-200 bg-white/85";
-
-  return (
-    <div className={`rounded-[20px] border p-4 shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)] ${toneClass}`}>
-      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">{label}</div>
-      <div className="mt-2 text-[24px] font-black tracking-[-0.03em] text-slate-950">{value}</div>
-      <div className="mt-2 text-[12px] font-semibold leading-6 text-slate-600">{detail}</div>
     </div>
   );
 }
