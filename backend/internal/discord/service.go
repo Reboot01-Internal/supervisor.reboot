@@ -10,7 +10,9 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -33,6 +35,8 @@ type Service struct {
 	categoryID     string
 	techTeamRoleID string
 	httpClient     *http.Client
+	categoryMu     sync.Mutex
+	categoryIDs    map[string]string
 }
 
 type MemberAccess struct {
@@ -120,6 +124,7 @@ func NewFromEnv() *Service {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		categoryIDs: map[string]string{},
 	}
 }
 
@@ -133,15 +138,33 @@ func (s *Service) EnsureSupervisorCategory(ctx context.Context, supervisorName s
 		return s.categoryID, nil
 	}
 
+	s.categoryMu.Lock()
+	if categoryID := strings.TrimSpace(s.categoryIDs[categoryName]); categoryID != "" {
+		s.categoryMu.Unlock()
+		return categoryID, nil
+	}
+	s.categoryMu.Unlock()
+
 	var channels []guildChannel
 	if err := s.doJSON(ctx, http.MethodGet, fmt.Sprintf("https://discord.com/api/v10/guilds/%s/channels", s.guildID), nil, &channels); err != nil {
 		return "", err
 	}
+	s.categoryMu.Lock()
 	for _, channel := range channels {
-		if channel.Type == 4 && strings.EqualFold(strings.TrimSpace(channel.Name), categoryName) {
-			return strings.TrimSpace(channel.ID), nil
+		if channel.Type != 4 {
+			continue
 		}
+		name := sanitizeChannelName(channel.Name)
+		if name == "" {
+			continue
+		}
+		s.categoryIDs[name] = strings.TrimSpace(channel.ID)
 	}
+	if categoryID := strings.TrimSpace(s.categoryIDs[categoryName]); categoryID != "" {
+		s.categoryMu.Unlock()
+		return categoryID, nil
+	}
+	s.categoryMu.Unlock()
 
 	body := createChannelRequest{
 		Name:                 categoryName,
@@ -156,7 +179,11 @@ func (s *Service) EnsureSupervisorCategory(ctx context.Context, supervisorName s
 	if strings.TrimSpace(out.ID) == "" {
 		return "", fmt.Errorf("discord returned empty category id")
 	}
-	return out.ID, nil
+	categoryID := strings.TrimSpace(out.ID)
+	s.categoryMu.Lock()
+	s.categoryIDs[categoryName] = categoryID
+	s.categoryMu.Unlock()
+	return categoryID, nil
 }
 
 func (s *Service) CreateBoardChannel(ctx context.Context, boardName, categoryID string, members []MemberAccess) (string, error) {
@@ -395,43 +422,78 @@ func (s *Service) mergePermissionOverwrites(existing []permissionOverwrite, memb
 }
 
 func (s *Service) doJSON(ctx context.Context, method, url string, payload any, out any) error {
-	var body io.Reader
+	var raw []byte
 	if payload != nil {
-		raw, err := json.Marshal(payload)
+		var err error
+		raw, err = json.Marshal(payload)
 		if err != nil {
 			return err
 		}
-		body = bytes.NewReader(raw)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bot "+s.token)
-	req.Header.Set("Content-Type", "application/json")
+	for attempt := 0; attempt < 2; attempt++ {
+		var body io.Reader
+		if raw != nil {
+			body = bytes.NewReader(raw)
+		}
 
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("discord api %s %s failed: status=%d body=%s", method, url, resp.StatusCode, strings.TrimSpace(string(respBody)))
-	}
-
-	if out != nil && len(respBody) > 0 {
-		if err := json.Unmarshal(respBody, out); err != nil {
+		req, err := http.NewRequestWithContext(ctx, method, url, body)
+		if err != nil {
 			return err
 		}
+		req.Header.Set("Authorization", "Bot "+s.token)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := s.httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		respBody, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return readErr
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests && attempt == 0 {
+			wait := discordRetryAfter(resp.Header.Get("Retry-After"), respBody)
+			timer := time.NewTimer(wait)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+				continue
+			}
+		}
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return fmt.Errorf("discord api %s %s failed: status=%d body=%s", method, url, resp.StatusCode, strings.TrimSpace(string(respBody)))
+		}
+
+		if out != nil && len(respBody) > 0 {
+			if err := json.Unmarshal(respBody, out); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	return nil
+}
+
+func discordRetryAfter(header string, body []byte) time.Duration {
+	if seconds, err := strconv.ParseFloat(strings.TrimSpace(header), 64); err == nil && seconds > 0 {
+		return time.Duration(seconds*1000) * time.Millisecond
+	}
+
+	var payload struct {
+		RetryAfter float64 `json:"retry_after"`
+	}
+	if err := json.Unmarshal(body, &payload); err == nil && payload.RetryAfter > 0 {
+		return time.Duration(payload.RetryAfter*1000) * time.Millisecond
+	}
+
+	return 2 * time.Second
 }
 
 func normalizeDiscordName(value string) string {
