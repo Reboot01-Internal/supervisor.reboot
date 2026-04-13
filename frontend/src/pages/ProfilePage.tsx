@@ -557,6 +557,10 @@ export default function ProfilePage() {
     }
   }
 
+  function openBoard(boardID: number) {
+    nav(`/admin/boards/${boardID}?from=boards`);
+  }
+
   if (!isTargetUserView && role !== "admin" && role !== "supervisor" && role !== "student") {
     return <Navigate to="/login" replace />;
   }
@@ -652,7 +656,19 @@ export default function ProfilePage() {
                   <div className="text-[13px] font-semibold text-slate-500">No boards yet.</div>
                 ) : (
                   boardRows.map((b) => (
-                    <div key={b.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div
+                      key={b.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openBoard(b.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openBoard(b.id);
+                        }
+                      }}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[#6d5efc]/25 hover:bg-[#f6f4ff] focus:outline-none focus:ring-4 focus:ring-[#6d5efc]/12"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
                           <div className="truncate text-[13px] font-black text-slate-900">{b.name}</div>
@@ -667,7 +683,10 @@ export default function ProfilePage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => toggleMembers(b.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void toggleMembers(b.id);
+                          }}
                           aria-label={membersOpen[b.id] ? "Hide members" : "Show members"}
                           title={membersOpen[b.id] ? "Hide members" : "Show members"}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200/80 bg-slate-50 text-slate-600 transition hover:border-[#6d5efc]/25 hover:bg-[#f6f4ff] hover:text-[#6d5efc]"
@@ -793,7 +812,20 @@ export default function ProfilePage() {
                             (s.boards || []).map((b) => (
                               <span
                                 key={`${s.id}-${b.id}`}
-                                className="rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2 py-0.5 text-slate-700"
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openBoard(b.id);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openBoard(b.id);
+                                  }
+                                }}
+                                className="rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2 py-0.5 text-slate-700 transition hover:border-[#6d5efc]/35 hover:bg-[#6d5efc]/15 focus:outline-none focus:ring-2 focus:ring-[#6d5efc]/20"
                               >
                                 {b.name}
                               </span>
