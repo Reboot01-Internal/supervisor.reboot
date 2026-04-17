@@ -743,6 +743,7 @@ export default function AdminBoardsPage() {
       const sup = (b.supervisor_name ?? "").toLowerCase();
       const desc = (b.description ?? "").toLowerCase();
       const memberCohorts = (membersByBoard[b.id] || [])
+        .filter((member) => String(member.role || "").trim().toLowerCase() === "student")
         .map((member) => String(member.cohort || "").trim().toLowerCase())
         .filter(Boolean);
       const matchesCohort = memberCohorts.some((cohort) => {
