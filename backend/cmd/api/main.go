@@ -109,6 +109,7 @@ func main() {
 		ar.Post("/boards", api.AdminCreateBoard)
 		ar.Get("/boards", api.AdminListBoardsByFile)
 		ar.Post("/boards/update", api.AdminUpdateBoard)
+		ar.Post("/boards/status", api.AdminUpdateBoardStatus)
 		ar.Post("/boards/reassign", api.AdminReassignBoard)
 		ar.Post("/boards/delete", api.AdminDeleteBoard)
 
@@ -232,10 +233,17 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/014_app_settings.sql",
 		"migrations/015_user_roles.sql",
 		"migrations/016_student_private_notes.sql",
+		"migrations/017_board_status.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 
 	for _, f := range files {
+		if f == "migrations/017_board_status.sql" {
+			if err := ensureBoardsSchema(conn); err != nil {
+				return err
+			}
+			continue
+		}
 		if f == "migrations/007_discord.sql" {
 			if err := ensureDiscordSchema(conn); err != nil {
 				return err
@@ -335,6 +343,31 @@ func runMigrations(conn *sql.DB) error {
 	}
 	if err := ensureMeetingsSchema(conn); err != nil {
 		return err
+	}
+	if err := ensureBoardsSchema(conn); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureBoardsSchema(conn *sql.DB) error {
+	hasStatus, err := sqliteColumnExists(conn, "boards", "status")
+	if err != nil {
+		return err
+	}
+	if !hasStatus {
+		if _, err := conn.Exec(`ALTER TABLE boards ADD COLUMN status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive'))`); err != nil {
+			return err
+		}
+	}
+	hasInactiveAt, err := sqliteColumnExists(conn, "boards", "inactive_at")
+	if err != nil {
+		return err
+	}
+	if !hasInactiveAt {
+		if _, err := conn.Exec(`ALTER TABLE boards ADD COLUMN inactive_at TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
 	}
 	return nil
 }

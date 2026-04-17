@@ -12,6 +12,7 @@ type Board = {
   supervisor_file_id: number;
   name: string;
   description: string;
+  status?: "active" | "inactive";
   created_by: number;
   created_at: string;
 };
@@ -33,6 +34,16 @@ function initials(name: string) {
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message || fallback : fallback;
+}
+
+function boardStatus(board: { status?: string }) {
+  return String(board.status || "active").trim().toLowerCase() === "inactive" ? "inactive" : "active";
+}
+
+function boardStatusTone(status: string) {
+  return status === "inactive"
+    ? "border-slate-300 bg-slate-100 text-slate-600"
+    : "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
 function ClockIcon({ size = 14 }: { size?: number }) {
@@ -129,6 +140,7 @@ export default function SupervisorFilePage() {
   const [editingBoardName, setEditingBoardName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [deletingBoardID, setDeletingBoardID] = useState<number | null>(null);
+  const [statusUpdatingBoardID, setStatusUpdatingBoardID] = useState<number | null>(null);
   const [supervisors, setSupervisors] = useState<SupervisorLookup[]>([]);
   const [reassignBoard, setReassignBoard] = useState<Board | null>(null);
   const [nextSupervisorID, setNextSupervisorID] = useState<number>(0);
@@ -328,6 +340,28 @@ export default function SupervisorFilePage() {
       setErr(errorMessage(e, "Failed to delete board"));
     } finally {
       setDeletingBoardID(null);
+    }
+  }
+
+  async function toggleBoardStatus(board: Board) {
+    if (!isAdmin && !isSupervisor) return;
+    if (statusUpdatingBoardID === board.id) return;
+    const current = boardStatus(board);
+    const next = current === "active" ? "inactive" : "active";
+    setStatusUpdatingBoardID(board.id);
+    setErr("");
+    setMsg("");
+    setBoards((prev) => prev.map((item) => (item.id === board.id ? { ...item, status: next } : item)));
+    try {
+      await apiFetch("/admin/boards/status", {
+        method: "POST",
+        body: JSON.stringify({ board_id: board.id, status: next }),
+      });
+    } catch (e: unknown) {
+      setBoards((prev) => prev.map((item) => (item.id === board.id ? { ...item, status: current } : item)));
+      setErr(errorMessage(e, "Failed to update board status"));
+    } finally {
+      setStatusUpdatingBoardID(null);
     }
   }
 
@@ -612,6 +646,7 @@ export default function SupervisorFilePage() {
                 {boardsSorted.map((b) => {
                   const created = new Date(b.created_at);
                   const desc = (b.description || "").trim();
+                  const status = boardStatus(b);
 
                   return (
                     <div
@@ -662,6 +697,9 @@ export default function SupervisorFilePage() {
                           )}
 
                           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-[12px] font-extrabold text-slate-500">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black capitalize ${boardStatusTone(status)}`}>
+                              {status}
+                            </span>
                             <span className="inline-flex min-w-0 items-center gap-2">
                               <ClockIcon /> {created.toLocaleDateString()}
                             </span>
@@ -679,6 +717,16 @@ export default function SupervisorFilePage() {
                       </div>
 
                       <div className="workspace-board-actions flex min-w-max flex-none items-center justify-end gap-2 max-[520px]:min-w-0 max-[520px]:flex-wrap max-[520px]:justify-start">
+                        <button
+                          className={`inline-flex h-8 items-center justify-center rounded-full border px-3 text-[12px] font-black capitalize transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60 ${boardStatusTone(status)}`}
+                          type="button"
+                          onClick={() => void toggleBoardStatus(b)}
+                          title={`Mark board ${status === "active" ? "inactive" : "active"}`}
+                          aria-label={`Mark board ${status === "active" ? "inactive" : "active"}`}
+                          disabled={statusUpdatingBoardID === b.id}
+                        >
+                          {statusUpdatingBoardID === b.id ? "Saving" : status}
+                        </button>
                         <button
                           className="inline-flex h-8 items-center justify-center rounded-full border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[12px] font-black text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff] hover:text-[#6d5efc]"
                           type="button"

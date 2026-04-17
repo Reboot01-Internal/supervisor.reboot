@@ -596,6 +596,11 @@ type updateBoardReq struct {
 	Name    string `json:"name"`
 }
 
+type updateBoardStatusReq struct {
+	BoardID int64  `json:"board_id"`
+	Status  string `json:"status"`
+}
+
 type reassignBoardReq struct {
 	BoardID          int64 `json:"board_id"`
 	SupervisorUserID int64 `json:"supervisor_user_id"`
@@ -756,6 +761,54 @@ func (a *API) AdminUpdateBoard(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":             true,
 		"discord_synced": discordSynced,
+	})
+}
+
+func (a *API) AdminUpdateBoardStatus(w http.ResponseWriter, r *http.Request) {
+	var req updateBoardStatusReq
+	if err := utils.ReadJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, "bad json")
+		return
+	}
+
+	req.Status = strings.TrimSpace(strings.ToLower(req.Status))
+	if req.BoardID == 0 || (req.Status != "active" && req.Status != "inactive") {
+		writeErr(w, http.StatusBadRequest, "board_id and valid status required")
+		return
+	}
+
+	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	if role == "" {
+		role = "admin"
+	}
+	if role != "admin" && role != "supervisor" {
+		writeErr(w, http.StatusForbidden, "only admin or supervisor can update board status")
+		return
+	}
+
+	if role == "supervisor" {
+		actor := actorID(r, a.conn)
+		supID, err := db.GetBoardSupervisorUserID(a.conn, req.BoardID)
+		if err != nil || supID == 0 {
+			writeErr(w, http.StatusBadRequest, "invalid board")
+			return
+		}
+		if actor != supID {
+			writeErr(w, http.StatusForbidden, "not your board")
+			return
+		}
+	}
+
+	if err := db.UpdateBoardStatus(a.conn, req.BoardID, req.Status); err != nil {
+		writeErr(w, http.StatusInternalServerError, "failed to update board status")
+		return
+	}
+	board, _ := db.GetBoardBasic(a.conn, req.BoardID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":          true,
+		"status":      req.Status,
+		"inactive_at": board.InactiveAt,
 	})
 }
 
@@ -1055,6 +1108,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			b.id,
 			b.name,
 			b.description,
+			IFNULL(b.status, 'active'),
+			IFNULL(b.inactive_at, ''),
 			u.full_name,
 			sf.supervisor_user_id,
 			sf.id,
@@ -1075,6 +1130,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			b.id,
 			b.name,
 			b.description,
+			IFNULL(b.status, 'active'),
+			IFNULL(b.inactive_at, ''),
 			u.full_name,
 			sf.supervisor_user_id,
 			sf.id,
@@ -1096,6 +1153,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			b.id,
 			b.name,
 			b.description,
+			IFNULL(b.status, 'active'),
+			IFNULL(b.inactive_at, ''),
 			u.full_name,
 			sf.supervisor_user_id,
 			sf.id,
@@ -1126,6 +1185,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 		ID               int64  `json:"id"`
 		Name             string `json:"name"`
 		Description      string `json:"description"`
+		Status           string `json:"status"`
+		InactiveAt       string `json:"inactive_at"`
 		Supervisor       string `json:"supervisor_name"`
 		SupervisorUserID int64  `json:"supervisor_user_id"`
 		SupervisorFileID int64  `json:"supervisor_file_id"`
@@ -1138,7 +1199,7 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var rr Row
 		if err := rows.Scan(
-			&rr.ID, &rr.Name, &rr.Description, &rr.Supervisor,
+			&rr.ID, &rr.Name, &rr.Description, &rr.Status, &rr.InactiveAt, &rr.Supervisor,
 			&rr.SupervisorUserID, &rr.SupervisorFileID,
 			&rr.CreatedAt, &rr.ListsCount, &rr.CardsCount,
 		); err != nil {

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS boards (
   supervisor_file_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')),
+  inactive_at TEXT NOT NULL DEFAULT '',
   created_by INTEGER NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (supervisor_file_id) REFERENCES supervisor_files(id) ON DELETE CASCADE,

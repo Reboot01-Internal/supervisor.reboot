@@ -26,6 +26,8 @@ type Board struct {
 	SupervisorFileID int64  `json:"supervisor_file_id"`
 	Name             string `json:"name"`
 	Description      string `json:"description"`
+	Status           string `json:"status"`
+	InactiveAt       string `json:"inactive_at"`
 	CreatedBy        int64  `json:"created_by"`
 	CreatedAt        string `json:"created_at"`
 }
@@ -217,9 +219,11 @@ type DiscordDueNotification struct {
 }
 
 type BoardFull struct {
-	BoardID int64  `json:"board_id"`
-	FileID  int64  `json:"supervisor_file_id"`
-	Name    string `json:"name"`
+	BoardID    int64  `json:"board_id"`
+	FileID     int64  `json:"supervisor_file_id"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+	InactiveAt string `json:"inactive_at"`
 
 	Lists  []List  `json:"lists"`
 	Cards  []Card  `json:"cards"`

@@ -48,6 +48,7 @@ type BoardFull = {
   board_id: number;
   supervisor_file_id: number;
   name: string;
+  status?: "active" | "inactive";
   lists: List[];
   cards: Card[];
   labels: Label[];
@@ -68,6 +69,49 @@ function roleDisplay(role: string) {
   if (normalized === "supervisor") return "supervisor";
   if (normalized === "admin") return "admin";
   return role || "-";
+}
+
+function boardStatus(board: { status?: string } | null) {
+  return String(board?.status || "active").trim().toLowerCase() === "inactive" ? "inactive" : "active";
+}
+
+function BoardStatusIconButton({
+  status,
+  saving,
+  onClick,
+}: {
+  status: "active" | "inactive";
+  saving: boolean;
+  onClick?: () => void;
+}) {
+  const isActive = status === "active";
+  return (
+    <button
+      type="button"
+      className={[
+        "grid h-10 w-10 place-items-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-60",
+        isActive
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+          : "border-slate-300 bg-slate-100 text-slate-500 hover:bg-slate-200",
+      ].join(" ")}
+      title={`${isActive ? "Active" : "Inactive"} board. Click to mark ${isActive ? "inactive" : "active"}.`}
+      aria-label={`${isActive ? "Active" : "Inactive"} board. Click to mark ${isActive ? "inactive" : "active"}.`}
+      disabled={saving || !onClick}
+      onClick={onClick}
+    >
+      {isActive ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+          <path d="M8.5 12.2 10.8 14.5 15.8 9.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+          <path d="M8.5 15.5 15.5 8.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+      )}
+    </button>
+  );
 }
 
 type CardPreview = {
@@ -613,6 +657,7 @@ export default function BoardPage() {
   const [isEditingBoardTitle, setIsEditingBoardTitle] = useState(false);
   const [boardTitleDraft, setBoardTitleDraft] = useState("");
   const [renamingBoard, setRenamingBoard] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
 
@@ -854,6 +899,27 @@ export default function BoardPage() {
     }
   }
 
+  async function toggleBoardStatus() {
+    if (!canManage || !data || statusUpdating) return;
+    const current = boardStatus(data);
+    const next = current === "active" ? "inactive" : "active";
+    setStatusUpdating(true);
+    setErr("");
+    setData((prev) => (prev ? { ...prev, status: next } : prev));
+
+    try {
+      await apiFetch("/admin/boards/status", {
+        method: "POST",
+        body: JSON.stringify({ board_id: boardID, status: next }),
+      });
+    } catch (e: any) {
+      setErr(e?.message || "Failed to update board status");
+      setData((prev) => (prev ? { ...prev, status: current } : prev));
+    } finally {
+      setStatusUpdating(false);
+    }
+  }
+
   function onOpenCard(cardId: number) {
     setOpenCardId(cardId);
     setIsCardModalOpen(true);
@@ -1056,6 +1122,7 @@ export default function BoardPage() {
   }, [isAdmin, members]);
   const layoutActive = isAdmin ? (from === "boards" ? "boards" : "supervisors") : "boards";
   const canManage = isAdmin || isSupervisor;
+  const currentBoardStatus = boardStatus(data);
 
   return (
     <>
@@ -1096,7 +1163,14 @@ export default function BoardPage() {
       }
       subtitle="Drag cards across lists. Double click a card to open."
       right={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canManage ? (
+            <BoardStatusIconButton
+              status={currentBoardStatus}
+              saving={statusUpdating}
+              onClick={toggleBoardStatus}
+            />
+          ) : null}
           {canManage ? (
             <button
               className="board-detail-icon-button board-detail-icon-button-warning h-10 w-10 grid place-items-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition"

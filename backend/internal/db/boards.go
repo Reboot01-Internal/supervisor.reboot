@@ -24,7 +24,7 @@ func CreateBoard(conn *sql.DB, supervisorFileID int64, name, desc string, create
 
 func ListBoardsBySupervisorFile(conn *sql.DB, supervisorFileID int64) ([]models.Board, error) {
 	rows, err := conn.Query(`
-		SELECT id, supervisor_file_id, name, description, created_by, created_at
+		SELECT id, supervisor_file_id, name, description, IFNULL(status, 'active'), IFNULL(inactive_at, ''), created_by, created_at
 		FROM boards
 		WHERE supervisor_file_id = ?
 		ORDER BY created_at DESC
@@ -37,7 +37,7 @@ func ListBoardsBySupervisorFile(conn *sql.DB, supervisorFileID int64) ([]models.
 	out := []models.Board{}
 	for rows.Next() {
 		var b models.Board
-		if err := rows.Scan(&b.ID, &b.SupervisorFileID, &b.Name, &b.Description, &b.CreatedBy, &b.CreatedAt); err != nil {
+		if err := rows.Scan(&b.ID, &b.SupervisorFileID, &b.Name, &b.Description, &b.Status, &b.InactiveAt, &b.CreatedBy, &b.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, b)
@@ -71,9 +71,9 @@ func ListAllBoardIDs(conn *sql.DB) ([]int64, error) {
 func GetBoardBasic(conn *sql.DB, boardID int64) (models.Board, error) {
 	var b models.Board
 	err := conn.QueryRow(`
-		SELECT id, supervisor_file_id, name, description, created_by, created_at
+		SELECT id, supervisor_file_id, name, description, IFNULL(status, 'active'), IFNULL(inactive_at, ''), created_by, created_at
 		FROM boards WHERE id = ?
-	`, boardID).Scan(&b.ID, &b.SupervisorFileID, &b.Name, &b.Description, &b.CreatedBy, &b.CreatedAt)
+	`, boardID).Scan(&b.ID, &b.SupervisorFileID, &b.Name, &b.Description, &b.Status, &b.InactiveAt, &b.CreatedBy, &b.CreatedAt)
 	return b, err
 }
 
@@ -85,6 +85,8 @@ func GetBoardDiscordInfo(conn *sql.DB, boardID int64) (models.BoardDiscordInfo, 
 			b.supervisor_file_id,
 			b.name,
 			b.description,
+			IFNULL(b.status, 'active'),
+			IFNULL(b.inactive_at, ''),
 			b.created_by,
 			b.created_at,
 			IFNULL(u.full_name, ''),
@@ -98,6 +100,8 @@ func GetBoardDiscordInfo(conn *sql.DB, boardID int64) (models.BoardDiscordInfo, 
 		&b.SupervisorFileID,
 		&b.Name,
 		&b.Description,
+		&b.Status,
+		&b.InactiveAt,
 		&b.CreatedBy,
 		&b.CreatedAt,
 		&b.SupervisorFullName,
@@ -113,6 +117,17 @@ func UpdateBoardName(conn *sql.DB, boardID int64, name string) error {
 		SET name = ?
 		WHERE id = ?
 	`, name, boardID)
+	return err
+}
+
+func UpdateBoardStatus(conn *sql.DB, boardID int64, status string) error {
+	status = strings.TrimSpace(strings.ToLower(status))
+	_, err := conn.Exec(`
+		UPDATE boards
+		SET status = ?,
+		    inactive_at = CASE WHEN ? = 'inactive' THEN datetime('now') ELSE '' END
+		WHERE id = ?
+	`, status, status, boardID)
 	return err
 }
 

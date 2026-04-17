@@ -13,6 +13,8 @@ type BoardRow = {
   id: number;
   name: string;
   description: string;
+  status?: "active" | "inactive";
+  inactive_at?: string;
   supervisor_name: string;
   supervisor_user_id: number;
   supervisor_file_id: number;
@@ -32,12 +34,14 @@ type BoardMember = {
 };
 
 type ViewMode = "boards" | "lists";
+type BoardStatusFilter = "all" | "active" | "inactive";
 
 const ADMIN_BOARDS_STATE_KEY = "taskflow.adminBoards.state";
 
 type AdminBoardsPageState = {
   search: string;
   viewMode: ViewMode;
+  statusFilter: BoardStatusFilter;
   scrollY: number;
   membersBoardID: number | null;
 };
@@ -51,6 +55,7 @@ function readAdminBoardsPageState(): AdminBoardsPageState | null {
     return {
       search: String(parsed?.search || ""),
       viewMode: parsed?.viewMode === "lists" ? "lists" : "boards",
+      statusFilter: parsed?.statusFilter === "active" || parsed?.statusFilter === "inactive" ? parsed.statusFilter : "all",
       scrollY: Number.isFinite(Number(parsed?.scrollY)) ? Number(parsed.scrollY) : 0,
       membersBoardID: Number.isFinite(Number(parsed?.membersBoardID)) && Number(parsed.membersBoardID) > 0 ? Number(parsed.membersBoardID) : null,
     };
@@ -121,6 +126,57 @@ function roleDisplay(role: string) {
   if (normalized === "supervisor") return "supervisor";
   if (normalized === "admin") return "admin";
   return role || "-";
+}
+
+function boardStatus(board: { status?: string }) {
+  return String(board.status || "active").trim().toLowerCase() === "inactive" ? "inactive" : "active";
+}
+
+function inactiveSinceDate(board: { inactive_at?: string; created_at: string }) {
+  return board.inactive_at || board.created_at;
+}
+
+function BoardStatusIconButton({
+  status,
+  saving,
+  onClick,
+}: {
+  status: "active" | "inactive";
+  saving: boolean;
+  onClick: () => void;
+}) {
+  const isActive = status === "active";
+  return (
+    <button
+      type="button"
+      className={[
+        "board-action-status grid h-8 w-8 place-items-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-60",
+        isActive
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+          : "border-slate-300 bg-slate-100 text-slate-500 hover:bg-slate-200",
+        saving ? "opacity-70" : "hover:-translate-y-[1px]",
+      ].join(" ")}
+      title={`${isActive ? "Active" : "Inactive"} board. Click to mark ${isActive ? "inactive" : "active"}.`}
+      aria-label={`${isActive ? "Active" : "Inactive"} board. Click to mark ${isActive ? "inactive" : "active"}.`}
+      disabled={saving}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {isActive ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+          <path d="M8.5 12.2 10.8 14.5 15.8 9.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+          <path d="M8.5 15.5 15.5 8.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+      )}
+    </button>
+  );
 }
 
 function initialsOf(name: string) {
@@ -441,6 +497,7 @@ export default function AdminBoardsPage() {
   const hasRestoredMembersPopup = useRef(false);
   const [boards, setBoards] = useState<BoardRow[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>(initialPageState.current?.viewMode || "boards");
+  const [statusFilter, setStatusFilter] = useState<BoardStatusFilter>(initialPageState.current?.statusFilter || "all");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(initialPageState.current?.search || "");
   const [err, setErr] = useState("");
@@ -453,6 +510,7 @@ export default function AdminBoardsPage() {
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
   const [membersBoard, setMembersBoard] = useState<BoardRow | null>(null);
   const [deletingBoardID, setDeletingBoardID] = useState<number | null>(null);
+  const [statusUpdatingBoardID, setStatusUpdatingBoardID] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creatingBoard, setCreatingBoard] = useState(false);
   const [createBoardErr, setCreateBoardErr] = useState("");
@@ -634,10 +692,11 @@ export default function AdminBoardsPage() {
     writeAdminBoardsPageState({
       search,
       viewMode,
+      statusFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
       membersBoardID: null,
     });
-  }, [search, viewMode]);
+  }, [search, statusFilter, viewMode]);
   useEscClose(membersOpen && !previewAvatar, closeMembersModal);
   const closeReassignModal = useCallback(() => {
     setReassignBoard(null);
@@ -707,6 +766,7 @@ export default function AdminBoardsPage() {
     writeAdminBoardsPageState({
       search,
       viewMode,
+      statusFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
       membersBoardID: membersOpen
         ? membersBoard?.id || null
@@ -714,13 +774,14 @@ export default function AdminBoardsPage() {
           ? null
           : initialPageState.current?.membersBoardID || null,
     });
-  }, [membersBoard, membersOpen, search, viewMode]);
+  }, [membersBoard, membersOpen, search, statusFilter, viewMode]);
 
   useEffect(() => {
     function handleScroll() {
       writeAdminBoardsPageState({
         search,
         viewMode,
+        statusFilter,
         scrollY: window.scrollY,
         membersBoardID: membersOpen
           ? membersBoard?.id || null
@@ -732,27 +793,34 @@ export default function AdminBoardsPage() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [membersBoard, membersOpen, search, viewMode]);
+  }, [membersBoard, membersOpen, search, statusFilter, viewMode]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return boards;
 
-    return boards.filter((b) => {
-      const name = (b.name ?? "").toLowerCase();
-      const sup = (b.supervisor_name ?? "").toLowerCase();
-      const desc = (b.description ?? "").toLowerCase();
-      const memberCohorts = (membersByBoard[b.id] || [])
-        .filter((member) => String(member.role || "").trim().toLowerCase() === "student")
-        .map((member) => String(member.cohort || "").trim().toLowerCase())
-        .filter(Boolean);
-      const matchesCohort = memberCohorts.some((cohort) => {
-        const cohortLabel = `cohort ${cohort}`;
-        return cohort.includes(q) || cohortLabel.includes(q);
+    return boards
+      .filter((b) => statusFilter === "all" || boardStatus(b) === statusFilter)
+      .filter((b) => {
+        if (!q) return true;
+        const name = (b.name ?? "").toLowerCase();
+        const sup = (b.supervisor_name ?? "").toLowerCase();
+        const desc = (b.description ?? "").toLowerCase();
+        const memberCohorts = (membersByBoard[b.id] || [])
+          .filter((member) => String(member.role || "").trim().toLowerCase() === "student")
+          .map((member) => String(member.cohort || "").trim().toLowerCase())
+          .filter(Boolean);
+        const matchesCohort = memberCohorts.some((cohort) => {
+          const cohortLabel = `cohort ${cohort}`;
+          return cohort.includes(q) || cohortLabel.includes(q);
+        });
+        return name.includes(q) || sup.includes(q) || desc.includes(q) || matchesCohort;
+      })
+      .sort((a, b) => {
+        const statusDelta = (boardStatus(a) === "inactive" ? 1 : 0) - (boardStatus(b) === "inactive" ? 1 : 0);
+        if (statusDelta !== 0) return statusDelta;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-      return name.includes(q) || sup.includes(q) || desc.includes(q) || matchesCohort;
-    });
-  }, [boards, membersByBoard, search]);
+  }, [boards, membersByBoard, search, statusFilter]);
 
   useEffect(() => {
     if (loading || hasRestoredScroll.current === true) return;
@@ -797,6 +865,7 @@ export default function AdminBoardsPage() {
     writeAdminBoardsPageState({
       search,
       viewMode,
+      statusFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
       membersBoardID: membersOpen ? membersBoard?.id || null : null,
     });
@@ -892,6 +961,7 @@ export default function AdminBoardsPage() {
     writeAdminBoardsPageState({
       search,
       viewMode,
+      statusFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
       membersBoardID: board.id,
     });
@@ -918,6 +988,7 @@ export default function AdminBoardsPage() {
     writeAdminBoardsPageState({
       search,
       viewMode,
+      statusFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
       membersBoardID: membersBoard?.id || null,
     });
@@ -964,6 +1035,32 @@ export default function AdminBoardsPage() {
       setErr(e?.message || "Failed to delete board");
     } finally {
       setDeletingBoardID(null);
+    }
+  }
+
+  async function toggleBoardStatus(board: BoardRow) {
+    if (statusUpdatingBoardID === board.id) return;
+    const current = boardStatus(board);
+    const next = current === "active" ? "inactive" : "active";
+    const optimisticInactiveAt = next === "inactive" ? new Date().toISOString() : "";
+    setStatusUpdatingBoardID(board.id);
+    setErr("");
+    setBoards((prev) => prev.map((item) => (item.id === board.id ? { ...item, status: next, inactive_at: optimisticInactiveAt } : item)));
+    try {
+      const res = await apiFetch("/admin/boards/status", {
+        method: "POST",
+        body: JSON.stringify({ board_id: board.id, status: next }),
+      });
+      const inactiveAt = String(res?.inactive_at || optimisticInactiveAt);
+      setBoards((prev) => prev.map((item) => (item.id === board.id ? { ...item, status: next, inactive_at: inactiveAt } : item)));
+      if (membersBoard?.id === board.id) {
+        setMembersBoard((prev) => (prev ? { ...prev, status: next, inactive_at: inactiveAt } : prev));
+      }
+    } catch (e: any) {
+      setBoards((prev) => prev.map((item) => (item.id === board.id ? { ...item, status: current, inactive_at: board.inactive_at } : item)));
+      setErr(e?.message || "Failed to update board status");
+    } finally {
+      setStatusUpdatingBoardID(null);
     }
   }
 
@@ -1155,9 +1252,8 @@ export default function AdminBoardsPage() {
     >
       <div className="boards-page w-full">
         {/* Toolbar */}
-        <div className="mb-4 flex items-center justify-between gap-3 max-[1180px]:flex-col max-[1180px]:items-stretch">
-          <div className="flex min-w-0 flex-[1.35] items-center gap-3 max-[1180px]:flex-col max-[1180px]:items-stretch">
-            <div className="boards-search flex h-14 min-w-[520px] flex-1 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10 max-[1180px]:min-w-0">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="boards-search flex h-14 min-w-[300px] flex-[1_1_420px] items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10 max-[520px]:min-w-0">
               <span className="text-slate-400" aria-hidden="true">
                 <SearchIcon />
               </span>
@@ -1180,11 +1276,23 @@ export default function AdminBoardsPage() {
               )}
             </div>
 
-            <div className="flex w-fit items-center gap-2 max-[1180px]:w-full">
-              <div className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+          <div className="flex min-w-0 flex-none items-center gap-2 max-[520px]:w-full max-[520px]:flex-col max-[520px]:items-stretch">
+              <label className="inline-flex h-12 min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)] max-[520px]:w-full">
+                <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-400">Status</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as BoardStatusFilter)}
+                  className="h-9 min-w-[96px] rounded-xl border border-slate-200 bg-slate-50 px-2 text-[13px] font-black capitalize text-slate-700 outline-none focus:border-emerald-300 max-[520px]:flex-1"
+                >
+                  <option value="all">All</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <div className="inline-flex min-w-0 items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] max-[520px]:w-full">
                 <button
                   className={[
-                    "inline-flex h-10 items-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition",
+                    "inline-flex h-10 items-center justify-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition max-[520px]:flex-1",
                     viewMode === "boards"
                       ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
@@ -1197,7 +1305,7 @@ export default function AdminBoardsPage() {
                 </button>
                 <button
                   className={[
-                    "inline-flex h-10 items-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition",
+                    "inline-flex h-10 items-center justify-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition max-[520px]:flex-1",
                     viewMode === "lists"
                       ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
@@ -1210,9 +1318,8 @@ export default function AdminBoardsPage() {
                 </button>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap justify-end gap-2.5 max-[1180px]:justify-start">
+          <div className="ml-auto flex min-w-0 flex-none flex-wrap justify-end gap-2.5 max-[1180px]:ml-0 max-[1180px]:justify-start">
             <StatPill icon={<BoardIcon />} label="Boards" value={totals.totalBoards} />
             <StatPill icon={<LayersIcon />} label="Lists" value={totals.totalLists} />
             <StatPill icon={<CardStackIcon />} label="Cards" value={totals.totalCards} />
@@ -1265,6 +1372,7 @@ export default function AdminBoardsPage() {
             {filtered.map((b) => {
               const desc = clampText(b.description, "No description provided.");
               const sup = clampText(b.supervisor_name, "Unknown supervisor");
+              const status = boardStatus(b);
 
               return (
                 <div
@@ -1318,6 +1426,13 @@ export default function AdminBoardsPage() {
                       </div>
 
                       <div className="flex flex-none items-center gap-2">
+                        {canManageMembers ? (
+                          <BoardStatusIconButton
+                            status={status}
+                            saving={statusUpdatingBoardID === b.id}
+                            onClick={() => void toggleBoardStatus(b)}
+                          />
+                        ) : null}
                         {isAdmin ? (
                           <button
                             type="button"
@@ -1375,6 +1490,19 @@ export default function AdminBoardsPage() {
                       >
                         {formatDate(b.created_at)}
                       </span>
+                      {status === "inactive" ? (
+                        <span
+                          className="
+                            inline-flex items-center
+                            h-[30px] px-3 rounded-full
+                            border border-slate-200 bg-slate-100
+                            text-[12px] font-black text-slate-600
+                          "
+                          title="Inactive since"
+                        >
+                          Inactive since {formatDate(inactiveSinceDate(b))}
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -1444,7 +1572,7 @@ export default function AdminBoardsPage() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-[18px] border border-slate-900/10 bg-white/95 shadow-[0_14px_34px_rgba(15,23,42,0.07)]">
-            <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_188px] gap-4 border-b border-slate-200 bg-[linear-gradient(180deg,rgba(109,94,252,0.06),rgba(109,94,252,0.02))] px-5 py-3 text-[12px] font-black uppercase tracking-[0.08em] text-slate-500 max-[920px]:hidden">
+            <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_240px] gap-4 border-b border-slate-200 bg-[linear-gradient(180deg,rgba(109,94,252,0.06),rgba(109,94,252,0.02))] px-5 py-3 text-[12px] font-black uppercase tracking-[0.08em] text-slate-500 max-[920px]:hidden">
               <div>Board</div>
               <div>Supervisor</div>
               <div>Lists</div>
@@ -1456,6 +1584,7 @@ export default function AdminBoardsPage() {
               {filtered.map((b) => {
                 const desc = clampText(b.description, "No description provided.");
                 const sup = clampText(b.supervisor_name, "Unknown supervisor");
+                const status = boardStatus(b);
 
                 return (
                   <div
@@ -1469,7 +1598,7 @@ export default function AdminBoardsPage() {
                         openBoard(b.id);
                       }
                     }}
-                    className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_188px] gap-4 px-5 py-4 transition hover:bg-[#faf8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15 max-[920px]:grid-cols-1"
+                    className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_240px] gap-4 px-5 py-4 transition hover:bg-[#faf8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15 max-[920px]:grid-cols-1"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
@@ -1479,6 +1608,11 @@ export default function AdminBoardsPage() {
                         <div className="min-w-0">
                           <div className="truncate text-[15px] font-black text-slate-900">{b.name}</div>
                           <div className="mt-2">{renderMemberPreview(b, { compact: true })}</div>
+                          {status === "inactive" ? (
+                            <div className="mt-1 text-[11px] font-black text-slate-500">
+                              Inactive since {formatDate(inactiveSinceDate(b))}
+                            </div>
+                          ) : null}
                           <div className="mt-1 line-clamp-1 text-[12px] font-semibold text-slate-500">{desc}</div>
                         </div>
                       </div>
@@ -1504,6 +1638,13 @@ export default function AdminBoardsPage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-2 max-[920px]:justify-start">
+                      {canManageMembers ? (
+                        <BoardStatusIconButton
+                          status={status}
+                          saving={statusUpdatingBoardID === b.id}
+                          onClick={() => void toggleBoardStatus(b)}
+                        />
+                      ) : null}
                       {isAdmin ? (
                         <button
                           type="button"

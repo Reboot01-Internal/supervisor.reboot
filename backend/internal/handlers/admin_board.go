@@ -68,12 +68,14 @@ func (a *API) AdminGetBoardFull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	out := models.BoardFull{
-		BoardID: boardID,
-		FileID:  b.SupervisorFileID,
-		Name:    b.Name,
-		Lists:   lists,
-		Cards:   cards,
-		Labels:  labels,
+		BoardID:    boardID,
+		FileID:     b.SupervisorFileID,
+		Name:       b.Name,
+		Status:     b.Status,
+		InactiveAt: b.InactiveAt,
+		Lists:      lists,
+		Cards:      cards,
+		Labels:     labels,
 	}
 
 	writeJSON(w, http.StatusOK, out)
