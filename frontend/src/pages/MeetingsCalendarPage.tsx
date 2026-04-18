@@ -419,20 +419,32 @@ export default function MeetingsCalendarPage() {
   const selectedDayMeetings = useMemo(() => meetingsByDay.get(selectedDate) || [], [meetingsByDay, selectedDate]);
 
   const selectedMeeting = useMemo(
-    () => selectedDayMeetings.find((meeting) => meeting.id === selectedMeetingID) || selectedDayMeetings[0] || null,
-    [selectedDayMeetings, selectedMeetingID]
+    () => selectedMeetingID ? filteredMeetings.find((meeting) => meeting.id === selectedMeetingID) || null : null,
+    [filteredMeetings, selectedMeetingID]
   );
 
-  const selectedParticipants = useMemo(() => {
+  const selectedMeetingParticipants = useMemo(() => {
     const rows = selectedMeeting ? participantsByMeeting[selectedMeeting.id] || [] : [];
-    return rows.filter((participant) => (participant.role || "").toLowerCase() !== "supervisor");
+    return rows;
   }, [participantsByMeeting, selectedMeeting]);
+
+  const selectedDayParticipants = useMemo(() => {
+    return selectedDayMeetings.flatMap((meeting) => participantsByMeeting[meeting.id] || []);
+  }, [participantsByMeeting, selectedDayMeetings]);
+
+  useEffect(() => {
+    selectedDayMeetings.forEach((meeting) => {
+      if (!participantsByMeeting[meeting.id] && !participantsLoading[meeting.id]) {
+        void loadParticipants(meeting.id);
+      }
+    });
+  }, [loadParticipants, participantsByMeeting, participantsLoading, selectedDayMeetings]);
 
   useEffect(() => {
     let alive = true;
     const logins = Array.from(
       new Set(
-        [...selectedParticipants, ...selectedBoardMembers]
+        [...selectedMeetingParticipants, ...selectedDayParticipants, ...selectedBoardMembers]
           .map((user) => loginOf(user))
           .filter(Boolean)
       )
@@ -446,15 +458,13 @@ export default function MeetingsCalendarPage() {
     return () => {
       alive = false;
     };
-  }, [selectedBoardMembers, selectedParticipants]);
+  }, [selectedBoardMembers, selectedDayParticipants, selectedMeetingParticipants]);
 
   useEffect(() => {
     if (!selectedMeeting) {
-      setSelectedMeetingID(null);
       setOutcomeDraft("");
       return;
     }
-    setSelectedMeetingID(selectedMeeting.id);
     setOutcomeDraft(selectedMeeting.outcome_notes || "");
     if (!participantsByMeeting[selectedMeeting.id]) {
       loadParticipants(selectedMeeting.id);
@@ -536,6 +546,7 @@ export default function MeetingsCalendarPage() {
     const start = new Date(meeting.starts_at);
     const end = new Date(meeting.ends_at);
     setEditingMeetingID(meeting.id);
+    setSelectedMeetingID(null);
     setComposerSupervisorID(String(meeting.supervisor_id || ""));
     setForm({
       board_id: String(meeting.board_id),
@@ -752,8 +763,8 @@ export default function MeetingsCalendarPage() {
           ) : null} */}
         </section>
 
-        <section className="grid min-w-0 gap-4 xl:grid-cols-[1.18fr_0.82fr]">
-          <div className="min-w-0 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] max-[520px]:rounded-[18px] max-[520px]:p-2.5">
+        <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(620px,760px)_minmax(420px,1fr)]">
+          <div className="min-w-0 self-start rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:h-[568px] max-[520px]:rounded-[18px] max-[520px]:p-2.5">
             <div className="mb-3 grid grid-cols-7 gap-2 max-[520px]:mb-1.5 max-[520px]:gap-1">
               {monthDays.slice(0, 7).map((day) => (
                 <div key={day.toISOString()} className="px-2 py-1 text-[12px] font-black uppercase tracking-[0.12em] text-slate-400 max-[520px]:px-0 max-[520px]:text-center max-[520px]:text-[9px] max-[520px]:tracking-[0.04em]">{dayLabel(day)}</div>
@@ -772,37 +783,34 @@ export default function MeetingsCalendarPage() {
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setSelectedDate(key)}
+                      onClick={() => {
+                        setSelectedDate(key);
+                        setSelectedMeetingID(null);
+                      }}
                       className={[
-                        "min-h-[102px] min-w-0 rounded-[18px] border p-2.5 text-left transition xl:min-h-[112px]",
-                        "max-[520px]:min-h-[48px] max-[520px]:rounded-[12px] max-[520px]:p-1.5",
+                        "flex h-[76px] min-w-0 flex-col rounded-[16px] border p-2 text-left transition",
+                        "max-[520px]:h-[50px] max-[520px]:rounded-[12px] max-[520px]:p-1.5",
                         isCurrent ? "border-amber-300 bg-amber-50 shadow-[0_14px_34px_rgba(245,158,11,0.16)]" : "border-slate-200 bg-slate-50 hover:border-amber-200 hover:bg-white",
                         isInMonth ? "text-slate-900" : "text-slate-400 opacity-70",
                       ].join(" ")}
                     >
-                      <div className="mb-2 flex items-center justify-between gap-2 max-[520px]:mb-0.5 max-[520px]:gap-1">
+                      <div className="flex items-center justify-between gap-2 max-[520px]:gap-1">
                         <span className="text-[13px] font-black max-[520px]:text-[11px]">{day.getDate()}</span>
                         {dayMeetings.length ? <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-black text-white max-[520px]:px-1.5 max-[520px]:text-[8px]">{dayMeetings.length}</span> : null}
                       </div>
-                      <div className="space-y-1.5 max-[520px]:hidden">
-                        {dayMeetings.slice(0, 3).map((meeting) => (
-                          <div key={meeting.id} className={`rounded-[12px] border px-2 py-1.5 ${meetingSurfaceClass(meeting.status)}`}>
-                            <div className="truncate text-[11px] font-black">{meeting.title}</div>
-                            <div className={`truncate text-[10px] font-semibold ${meeting.status === "completed" ? "text-emerald-700" : meeting.status === "canceled" ? "text-rose-700" : "text-slate-500"}`}>{new Date(meeting.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
-                          </div>
-                        ))}
-                      </div>
                       {dayMeetings.length ? (
-                        <div className="mt-1 hidden flex-wrap gap-1 max-[520px]:flex" aria-hidden="true">
-                          {dayMeetings.slice(0, 3).map((meeting) => (
-                            <span
-                              key={meeting.id}
-                              className={[
-                                "h-1.5 w-1.5 rounded-full",
-                                meeting.status === "completed" ? "bg-emerald-500" : meeting.status === "canceled" ? "bg-rose-400" : "bg-amber-400",
-                              ].join(" ")}
-                            />
-                          ))}
+                        <div className="mt-auto min-w-0">
+                          <div className="flex flex-wrap gap-1" aria-hidden="true">
+                            {dayMeetings.slice(0, 5).map((meeting) => (
+                              <span
+                                key={meeting.id}
+                                className={[
+                                  "h-1.5 w-4 rounded-full max-[520px]:h-1.5 max-[520px]:w-1.5",
+                                  meeting.status === "completed" ? "bg-emerald-500" : meeting.status === "canceled" ? "bg-rose-400" : "bg-amber-400",
+                                ].join(" ")}
+                              />
+                            ))}
+                          </div>
                         </div>
                       ) : null}
                     </button>
@@ -812,8 +820,8 @@ export default function MeetingsCalendarPage() {
             )}
           </div>
 
-          <div className="grid min-w-0 gap-4">
-            <div className="min-w-0 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] max-[520px]:rounded-[18px]">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-col rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:h-[568px] max-[520px]:rounded-[18px]">
               <div className="flex items-start justify-between gap-3 max-[520px]:flex-col">
                 <div className="min-w-0">
                   <div className="text-[12px] font-black uppercase tracking-[0.14em] text-slate-400">Selected day</div>
@@ -821,11 +829,12 @@ export default function MeetingsCalendarPage() {
                 </div>
                 <input type="date" value={selectedDate} onChange={(e) => {
                   setSelectedDate(e.target.value);
+                  setSelectedMeetingID(null);
                   setCurrentMonth(new Date(`${e.target.value}T00:00:00`));
                 }} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[12px] font-bold text-slate-700 max-[520px]:w-full" />
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 min-h-0 flex-1 space-y-3">
                 {selectedDayMeetings.length === 0 ? (
                   <div className="rounded-[22px] border border-dashed border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.1),_transparent_50%),#f8fafc] px-5 py-8 text-center">
                     <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-400 shadow-sm">
@@ -838,65 +847,79 @@ export default function MeetingsCalendarPage() {
                     <div className="mt-1 text-[12px] font-semibold text-slate-500">{canCreate ? "Open Book Meeting to schedule one." : "Check another board or date."}</div>
                   </div>
                 ) : (
-                  <div className="grid max-h-[390px] gap-3 overflow-y-auto pr-1">
-                    {selectedDayMeetings.map((meeting) => (
-                      <button key={meeting.id} type="button" onClick={() => setSelectedMeetingID(meeting.id)} className={`w-full rounded-[20px] border p-4 text-left transition ${selectedMeeting?.id === meeting.id ? "border-amber-300 bg-amber-50 shadow-[0_16px_32px_rgba(245,158,11,0.12)]" : `${meetingSurfaceClass(meeting.status)} hover:border-slate-300`}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-[15px] font-black text-slate-900">{meeting.title}</div>
-                            <div className="mt-1 text-[12px] font-semibold text-slate-500">{meeting.board_name}</div>
+                  <div className="grid max-h-full gap-3 overflow-y-auto pr-1">
+                    {selectedDayMeetings.map((meeting) => {
+                      const meetingParticipants = participantsByMeeting[meeting.id] || [];
+                      return (
+                        <button key={meeting.id} type="button" onClick={() => setSelectedMeetingID(meeting.id)} className={`grid w-full grid-cols-[74px_minmax(0,1fr)] gap-3 rounded-[18px] border p-3 text-left transition max-[520px]:grid-cols-1 ${selectedMeetingID === meeting.id ? "border-amber-300 bg-amber-50 shadow-[0_16px_32px_rgba(245,158,11,0.12)]" : `${meetingSurfaceClass(meeting.status)} hover:border-slate-300`}`}>
+                          <div className="rounded-[14px] border border-slate-200 bg-white px-2 py-2 text-center shadow-sm max-[520px]:text-left">
+                            <div className="text-[12px] font-black text-slate-900">{new Date(meeting.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
+                            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.08em] text-slate-400">{new Date(meeting.ends_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
                           </div>
-                          <StatusPill status={meeting.status} />
-                        </div>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          <MetaPill label="Time" value={formatTimeRange(meeting.starts_at, meeting.ends_at)} />
-                          <MetaPill label="Location" value={meeting.location || "No location"} />
-                        </div>
-                      </button>
-                    ))}
+                          <div className="min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-[15px] font-black text-slate-900">{meeting.title}</div>
+                                <div className="mt-1 truncate text-[12px] font-semibold text-slate-500">{meeting.board_name}</div>
+                              </div>
+                              <StatusPill status={meeting.status} />
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-black text-slate-600">{meeting.location || "No location"}</span>
+                              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-black text-slate-600">{formatTimeRange(meeting.starts_at, meeting.ends_at)}</span>
+                              <MeetingAvatarStack participants={meetingParticipants} avatarByLogin={avatarByLogin} />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
+          </div>
+        </section>
 
-            <aside className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-            {!selectedMeeting ? (
-              <div className="rounded-[22px] border border-dashed border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.12),_transparent_50%),#f8fafc] px-5 py-10 text-center">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-slate-200 bg-white text-amber-500 shadow-sm">
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
-                    <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div className="mt-4 text-[16px] font-black text-slate-700">Pick a meeting to manage</div>
-                <div className="mt-1 text-[12px] font-semibold text-slate-500">RSVP, attendance, notes, and status controls will appear here.</div>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-[760px] overflow-y-auto pr-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[20px] font-black text-slate-900">{selectedMeeting.title}</div>
-                    <div className="mt-1 text-[12px] font-semibold text-slate-500">
-                      {selectedMeeting.board_name}
-                      {selectedMeeting.location ? ` • ${selectedMeeting.location}` : ""}
-                    </div>
+        {selectedMeeting ? (
+          <div className="fixed inset-0 z-[95] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={() => setSelectedMeetingID(null)}>
+            <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[920px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status={selectedMeeting.status} />
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black text-slate-600">{selectedMeeting.location || "No location"}</span>
                   </div>
+                  <div className="mt-3 text-[26px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[21px]">{selectedMeeting.title}</div>
+                  <div className="mt-1 truncate text-[13px] font-bold text-slate-500">{selectedMeeting.board_name}</div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
                   {canManage ? (
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => startEditMeeting(selectedMeeting)} title="Reschedule meeting" className="grid h-8 w-8 place-items-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 transition hover:bg-blue-100"><PencilIcon /></button>
-                      <button type="button" onClick={() => deleteMeeting(selectedMeeting)} disabled={deletingMeetingID === selectedMeeting.id} title="Delete meeting" className="grid h-8 w-8 place-items-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"><BinIcon /></button>
-                    </div>
+                    <>
+                      <button type="button" onClick={() => startEditMeeting(selectedMeeting)} title="Reschedule meeting" className="grid h-10 w-10 place-items-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 transition hover:bg-blue-100"><PencilIcon /></button>
+                      <button type="button" onClick={() => deleteMeeting(selectedMeeting)} disabled={deletingMeetingID === selectedMeeting.id} title="Delete meeting" className="grid h-10 w-10 place-items-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"><BinIcon /></button>
+                    </>
                   ) : null}
+                  <button type="button" onClick={() => setSelectedMeetingID(null)} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
+                </div>
+              </div>
+
+              <div className="min-h-0 overflow-y-auto pr-1">
+                <div className="grid overflow-hidden rounded-[16px] border border-slate-200 bg-white sm:grid-cols-4">
+                  <SummaryCell label="Date" value={new Date(selectedMeeting.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} />
+                  <SummaryCell label="Time" value={formatTimeRange(selectedMeeting.starts_at, selectedMeeting.ends_at)} />
+                  <SummaryCell label="Booked by" value={selectedMeeting.created_by_name} />
+                  <SummaryCell label="Room" value={selectedMeeting.location || "No location"} />
                 </div>
 
-                <div className="grid gap-2">
-                  <MetaPill label="Booked by" value={selectedMeeting.created_by_name} />
-                  <MetaPill label="Time" value={formatTimeRange(selectedMeeting.starts_at, selectedMeeting.ends_at)} />
-                  {selectedMeeting.notes ? <MetaPill label="Agenda" value={selectedMeeting.notes} /> : null}
-                </div>
+                {selectedMeeting.notes ? (
+                  <div className="mt-4 rounded-[16px] border border-amber-200 bg-amber-50/70 px-4 py-3">
+                    <div className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">Agenda</div>
+                    <div className="mt-1 text-[13px] font-semibold leading-5 text-slate-700">{selectedMeeting.notes}</div>
+                  </div>
+                ) : null}
 
                 {canManage ? (
-                  <div className="rounded-[18px] border border-slate-200 bg-slate-50 p-3">
+                  <div className="mt-4 rounded-[18px] border border-slate-200 bg-slate-50 p-3">
                     <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Meeting controls</div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       <button
@@ -938,13 +961,13 @@ export default function MeetingsCalendarPage() {
                   <MetaPill label="Outcome notes" value={selectedMeeting.outcome_notes} />
                 ) : null}
 
-                <div className="rounded-[18px] border border-slate-200 bg-slate-50 p-3">
+                <div className="mt-4 rounded-[18px] border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Participants</div>
                     {participantsLoading[selectedMeeting.id] ? <span className="text-[11px] font-bold text-slate-400">Loading...</span> : null}
                   </div>
                   <div className="mt-3 space-y-2">
-                    {selectedParticipants.map((participant) => {
+                    {selectedMeetingParticipants.map((participant) => {
                       const key = `${selectedMeeting.id}:${participant.user_id}`;
                       const matchesSelf = actorRole === "student" && (
                         participant.email.toLowerCase() === email.toLowerCase() ||
@@ -959,7 +982,10 @@ export default function MeetingsCalendarPage() {
                               <UserAvatar src={avatarUrl} alt={participant.full_name} fallback={initialsOf(participant.full_name)} sizeClass="h-10 w-10" textClass="text-[12px]" className="bg-slate-50" />
                               <div className="min-w-0">
                                 <div className="text-[13px] font-black leading-5 text-slate-900">{participant.full_name}</div>
-                                <div className="mt-1 truncate text-[11px] font-semibold text-slate-500">{participant.nickname ? `@${participant.nickname}` : participant.email}</div>
+                                <div className="mt-1 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
+                                  <span>{participant.nickname ? `@${participant.nickname}` : participant.email}</span>
+                                  <span>{participant.role_in_board || participant.role}</span>
+                                </div>
                               </div>
                             </div>
                             <div className="md:justify-self-end">
@@ -998,19 +1024,18 @@ export default function MeetingsCalendarPage() {
                         </div>
                       );
                     })}
-                    {selectedParticipants.length === 0 && !participantsLoading[selectedMeeting.id] ? (
+                    {selectedMeetingParticipants.length === 0 && !participantsLoading[selectedMeeting.id] ? (
                       <div className="text-[13px] font-semibold text-slate-500">No participants loaded yet.</div>
                     ) : null}
                   </div>
                 </div>
               </div>
-            )}
-            </aside>
+            </div>
           </div>
-        </section>
+        ) : null}
 
         {showComposer ? (
-          <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={closeComposer}>
+          <div className="fixed inset-0 z-[110] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={closeComposer}>
             <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1125,6 +1150,58 @@ function MetaPill({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">{label}</div>
       <div className="mt-1 text-[13px] font-semibold text-slate-700">{value}</div>
     </div>
+  );
+}
+
+function SummaryCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 border-b border-slate-200 px-3 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</div>
+      <div className="mt-1 truncate text-[13px] font-black text-slate-800">{value}</div>
+    </div>
+  );
+}
+
+function MeetingAvatarStack({
+  participants,
+  avatarByLogin,
+}: {
+  participants: MeetingParticipant[];
+  avatarByLogin: Record<string, string>;
+}) {
+  if (participants.length === 0) {
+    return <span className="text-[11px] font-bold text-slate-400">No participants</span>;
+  }
+
+  const visible = participants.slice(0, 5);
+  const remaining = participants.length - visible.length;
+
+  return (
+    <span className="ml-auto flex shrink-0 items-center pl-1" title={`${participants.length} participants`}>
+      {visible.map((participant, index) => {
+        const avatarUrl = avatarByLogin[loginOf(participant)] || "";
+        return (
+          <span key={participant.user_id} className={index === 0 ? "" : "-ml-2"}>
+            <UserAvatar
+              src={avatarUrl}
+              alt={participant.full_name}
+              fallback={initialsOf(participant.full_name)}
+              sizeClass="h-7 w-7"
+              textClass="text-[10px]"
+              className={[
+                "border-2 border-white bg-slate-50 shadow-[0_4px_10px_rgba(15,23,42,0.12)]",
+                (participant.role || "").toLowerCase() === "supervisor" ? "ring-2 ring-amber-300" : "",
+              ].join(" ")}
+            />
+          </span>
+        );
+      })}
+      {remaining > 0 ? (
+        <span className="-ml-2 grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-slate-900 px-1.5 text-[10px] font-black text-white shadow-[0_4px_10px_rgba(15,23,42,0.16)]">
+          +{remaining}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
