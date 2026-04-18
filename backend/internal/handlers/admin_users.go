@@ -132,13 +132,13 @@ func (a *API) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ✅ block duplicates by nickname too
+	//   block duplicates by nickname too
 	if ok, err := db.UserExistsByNickname(a.conn, req.Nickname); err == nil && ok {
 		writeErr(w, http.StatusBadRequest, "nickname already exists")
 		return
 	}
 
-	// ✅ password: generate if empty
+	//   password: generate if empty
 	tempPassword := ""
 	passToHash := req.Password
 	if passToHash == "" {

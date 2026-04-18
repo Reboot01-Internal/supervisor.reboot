@@ -1194,11 +1194,17 @@ function MeetingAvatarStack({
   const remaining = participants.length - visible.length;
 
   return (
-    <span className="ml-auto flex shrink-0 items-center pl-1" title={`${participants.length} participants`}>
+    <span className="ml-auto flex shrink-0 items-center pl-1" aria-label={`${participants.length} participants`}>
       {visible.map((participant, index) => {
         const avatarUrl = avatarByLogin[loginOf(participant)] || "";
         return (
-          <span key={participant.user_id} className={index === 0 ? "" : "-ml-2"}>
+          <span
+            key={participant.user_id}
+            className={[
+              "group relative inline-flex",
+              index === 0 ? "" : "-ml-2",
+            ].join(" ")}
+          >
             <UserAvatar
               src={avatarUrl}
               alt={participant.full_name}
@@ -1210,6 +1216,10 @@ function MeetingAvatarStack({
                 (participant.role || "").toLowerCase() === "supervisor" ? "ring-2 ring-amber-300" : "",
               ].join(" ")}
             />
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-[20] mb-2 max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-950 px-2.5 py-1.5 text-[11px] font-black text-white opacity-0 shadow-[0_12px_28px_rgba(15,23,42,0.22)] transition group-hover:opacity-100 group-focus-within:opacity-100">
+              {participant.full_name}
+              <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-slate-950" />
+            </span>
           </span>
         );
       })}

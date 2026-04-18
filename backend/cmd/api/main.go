@@ -58,7 +58,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	// ✅ CORS FIX
+	//   CORS 
 	allowedOrigins := []string{"http://localhost:5173", "http://127.0.0.1:5173"}
 	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
 		for _, o := range strings.Split(extra, ",") {
@@ -75,7 +75,7 @@ func main() {
 			"Authorization",
 			"Content-Type",
 
-			// ✅ allow your identity headers
+			//   allow your identity headers
 			"X-User-Email",
 			"X-User-Role",
 			"X-User-Login",

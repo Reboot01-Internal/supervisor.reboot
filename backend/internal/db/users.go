@@ -50,7 +50,7 @@ func GetUserDisplayName(conn DBTX, id int64) (string, error) {
 	return strings.TrimSpace(fullName), nil
 }
 
-// ✅ UPDATED: add nickname + cohort
+// UPDATED: add nickname + cohort
 func CreateUser(conn DBTX, fullName, email, passHash, role, nickname, cohort string) (int64, error) {
 	res, err := conn.Exec(`
 		INSERT INTO users (full_name, email, password_hash, role, nickname, cohort)

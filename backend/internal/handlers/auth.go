@@ -24,7 +24,7 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	pass := req.Password
 
-	// ✅ HARD CODED USERS (change however you want)
+	//   HARD CODED USERS (change however you want)
 	// Admin
 	if email == "admin@local.test" && pass == "Admin123!" {
 		writeJSON(w, http.StatusOK, map[string]any{

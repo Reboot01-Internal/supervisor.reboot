@@ -256,7 +256,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
     )].sort((a, b) => a.localeCompare(b));
   }, [assigned]);
 
-  // ✅ Search includes nickname
+  //   Search includes nickname
   const visibleSupervisors = useMemo(() => {
     const q = supQ.trim().toLowerCase();
     return supervisors.filter((s) => {
@@ -269,7 +269,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
     });
   }, [supervisors, supQ]);
 
-  // ✅ Search includes nickname
+  //   Search includes nickname
   const visibleStudents = useMemo(() => {
     const q = stuQ.trim().toLowerCase();
     return students
@@ -488,7 +488,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-black text-slate-900">{s.full_name}</div>
 
-                      {/* ✅ nickname line */}
+                      {/*   nickname line */}
                       {s.nickname ? (
                         <div className="mt-0.5 truncate text-[12px] font-extrabold text-[#6d5efc]">
                           {displayNickname(s.nickname)}
@@ -627,7 +627,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-black text-slate-900">{s.full_name}</div>
 
-                        {/* ✅ nickname line */}
+                        {/*   nickname line */}
                         {s.nickname ? (
                           <div className="mt-0.5 truncate text-[12px] font-extrabold text-[#6d5efc]">
                             {displayNickname(s.nickname)}
@@ -780,7 +780,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-black text-slate-900">{s.full_name}</div>
 
-                        {/* ✅ nickname line */}
+                        {/*   nickname line */}
                         {s.nickname ? (
                           <div className="mt-0.5 truncate text-[12px] font-extrabold text-[#6d5efc]">
                             {displayNickname(s.nickname)}
