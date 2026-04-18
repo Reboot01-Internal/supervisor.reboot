@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { useEscClose } from "../components/Modal";
+import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useConfirm } from "../lib/useConfirm";
 import { playDoneSound } from "../lib/sound";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 import { fetchRebootPhones } from "../lib/rebootPhones";
 
 import {
@@ -69,6 +71,10 @@ function roleDisplay(role: string) {
   if (normalized === "supervisor") return "supervisor";
   if (normalized === "admin") return "admin";
   return role || "-";
+}
+
+function loginKey(value: string | undefined) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function boardStatus(board: { status?: string } | null) {
@@ -654,10 +660,12 @@ export default function BoardPage() {
   const [membersErr, setMembersErr] = useState("");
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [isEditingBoardTitle, setIsEditingBoardTitle] = useState(false);
   const [boardTitleDraft, setBoardTitleDraft] = useState("");
   const [renamingBoard, setRenamingBoard] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [deletingBoard, setDeletingBoard] = useState(false);
   const closeMembersModal = useCallback(() => setMembersOpen(false), []);
   useEscClose(membersOpen, closeMembersModal);
 
@@ -824,6 +832,29 @@ export default function BoardPage() {
       await load();
     } catch (e: any) {
       setErr(e?.message || "Failed to delete list");
+    }
+  }
+
+  async function deleteBoard() {
+    if (!canManage || deletingBoard) return;
+    const ok = await confirm({
+      title: "Delete board",
+      message: `Delete "${pageTitle}"? This will also delete its Discord channel and cannot be undone.`,
+    });
+    if (!ok) return;
+
+    setDeletingBoard(true);
+    setErr("");
+    try {
+      await apiFetch("/admin/boards/delete", {
+        method: "POST",
+        body: JSON.stringify({ board_id: boardID }),
+      });
+      nav("/admin/boards");
+    } catch (e: any) {
+      setErr(e?.message || "Failed to delete board");
+    } finally {
+      setDeletingBoard(false);
     }
   }
 
@@ -1120,6 +1151,31 @@ export default function BoardPage() {
       alive = false;
     };
   }, [isAdmin, members]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = members.map((member) => member.nickname || member.email.split("@")[0]).filter(Boolean);
+      if (logins.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(logins);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [members]);
   const layoutActive = isAdmin ? (from === "boards" ? "boards" : "supervisors") : "boards";
   const canManage = isAdmin || isSupervisor;
   const currentBoardStatus = boardStatus(data);
@@ -1189,6 +1245,18 @@ export default function BoardPage() {
           >
             <GroupIcon />
           </button>
+          {canManage ? (
+            <button
+              type="button"
+              className="board-detail-icon-button h-10 w-10 grid place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={deleteBoard}
+              disabled={deletingBoard}
+              title={deletingBoard ? "Deleting board..." : "Delete board"}
+              aria-label={deletingBoard ? "Deleting board" : "Delete board"}
+            >
+              <BinIcon />
+            </button>
+          ) : null}
           <button
             className="board-detail-back-button h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
             onClick={() => nav("/admin/boards")}
@@ -1264,32 +1332,44 @@ export default function BoardPage() {
               <div className="text-sm font-semibold text-slate-500">No members found.</div>
             ) : (
               <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
-                {members.map((m) => (
-                  <div
-                    key={m.user_id}
-                    className="board-member-row flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
-                      {m.nickname ? (
-                        <div className="truncate text-xs font-extrabold text-indigo-600">@{m.nickname}</div>
-                      ) : null}
-                      <div className="truncate text-xs font-semibold text-slate-500">
-                        {isAdmin
-                          ? phoneByLogin[String(m.nickname || m.email.split("@")[0] || "").trim().toLowerCase()] || "-"
-                          : m.email}
+                {members.map((m) => {
+                  const memberLogin = loginKey(m.nickname || m.email.split("@")[0]);
+                  return (
+                    <div
+                      key={m.user_id}
+                      className="board-member-row flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <UserAvatar
+                          src={avatarByLogin[memberLogin] || ""}
+                          alt={m.full_name}
+                          fallback={initials(m.full_name)}
+                          sizeClass="h-10 w-10"
+                          textClass="text-[12px]"
+                          className="shrink-0 border border-white bg-gradient-to-br from-[#eef2ff] to-[#f8fafc] shadow-sm"
+                          previewable
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
+                          {m.nickname ? (
+                            <div className="truncate text-xs font-extrabold text-indigo-600">@{m.nickname}</div>
+                          ) : null}
+                          <div className="truncate text-xs font-semibold text-slate-500">
+                            {isAdmin ? phoneByLogin[memberLogin] || "-" : m.email}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-none items-center gap-2">
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
+                          {roleDisplay(m.role)}
+                        </span>
+                        <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">
+                          {m.role_in_board || "member"}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex flex-none items-center gap-2">
-                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
-                        {roleDisplay(m.role)}
-                      </span>
-                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">
-                        {m.role_in_board || "member"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
