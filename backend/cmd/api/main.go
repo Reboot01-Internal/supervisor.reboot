@@ -58,7 +58,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	//   CORS 
+	//CORS 
 	allowedOrigins := []string{"http://localhost:5173", "http://127.0.0.1:5173"}
 	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
 		for _, o := range strings.Split(extra, ",") {

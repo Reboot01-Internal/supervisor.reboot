@@ -491,8 +491,7 @@ func (a *API) sendMeetingRoomBookingNotice(meeting models.Meeting, location *tim
 	}
 
 	message := fmt.Sprintf(
-		"%s Please note that %s will be occupied from %s to %s %s.",
-		"talents",
+		"Please note that %s will be occupied from %s to %s %s.",
 		strings.TrimSpace(meeting.Location),
 		formatRoomTime(startLocal),
 		formatRoomTime(endLocal),
