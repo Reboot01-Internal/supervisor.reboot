@@ -1252,14 +1252,15 @@ export default function AdminBoardsPage() {
     >
       <div className="boards-page w-full">
         {/* Toolbar */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="boards-search flex h-14 min-w-[300px] flex-[1_1_420px] items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10 max-[520px]:min-w-0">
+        <div className="mb-4 grid gap-3">
+          <div className="grid min-w-0 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="boards-search flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10">
               <span className="text-slate-400" aria-hidden="true">
                 <SearchIcon />
               </span>
 
               <input
-                className="flex-1 bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
+                className="min-w-0 flex-1 bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
                 placeholder="Search boards, supervisors, cohorts, or descriptions..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1276,7 +1277,7 @@ export default function AdminBoardsPage() {
               )}
             </div>
 
-          <div className="flex min-w-0 flex-none items-center gap-2 max-[520px]:w-full max-[520px]:flex-col max-[520px]:items-stretch">
+            <div className="flex min-w-0 items-center justify-end gap-2 max-[520px]:flex-col max-[520px]:items-stretch">
               <label className="inline-flex h-12 min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)] max-[520px]:w-full">
                 <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-400">Status</span>
                 <select
@@ -1318,8 +1319,9 @@ export default function AdminBoardsPage() {
                 </button>
               </div>
             </div>
+          </div>
 
-          <div className="ml-auto flex min-w-0 flex-none flex-wrap justify-end gap-2.5 max-[1180px]:ml-0 max-[1180px]:justify-start">
+          <div className="flex min-w-0 flex-wrap justify-end gap-2.5 max-[1180px]:justify-start">
             <StatPill icon={<BoardIcon />} label="Boards" value={totals.totalBoards} />
             <StatPill icon={<LayersIcon />} label="Lists" value={totals.totalLists} />
             <StatPill icon={<CardStackIcon />} label="Cards" value={totals.totalCards} />

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import UserAvatar from "../components/UserAvatar";
-import { API_URL, apiFetch, authHeaders } from "../lib/api";
+import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 import { useConfirm } from "../lib/useConfirm";
@@ -74,6 +74,21 @@ type ProfileSummary = {
     id?: number;
     role?: string;
   };
+};
+
+type CalendarConnection = {
+  id: number;
+  user_id: number;
+  provider: "google" | "microsoft";
+  external_email: string;
+  calendar_id: string;
+  calendar_name: string;
+  status: string;
+  last_synced_at: string;
+  last_conflict_at: string;
+  last_error: string;
+  created_at: string;
+  updated_at: string;
 };
 
 const MEETING_LOCATIONS = ["Online", "Sandbox", "Quest", "Pixel", "Bim", "Snap", "Other"] as const;
@@ -213,6 +228,7 @@ export default function MeetingsCalendarPage() {
   const [boardMembersLoading, setBoardMembersLoading] = useState<Record<number, boolean>>({});
   const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [currentUserID, setCurrentUserID] = useState(0);
+  const [calendarConnections, setCalendarConnections] = useState<CalendarConnection[]>([]);
   const [selectedBoardFilter, setSelectedBoardFilter] = useState("all");
   const [selectedSupervisorFilter, setSelectedSupervisorFilter] = useState("all");
   const [composerSupervisorID, setComposerSupervisorID] = useState("");
@@ -229,7 +245,11 @@ export default function MeetingsCalendarPage() {
   const [editingMeetingID, setEditingMeetingID] = useState<number | null>(null);
   const [savingParticipantKey, setSavingParticipantKey] = useState("");
   const [savingOutcome, setSavingOutcome] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [showCalendarLinker, setShowCalendarLinker] = useState(false);
+  const [calendarEmail, setCalendarEmail] = useState(email || "");
+  const [connectingProvider, setConnectingProvider] = useState<"" | "google" | "microsoft">("");
+  const [disconnectingProvider, setDisconnectingProvider] = useState<"" | "google" | "microsoft">("");
+  const [calendarNotice, setCalendarNotice] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     board_id: "",
@@ -246,11 +266,12 @@ export default function MeetingsCalendarPage() {
     setLoading(true);
     setError("");
     try {
-      const [meetingsRes, boardsRes, supervisorsRes, profileRes] = await Promise.all([
+      const [meetingsRes, boardsRes, supervisorsRes, profileRes, connectionsRes] = await Promise.all([
         apiFetch("/admin/meetings"),
         apiFetch("/admin/all-boards"),
         apiFetch("/admin/supervisors"),
         apiFetch("/admin/profile/summary"),
+        apiFetch("/admin/calendar/connections"),
       ]);
       const nextMeetings = Array.isArray(meetingsRes) ? meetingsRes : [];
       setMeetings(nextMeetings);
@@ -259,6 +280,7 @@ export default function MeetingsCalendarPage() {
       const nextRole = String((profileRes as ProfileSummary)?.user?.role || role).trim().toLowerCase();
       setResolvedRole(nextRole || role);
       setCurrentUserID(Number((profileRes as ProfileSummary)?.user?.id || 0));
+      setCalendarConnections(Array.isArray(connectionsRes) ? connectionsRes : []);
     } catch (e: unknown) {
       setError(errorMessage(e, "Failed to load meetings"));
       setMeetings([]);
@@ -266,6 +288,7 @@ export default function MeetingsCalendarPage() {
       setSupervisors([]);
       setResolvedRole(role);
       setCurrentUserID(0);
+      setCalendarConnections([]);
     } finally {
       setLoading(false);
     }
@@ -298,6 +321,25 @@ export default function MeetingsCalendarPage() {
 
   useEffect(() => {
     loadAll();
+  }, [loadAll]);
+
+  useEffect(() => {
+    function handleCalendarLinkMessage(event: MessageEvent) {
+      const payload = event.data as { type?: string; status?: string; message?: string } | null;
+      if (!payload || payload.type !== "taskflow:calendar-link") return;
+      if (payload.status === "success") {
+        setCalendarNotice(payload.message || "Calendar linked.");
+        setError("");
+        setShowCalendarLinker(false);
+        void loadAll();
+      } else {
+        setError(payload.message || "Failed to link calendar");
+      }
+      setConnectingProvider("");
+    }
+
+    window.addEventListener("message", handleCalendarLinkMessage);
+    return () => window.removeEventListener("message", handleCalendarLinkMessage);
   }, [loadAll]);
 
   const boardOptions = useMemo(() => {
@@ -496,6 +538,11 @@ export default function MeetingsCalendarPage() {
     return { total: filteredMeetings.length, upcoming, thisMonth, conflicts };
   }, [filteredMeetings, currentMonth]);
 
+  const linkedCalendarProviders = useMemo(
+    () => calendarConnections.map((connection) => connection.provider),
+    [calendarConnections]
+  );
+
   async function submitMeeting(e: FormEvent) {
     e.preventDefault();
     if (!form.board_id) {
@@ -647,37 +694,46 @@ export default function MeetingsCalendarPage() {
     }
   }
 
-  async function exportCalendar() {
-    setExporting(true);
+  async function startCalendarLink(provider: "google" | "microsoft") {
+    setConnectingProvider(provider);
     setError("");
     try {
-      const query = selectedBoardFilter !== "all" ? `?board_id=${encodeURIComponent(selectedBoardFilter)}` : "";
-      const res = await fetch(`${API_URL}/admin/meetings/export${query}`, {
-        method: "GET",
-        headers: authHeaders(),
+      const res = await apiFetch("/admin/calendar/connections/start", {
+        method: "POST",
+        body: JSON.stringify({
+          provider,
+          email: calendarEmail.trim(),
+        }),
       });
-      if (!res.ok) {
-        throw new Error("Failed to export calendar");
+      const authURL = String((res as { auth_url?: string }).auth_url || "");
+      if (!authURL) {
+        throw new Error("Failed to start calendar linking");
       }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download =
-        effectiveRole === "student"
-          ? "taskflow-my-calendar.ics"
-          : effectiveRole === "supervisor"
-            ? "taskflow-my-meetings.ics"
-            : "taskflow-meetings.ics";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      const popup = window.open(authURL, "taskflow-calendar-link", "popup=yes,width=620,height=760");
+      if (!popup) {
+        window.location.href = authURL;
+      }
     } catch (e: unknown) {
-      setError(errorMessage(e, "Failed to export calendar"));
+      setError(errorMessage(e, "Failed to start calendar linking"));
     } finally {
-      setExporting(false);
+      setConnectingProvider("");
+    }
+  }
+
+  async function disconnectCalendar(provider: "google" | "microsoft") {
+    setDisconnectingProvider(provider);
+    setError("");
+    try {
+      await apiFetch("/admin/calendar/connections/disconnect", {
+        method: "POST",
+        body: JSON.stringify({ provider }),
+      });
+      setCalendarNotice(`${provider === "google" ? "Google Calendar" : "Outlook Calendar"} disconnected.`);
+      await loadAll();
+    } catch (e: unknown) {
+      setError(errorMessage(e, "Failed to disconnect calendar"));
+    } finally {
+      setDisconnectingProvider("");
     }
   }
 
@@ -703,6 +759,11 @@ export default function MeetingsCalendarPage() {
         {error ? (
           <div className="mb-4 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700">
             {error}
+          </div>
+        ) : null}
+        {!error && calendarNotice ? (
+          <div className="mb-4 rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-semibold text-emerald-700">
+            {calendarNotice}
           </div>
         ) : null}
 
@@ -733,12 +794,21 @@ export default function MeetingsCalendarPage() {
           </div> */}
           <button
             type="button"
-            onClick={exportCalendar}
-            disabled={exporting}
-            className="h-12 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white disabled:opacity-60 max-[520px]:w-full"
+            onClick={() => {
+              setCalendarEmail(email || "");
+              setCalendarNotice("");
+              setShowCalendarLinker(true);
+            }}
+            className="h-12 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white max-[520px]:w-full"
           >
-            {exporting ? "Exporting..." : "Export Calendar"}
+            {calendarConnections.length ? "Manage Calendar Links" : "Connect Calendar"}
           </button>
+          {calendarConnections.length ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-[11px] font-black text-emerald-700">
+              {linkedCalendarProviders.includes("google") ? <span className="rounded-full border border-emerald-200 bg-white px-2.5 py-1">Google linked</span> : null}
+              {linkedCalendarProviders.includes("microsoft") ? <span className="rounded-full border border-emerald-200 bg-white px-2.5 py-1">Outlook linked</span> : null}
+            </div>
+          ) : null}
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 rounded-2xl border border-slate-200/80 bg-white/70 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur max-[1180px]:ml-0 max-[1180px]:justify-start max-[520px]:w-full">
             <MiniStat label="Total" value={stats.total} tone="amber" />
             <MiniStat label="Upcoming" value={stats.upcoming} tone="emerald" />
@@ -885,6 +955,81 @@ export default function MeetingsCalendarPage() {
             </div>
           </div>
         </section>
+
+        {showCalendarLinker ? (
+          <div className="fixed inset-0 z-[94] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={() => setShowCalendarLinker(false)}>
+            <div className="w-full max-w-[640px] rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900">Connect Calendar</div>
+                  <div className="mt-1 text-[13px] font-semibold text-slate-500">Link Google or Outlook so TaskFlow can block busy slots and push booked meetings into that calendar.</div>
+                </div>
+                <button type="button" onClick={() => setShowCalendarLinker(false)} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
+              </div>
+
+              <label className="mt-4 grid gap-1.5">
+                <span className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-500">Email for the calendar account</span>
+                <input
+                  type="email"
+                  value={calendarEmail}
+                  onChange={(e) => setCalendarEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-[14px] font-semibold text-slate-800 outline-none focus:border-amber-300"
+                />
+              </label>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => startCalendarLink("google")}
+                  disabled={connectingProvider !== ""}
+                  className="rounded-[20px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fafc)] p-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-slate-300 disabled:opacity-60"
+                >
+                  <div className="text-[16px] font-black text-slate-900">Google Calendar</div>
+                  <div className="mt-1 text-[12px] font-semibold text-slate-500">Use Google sign-in, check availability, and add the event automatically.</div>
+                  <div className="mt-4 text-[12px] font-black text-amber-600">{connectingProvider === "google" ? "Opening Google..." : "Connect Google"}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startCalendarLink("microsoft")}
+                  disabled={connectingProvider !== ""}
+                  className="rounded-[20px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fafc)] p-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-slate-300 disabled:opacity-60"
+                >
+                  <div className="text-[16px] font-black text-slate-900">Outlook Calendar</div>
+                  <div className="mt-1 text-[12px] font-semibold text-slate-500">Use Microsoft sign-in, check availability, and mirror the meeting in Outlook.</div>
+                  <div className="mt-4 text-[12px] font-black text-amber-600">{connectingProvider === "microsoft" ? "Opening Outlook..." : "Connect Outlook"}</div>
+                </button>
+              </div>
+
+              <div className="mt-5 rounded-[20px] border border-slate-200 bg-slate-50 p-4">
+                <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Current links</div>
+                <div className="mt-3 space-y-3">
+                  {calendarConnections.length === 0 ? (
+                    <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-5 text-[13px] font-semibold text-slate-500">No calendar linked yet. Once you connect one, TaskFlow will check busy times before saving a meeting.</div>
+                  ) : (
+                    calendarConnections.map((connection) => (
+                      <div key={connection.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-slate-200 bg-white px-4 py-3">
+                        <div className="min-w-0">
+                          <div className="text-[14px] font-black text-slate-900">{connection.provider === "google" ? "Google Calendar" : "Outlook Calendar"}</div>
+                          <div className="mt-1 text-[12px] font-semibold text-slate-500">{connection.external_email || connection.calendar_name || "Primary calendar"}</div>
+                          {connection.last_error ? <div className="mt-1 text-[11px] font-bold text-amber-700">{connection.last_error}</div> : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => disconnectCalendar(connection.provider)}
+                          disabled={disconnectingProvider === connection.provider}
+                          className="h-10 rounded-[12px] border border-rose-200 bg-rose-50 px-3 text-[12px] font-black text-rose-700 disabled:opacity-60"
+                        >
+                          {disconnectingProvider === connection.provider ? "Disconnecting..." : "Disconnect"}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {selectedMeeting ? (
           <div className="fixed inset-0 z-[95] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={() => setSelectedMeetingID(null)}>

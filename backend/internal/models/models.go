@@ -181,6 +181,32 @@ type MeetingParticipant struct {
 	UpdatedAt        string `json:"updated_at"`
 }
 
+type CalendarConnection struct {
+	ID             int64  `json:"id"`
+	UserID         int64  `json:"user_id"`
+	Provider       string `json:"provider"`
+	ExternalEmail  string `json:"external_email"`
+	CalendarID     string `json:"calendar_id"`
+	CalendarName   string `json:"calendar_name"`
+	Status         string `json:"status"`
+	LastSyncedAt   string `json:"last_synced_at"`
+	LastConflictAt string `json:"last_conflict_at"`
+	LastError      string `json:"last_error"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
+type MeetingCalendarEvent struct {
+	MeetingID          int64  `json:"meeting_id"`
+	ConnectionID       int64  `json:"connection_id"`
+	Provider           string `json:"provider"`
+	ExternalCalendarID string `json:"external_calendar_id"`
+	ExternalEventID    string `json:"external_event_id"`
+	LastSyncedAt       string `json:"last_synced_at"`
+	LastSyncStatus     string `json:"last_sync_status"`
+	LastSyncError      string `json:"last_sync_error"`
+}
+
 type AppNotification struct {
 	ID        int64  `json:"id"`
 	UserID    int64  `json:"user_id"`

@@ -58,7 +58,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	//CORS 
+	//CORS
 	allowedOrigins := []string{"http://localhost:5173", "http://127.0.0.1:5173"}
 	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
 		for _, o := range strings.Split(extra, ",") {
@@ -163,6 +163,10 @@ func main() {
 		ar.Get("/all-boards", api.AdminAllBoards)
 		ar.Get("/meetings", api.AdminListMeetings)
 		ar.Get("/meetings/export", api.ExportMeetingsCalendar)
+		ar.Get("/calendar/connections", api.ListCalendarConnections)
+		ar.Post("/calendar/connections/start", api.StartCalendarConnection)
+		ar.Get("/calendar/connections/callback", api.CompleteCalendarConnection)
+		ar.Post("/calendar/connections/disconnect", api.DisconnectCalendarConnection)
 		ar.Post("/meetings", api.AdminCreateMeeting)
 		ar.Post("/meetings/update", api.AdminUpdateMeeting)
 		ar.Post("/meetings/status", api.AdminUpdateMeetingStatus)
@@ -344,6 +348,9 @@ func runMigrations(conn *sql.DB) error {
 	if err := ensureMeetingsSchema(conn); err != nil {
 		return err
 	}
+	if err := ensureCalendarSchema(conn); err != nil {
+		return err
+	}
 	if err := ensureBoardsSchema(conn); err != nil {
 		return err
 	}
@@ -482,6 +489,77 @@ func ensureMeetingsSchema(conn *sql.DB) error {
 		  UNIQUE(meeting_id, days_before, meeting_date)
 		)
 	`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ensureCalendarSchema(conn *sql.DB) error {
+	if _, err := conn.Exec(`
+		CREATE TABLE IF NOT EXISTS calendar_connections (
+		  id INTEGER PRIMARY KEY AUTOINCREMENT,
+		  user_id INTEGER NOT NULL,
+		  provider TEXT NOT NULL,
+		  external_email TEXT NOT NULL DEFAULT '',
+		  calendar_id TEXT NOT NULL DEFAULT 'primary',
+		  calendar_name TEXT NOT NULL DEFAULT 'Primary calendar',
+		  access_token TEXT NOT NULL DEFAULT '',
+		  refresh_token TEXT NOT NULL DEFAULT '',
+		  token_type TEXT NOT NULL DEFAULT '',
+		  token_scope TEXT NOT NULL DEFAULT '',
+		  token_expires_at TEXT NOT NULL DEFAULT '',
+		  status TEXT NOT NULL DEFAULT 'connected',
+		  last_synced_at TEXT,
+		  last_conflict_at TEXT,
+		  last_error TEXT NOT NULL DEFAULT '',
+		  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+		  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		  UNIQUE(user_id, provider)
+		)
+	`); err != nil {
+		return err
+	}
+
+	if _, err := conn.Exec(`
+		CREATE TABLE IF NOT EXISTS calendar_oauth_states (
+		  state_token TEXT PRIMARY KEY,
+		  user_id INTEGER NOT NULL,
+		  provider TEXT NOT NULL,
+		  login_hint TEXT NOT NULL DEFAULT '',
+		  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+		)
+	`); err != nil {
+		return err
+	}
+
+	if _, err := conn.Exec(`
+		CREATE TABLE IF NOT EXISTS meeting_calendar_events (
+		  meeting_id INTEGER NOT NULL,
+		  connection_id INTEGER NOT NULL,
+		  provider TEXT NOT NULL,
+		  external_calendar_id TEXT NOT NULL DEFAULT '',
+		  external_event_id TEXT NOT NULL DEFAULT '',
+		  last_synced_at TEXT NOT NULL DEFAULT (datetime('now')),
+		  last_sync_status TEXT NOT NULL DEFAULT '',
+		  last_sync_error TEXT NOT NULL DEFAULT '',
+		  PRIMARY KEY (meeting_id, provider),
+		  FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+		  FOREIGN KEY (connection_id) REFERENCES calendar_connections(id) ON DELETE CASCADE
+		)
+	`); err != nil {
+		return err
+	}
+
+	if _, err := conn.Exec(`CREATE INDEX IF NOT EXISTS idx_calendar_connections_user_id ON calendar_connections(user_id)`); err != nil {
+		return err
+	}
+	if _, err := conn.Exec(`CREATE INDEX IF NOT EXISTS idx_calendar_states_user_id ON calendar_oauth_states(user_id)`); err != nil {
+		return err
+	}
+	if _, err := conn.Exec(`CREATE INDEX IF NOT EXISTS idx_meeting_calendar_events_connection_id ON meeting_calendar_events(connection_id)`); err != nil {
 		return err
 	}
 

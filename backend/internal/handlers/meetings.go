@@ -251,6 +251,10 @@ func (a *API) validateMeetingWrite(role string, actor int64, req createMeetingRe
 		}
 	}
 
+	if err := a.ensureCalendarAvailability(boardSupervisorID, req.MeetingID, startsAt, endsAt); err != nil {
+		return "", "", 0, err
+	}
+
 	return startsAt, endsAt, boardSupervisorID, nil
 }
 
@@ -376,7 +380,7 @@ func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	actor := actorID(r, a.conn)
-	startsAt, endsAt, _, err := a.validateMeetingWrite(role, actor, req)
+	startsAt, endsAt, boardSupervisorID, err := a.validateMeetingWrite(role, actor, req)
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, err.Error())
 		return
@@ -389,6 +393,7 @@ func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = db.SyncMeetingParticipants(a.conn, meetingID, req.BoardID)
 	meeting, _ := db.GetMeetingByID(a.conn, meetingID)
+	calendarSyncError := a.syncMeetingToLinkedCalendars(boardSupervisorID, meeting)
 	a.notifyMeetingParticipants(meetingID, actor, "meeting_created", "New meeting booked", meeting.Title, "A new meeting was added to your board calendar.")
 	a.notifyAdmins("meeting_created", "New meeting booked", meetingAdminBody(meeting, a.adminActorLabel(actor), "Meeting was booked."))
 
@@ -399,6 +404,7 @@ func (a *API) AdminCreateMeeting(w http.ResponseWriter, r *http.Request) {
 		"id":                    meetingID,
 		"discord_notified":      discordNotified,
 		"room_booking_notified": roomBookingNotified,
+		"calendar_sync_error":   calendarSyncError,
 	})
 }
 
@@ -480,11 +486,12 @@ func (a *API) AdminUpdateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = db.SyncMeetingParticipants(a.conn, req.MeetingID, req.BoardID)
 	updatedMeeting, _ := db.GetMeetingByID(a.conn, req.MeetingID)
+	calendarSyncError := a.syncMeetingToLinkedCalendars(updatedMeeting.SupervisorID, updatedMeeting)
 	a.notifyMeetingParticipants(req.MeetingID, actor, "meeting_updated", "Meeting rescheduled", updatedMeeting.Title, "A meeting time, room, or agenda was updated.")
 	a.notifyAdmins("meeting_updated", "Meeting rescheduled", meetingAdminBody(updatedMeeting, a.adminActorLabel(actor), "The schedule, room, or agenda was changed."))
 	_ = a.notifyMeetingChanged(updatedMeeting, "updated")
 
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "calendar_sync_error": calendarSyncError})
 }
 
 func (a *API) AdminUpdateMeetingStatus(w http.ResponseWriter, r *http.Request) {
@@ -555,7 +562,8 @@ func (a *API) AdminUpdateMeetingStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	calendarSyncError := a.syncMeetingToLinkedCalendars(updatedMeeting.SupervisorID, updatedMeeting)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "calendar_sync_error": calendarSyncError})
 }
 
 func (a *API) AdminUpdateMeetingParticipant(w http.ResponseWriter, r *http.Request) {
@@ -649,6 +657,7 @@ func (a *API) AdminDeleteMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	a.deleteMeetingFromLinkedCalendars(meeting.SupervisorID, req.MeetingID)
 	if err := db.DeleteMeeting(a.conn, req.MeetingID); err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to delete meeting")
 		return
