@@ -55,6 +55,13 @@ func (a *API) syncBoardDiscordChannel(boardID int64) bool {
 		log.Printf("discord sync skipped: board %d not found: %v", boardID, err)
 		return false
 	}
+	if strings.EqualFold(strings.TrimSpace(board.Status), "inactive") {
+		if err := a.deleteBoardDiscordChannel(boardID); err != nil {
+			log.Printf("discord sync inactive cleanup failed for board %d: %v", boardID, err)
+			return false
+		}
+		return true
+	}
 
 	members, err := db.ListBoardDiscordMembers(a.conn, boardID)
 	if err != nil {
@@ -195,11 +202,11 @@ func (a *API) deleteBoardDiscordChannel(boardID int64) error {
 
 	if err := a.discord.DeleteChannel(ctx, channelID); err != nil {
 		if strings.Contains(err.Error(), "status=404") || strings.Contains(err.Error(), fmt.Sprintf("status=%d", http.StatusNotFound)) {
-			return nil
+			return db.DeleteBoardDiscordChannel(a.conn, boardID)
 		}
 		return err
 	}
-	return nil
+	return db.DeleteBoardDiscordChannel(a.conn, boardID)
 }
 
 func (a *API) notifyCardAssigned(cardID, userID, actorID int64) bool {

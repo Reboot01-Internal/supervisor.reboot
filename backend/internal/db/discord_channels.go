@@ -26,6 +26,14 @@ func GetBoardDiscordChannelID(conn DBTX, boardID int64) (string, error) {
 	return channelID, err
 }
 
+func DeleteBoardDiscordChannel(conn DBTX, boardID int64) error {
+	_, err := conn.Exec(`
+		DELETE FROM board_discord_channels
+		WHERE board_id = ?
+	`, boardID)
+	return err
+}
+
 func ListBoardDiscordMembers(conn DBTX, boardID int64) ([]models.BoardDiscordMember, error) {
 	rows, err := conn.Query(`
 		SELECT

@@ -804,11 +804,26 @@ func (a *API) AdminUpdateBoardStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	board, _ := db.GetBoardBasic(a.conn, req.BoardID)
+	discordSynced := false
+	if req.Status == "inactive" {
+		if err := a.deleteBoardDiscordChannel(req.BoardID); err != nil {
+			writeErr(w, http.StatusBadGateway, "failed to delete discord channel")
+			return
+		}
+		discordSynced = a.discord != nil && a.discord.Enabled()
+	} else {
+		discordSynced = a.syncBoardDiscordChannel(req.BoardID)
+		if a.discord != nil && a.discord.Enabled() && !discordSynced {
+			writeErr(w, http.StatusBadGateway, "failed to create discord channel")
+			return
+		}
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":          true,
-		"status":      req.Status,
-		"inactive_at": board.InactiveAt,
+		"ok":             true,
+		"status":         req.Status,
+		"inactive_at":    board.InactiveAt,
+		"discord_synced": discordSynced,
 	})
 }
 
