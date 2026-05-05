@@ -1253,7 +1253,7 @@ export default function AdminBoardsPage() {
       <div className="boards-page w-full">
         {/* Toolbar */}
         <div className="mb-4 grid gap-3">
-          <div className="grid min-w-0 items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="grid min-w-0 items-center gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="boards-search flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10">
               <span className="text-slate-400" aria-hidden="true">
                 <SearchIcon />
@@ -1319,12 +1319,12 @@ export default function AdminBoardsPage() {
                 </button>
               </div>
             </div>
-          </div>
 
-          <div className="flex min-w-0 flex-wrap justify-end gap-2.5 max-[1180px]:justify-start">
-            <StatPill icon={<BoardIcon />} label="Boards" value={totals.totalBoards} />
-            <StatPill icon={<LayersIcon />} label="Lists" value={totals.totalLists} />
-            <StatPill icon={<CardStackIcon />} label="Cards" value={totals.totalCards} />
+            <div className="flex min-w-0 flex-nowrap justify-end gap-2.5 lg:col-span-2 xl:col-span-1 max-[760px]:flex-wrap max-[760px]:justify-start">
+              <StatPill icon={<BoardIcon />} label="Boards" value={totals.totalBoards} />
+              <StatPill icon={<LayersIcon />} label="Lists" value={totals.totalLists} />
+              <StatPill icon={<CardStackIcon />} label="Cards" value={totals.totalCards} />
+            </div>
           </div>
         </div>
 
