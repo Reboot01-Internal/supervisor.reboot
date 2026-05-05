@@ -538,11 +538,6 @@ export default function MeetingsCalendarPage() {
     return { total: filteredMeetings.length, upcoming, thisMonth, conflicts };
   }, [filteredMeetings, currentMonth]);
 
-  const linkedCalendarProviders = useMemo(
-    () => calendarConnections.map((connection) => connection.provider),
-    [calendarConnections]
-  );
-
   async function submitMeeting(e: FormEvent) {
     e.preventDefault();
     if (!form.board_id) {
@@ -799,16 +794,16 @@ export default function MeetingsCalendarPage() {
               setCalendarNotice("");
               setShowCalendarLinker(true);
             }}
-            className="h-12 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white max-[520px]:w-full"
+            className="inline-flex h-12 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white max-[520px]:w-full max-[520px]:justify-center"
           >
-            {calendarConnections.length ? "Manage Calendar Links" : "Connect Calendar"}
+            <span>{calendarConnections.length ? "Manage Calendar Links" : "Connect Calendar"}</span>
+            {calendarConnections.length ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                Linked
+              </span>
+            ) : null}
           </button>
-          {calendarConnections.length ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-[11px] font-black text-emerald-700">
-              {linkedCalendarProviders.includes("google") ? <span className="rounded-full border border-emerald-200 bg-white px-2.5 py-1">Google linked</span> : null}
-              {linkedCalendarProviders.includes("microsoft") ? <span className="rounded-full border border-emerald-200 bg-white px-2.5 py-1">Outlook linked</span> : null}
-            </div>
-          ) : null}
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 rounded-2xl border border-slate-200/80 bg-white/70 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur max-[1180px]:ml-0 max-[1180px]:justify-start max-[520px]:w-full">
             <MiniStat label="Total" value={stats.total} tone="amber" />
             <MiniStat label="Upcoming" value={stats.upcoming} tone="emerald" />
