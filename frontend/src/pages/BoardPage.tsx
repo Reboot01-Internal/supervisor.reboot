@@ -492,15 +492,15 @@ function CardItem({
                   title={a.full_name}
                   className={[
                     "group relative",
-                    idx === 0 ? "" : "-ml-2",
+                    idx === 0 ? "" : "-ml-3",
                   ].join(" ")}
                 >
                   <UserAvatar
                     src={avatarByUserID[a.user_id] || ""}
                     alt={a.full_name}
                     fallback={initials(a.full_name)}
-                    sizeClass="h-7 w-7"
-                    textClass="text-[10px]"
+                    sizeClass="h-10 w-10"
+                    textClass="text-[12px]"
                     className="border-2 border-white bg-slate-100 shadow-[0_4px_10px_rgba(15,23,42,0.12)]"
                   />
                   <span className="pointer-events-none absolute bottom-full left-1/2 z-[30] mb-2 max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-950 px-2.5 py-1.5 text-[11px] font-black text-white opacity-0 shadow-[0_12px_28px_rgba(15,23,42,0.22)] transition group-hover:opacity-100">
@@ -510,7 +510,7 @@ function CardItem({
                 </div>
               ))}
               {(preview?.assignees?.length ?? 0) > 3 && (
-                <div className="-ml-2 h-7 w-7 rounded-full border border-slate-200 bg-slate-100 grid place-items-center text-[11px] font-extrabold text-slate-700">
+                <div className="-ml-3 h-10 w-10 rounded-full border-2 border-white bg-slate-100 grid place-items-center text-[12px] font-extrabold text-slate-700 shadow-[0_4px_10px_rgba(15,23,42,0.12)]">
                   +{preview!.assignees.length - 3}
                 </div>
               )}

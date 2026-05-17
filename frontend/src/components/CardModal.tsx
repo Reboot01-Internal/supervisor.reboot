@@ -1133,8 +1133,8 @@ export default function CardModal({
                                 src={avatarForUser(a)}
                                 alt={a.full_name}
                                 fallback={initials(a.full_name)}
-                                sizeClass="h-[24px] w-[24px]"
-                                textClass="text-[10px]"
+                                sizeClass="h-8 w-8"
+                                textClass="text-[11px]"
                                 className="border-white bg-slate-50 shadow-[0_4px_10px_rgba(15,23,42,0.10)]"
                                 previewable
                               />
