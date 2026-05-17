@@ -4,6 +4,8 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useConfirm } from "../lib/useConfirm";
 import { playDoneSound } from "../lib/sound";
+import UserAvatar from "./UserAvatar";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type Card = {
   id: number;
@@ -28,6 +30,7 @@ type Assignee = {
   user_id: number;
   full_name: string;
   email: string;
+  nickname?: string;
   role: string;
 };
 
@@ -35,6 +38,7 @@ type BoardMember = {
   user_id: number;
   full_name: string;
   email: string;
+  nickname?: string;
   role: string;
   role_in_board: string;
 };
@@ -75,6 +79,15 @@ type CardFull = {
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((p) => (p[0] ? p[0].toUpperCase() : "")).join("");
+}
+
+function loginOfUser(user: { nickname?: string; email?: string; full_name?: string }) {
+  const nickname = String(user.nickname || "").trim().toLowerCase();
+  if (nickname) return nickname;
+  const email = String(user.email || "").trim().toLowerCase();
+  if (email.includes("@")) return email.split("@")[0];
+  if (email) return email;
+  return String(user.full_name || "").trim().toLowerCase().replace(/\s+/g, ".");
 }
 
 function isDateOverdue(due: string) {
@@ -363,6 +376,7 @@ export default function CardModal({
   const [activities, setActivities] = useState<Activity[]>([]);
   const [boardId, setBoardId] = useState<number | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
 
   const [cardLabels, setCardLabels] = useState<CardLabel[]>([]);
   const [boardLabels, setBoardLabels] = useState<Label[]>([]);
@@ -405,6 +419,18 @@ export default function CardModal({
   }, [subtasks]);
 
   const studentsOnly = useMemo(() => boardMembers.filter((m) => m.role === "student"), [boardMembers]);
+  const boardMemberByUserID = useMemo(() => {
+    const next = new Map<number, BoardMember>();
+    for (const member of boardMembers) next.set(member.user_id, member);
+    return next;
+  }, [boardMembers]);
+
+  const avatarForUser = (user: Assignee | BoardMember) => {
+    const boardMember = boardMemberByUserID.get(user.user_id);
+    const boardMemberLogin = boardMember ? loginOfUser(boardMember) : "";
+    if (boardMemberLogin && avatarByLogin[boardMemberLogin]) return avatarByLogin[boardMemberLogin];
+    return avatarByLogin[loginOfUser(user)] || "";
+  };
 
   const availableStudents = useMemo(() => {
     const q = assigneeQuery.trim().toLowerCase();
@@ -412,10 +438,40 @@ export default function CardModal({
       .filter((m) => !assigneeIds.has(m.user_id))
       .filter((m) => {
         if (!q) return true;
-        return m.full_name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
+        return (
+          m.full_name.toLowerCase().includes(q) ||
+          m.email.toLowerCase().includes(q) ||
+          String(m.nickname || "").toLowerCase().includes(q)
+        );
       })
       .slice(0, 10);
   }, [studentsOnly, assigneeIds, assigneeQuery]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAvatars() {
+      const logins = [...boardMembers, ...assignees].map(loginOfUser).filter(Boolean);
+      const unique = [...new Set(logins)];
+      if (unique.length === 0) {
+        setAvatarByLogin({});
+        return;
+      }
+      try {
+        const next = await fetchRebootAvatars(unique);
+        if (!alive) return;
+        setAvatarByLogin(next);
+      } catch {
+        if (!alive) return;
+        setAvatarByLogin({});
+      }
+    }
+
+    void loadAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [assignees, boardMembers]);
 
   const cardLabelIds = useMemo(() => new Set(cardLabels.map((x) => x.label_id)), [cardLabels]);
   const nowStamp = () => new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -685,7 +741,13 @@ export default function CardModal({
     if (chosen) {
       setAssignees((prev) => [
         ...prev,
-        { user_id: chosen.user_id, full_name: chosen.full_name, email: chosen.email, role: chosen.role },
+        {
+          user_id: chosen.user_id,
+          full_name: chosen.full_name,
+          email: chosen.email,
+          nickname: chosen.nickname,
+          role: chosen.role,
+        },
       ]);
     }
     setAssigneeQuery("");
@@ -1062,10 +1124,20 @@ export default function CardModal({
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {assignees.map((a) => (
-                            <div key={a.user_id} className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 pr-1`}>
-                              <span className="grid h-[22px] w-[22px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[11px] font-black">
-                                {initials(a.full_name)}
-                              </span>
+                            <div
+                              key={a.user_id}
+                              className={`${pillBase} border-indigo-500/25 bg-indigo-500/10 pr-1`}
+                              title={a.full_name}
+                            >
+                              <UserAvatar
+                                src={avatarForUser(a)}
+                                alt={a.full_name}
+                                fallback={initials(a.full_name)}
+                                sizeClass="h-[24px] w-[24px]"
+                                textClass="text-[10px]"
+                                className="border-white bg-slate-50 shadow-[0_4px_10px_rgba(15,23,42,0.10)]"
+                                previewable
+                              />
                               <span className="text-[12px] font-black">{a.full_name}</span>
                               {canManageCard ? (
                                 <button
@@ -1115,9 +1187,15 @@ export default function CardModal({
                                         onClick={() => addAssignee(m.user_id)}
                                       >
                                         <span className="flex min-w-0 items-center gap-3">
-                                          <span className="grid h-[24px] w-[24px] place-items-center rounded-full border border-slate-900/10 bg-slate-900/5 text-[12px] font-black">
-                                            {initials(m.full_name)}
-                                          </span>
+                                          <UserAvatar
+                                            src={avatarForUser(m)}
+                                            alt={m.full_name}
+                                            fallback={initials(m.full_name)}
+                                            sizeClass="h-7 w-7"
+                                            textClass="text-[10px]"
+                                            className="bg-slate-50"
+                                            previewable
+                                          />
                                           <span className="min-w-0">
                                             <span className="block truncate text-[13px] font-black text-slate-900">{m.full_name}</span>
                                             <span className="block truncate text-[12px] font-semibold text-slate-500">{m.email}</span>

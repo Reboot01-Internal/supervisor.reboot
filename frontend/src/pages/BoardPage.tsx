@@ -308,6 +308,7 @@ function priorityPillClass(priority: string) {
 function CardItem({
   card,
   preview,
+  avatarByUserID,
   onOpen,
   onToggleDone,
   index = 0,
@@ -316,6 +317,7 @@ function CardItem({
 }: {
   card: Card;
   preview?: CardPreview;
+  avatarByUserID: Record<number, string>;
   onOpen: (cardId: number) => void;
   onToggleDone: (cardId: number, nextDone: boolean) => void;
   index?: number;
@@ -489,12 +491,22 @@ function CardItem({
                   key={a.user_id}
                   title={a.full_name}
                   className={[
-                    "h-7 w-7 rounded-full border border-slate-200 bg-slate-100",
-                    "grid place-items-center text-[11px] font-extrabold text-slate-700",
+                    "group relative",
                     idx === 0 ? "" : "-ml-2",
                   ].join(" ")}
                 >
-                  {initials(a.full_name)}
+                  <UserAvatar
+                    src={avatarByUserID[a.user_id] || ""}
+                    alt={a.full_name}
+                    fallback={initials(a.full_name)}
+                    sizeClass="h-7 w-7"
+                    textClass="text-[10px]"
+                    className="border-2 border-white bg-slate-100 shadow-[0_4px_10px_rgba(15,23,42,0.12)]"
+                  />
+                  <span className="pointer-events-none absolute bottom-full left-1/2 z-[30] mb-2 max-w-[180px] -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-950 px-2.5 py-1.5 text-[11px] font-black text-white opacity-0 shadow-[0_12px_28px_rgba(15,23,42,0.22)] transition group-hover:opacity-100">
+                    {a.full_name}
+                    <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-slate-950" />
+                  </span>
                 </div>
               ))}
               {(preview?.assignees?.length ?? 0) > 3 && (
@@ -520,6 +532,7 @@ function ListColumn({
   list,
   cards,
   previews,
+  avatarByUserID,
   onAddCard,
   onRenameList,
   onDeleteList,
@@ -531,6 +544,7 @@ function ListColumn({
   list: List;
   cards: Card[];
   previews: Record<number, CardPreview | undefined>;
+  avatarByUserID: Record<number, string>;
   onAddCard: (listId: number) => void;
   onRenameList: (listId: number, title: string) => Promise<boolean>;
   onDeleteList: (listId: number, listTitle: string) => void;
@@ -661,6 +675,7 @@ function ListColumn({
               key={c.id}
               card={c}
               preview={previews[c.id]}
+              avatarByUserID={avatarByUserID}
               onOpen={onOpenCard}
               onToggleDone={onToggleDone}
               index={idx}
@@ -831,6 +846,38 @@ export default function BoardPage() {
     const overdue = cards.filter((c) => c.due_date && isDateOverdue(c.due_date)).length;
     return { total, done, overdue };
   }, [data]);
+
+  const avatarByUserID = useMemo(() => {
+    const next: Record<number, string> = {};
+    for (const member of members) {
+      const memberLogin = loginKey(member.nickname || member.email.split("@")[0]);
+      if (memberLogin && avatarByLogin[memberLogin]) {
+        next[member.user_id] = avatarByLogin[memberLogin];
+      }
+    }
+    return next;
+  }, [avatarByLogin, members]);
+
+  useEffect(() => {
+    if (!boardID || Number.isNaN(boardID)) return;
+    let alive = true;
+
+    async function loadBoardMembersForAvatars() {
+      try {
+        const res = await apiFetch(`/admin/board-members?board_id=${boardID}`);
+        if (!alive) return;
+        setMembers(Array.isArray(res) ? res : []);
+      } catch {
+        if (!alive) return;
+        setMembers([]);
+      }
+    }
+
+    void loadBoardMembersForAvatars();
+    return () => {
+      alive = false;
+    };
+  }, [boardID]);
 
   async function createList(e: React.FormEvent) {
     e.preventDefault();
@@ -1651,6 +1698,7 @@ export default function BoardPage() {
                     list={l}
                     cards={cardsByList[l.id] ?? []}
                     previews={previews}
+                    avatarByUserID={avatarByUserID}
                     onAddCard={createCard}
                     onRenameList={renameList}
                     onDeleteList={deleteList}
@@ -1682,6 +1730,7 @@ export default function BoardPage() {
                 <CardItem
                   card={activeCardSnapshot}
                   preview={previews[activeCardSnapshot.id]}
+                  avatarByUserID={avatarByUserID}
                   onOpen={onOpenCard}
                   onToggleDone={toggleCardDone}
                   index={0}
