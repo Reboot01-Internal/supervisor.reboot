@@ -254,7 +254,7 @@ function prettyPriority(p?: string) {
   return "Medium";
 }
 
-/** Tailwind label dot colors */
+/** Tailwind label colors */
 function labelDotClass(color: string) {
   switch ((color || "").toLowerCase()) {
     case "indigo":
@@ -273,6 +273,27 @@ function labelDotClass(color: string) {
       return "bg-slate-600";
     default:
       return "bg-slate-400";
+  }
+}
+
+function labelPillClass(color: string) {
+  switch ((color || "").toLowerCase()) {
+    case "indigo":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700";
+    case "sky":
+      return "border-sky-200 bg-sky-50 text-sky-700";
+    case "emerald":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "amber":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "rose":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    case "violet":
+      return "border-violet-200 bg-violet-50 text-violet-700";
+    case "slate":
+      return "border-slate-200 bg-slate-50 text-slate-700";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
   }
 }
 
@@ -365,21 +386,24 @@ function CardItem({
           <div className="min-w-0 cursor-default">
             {/* labels */}
             {labels.length > 0 && (
-              <div className="flex items-center gap-1.5 mb-2">
-                {labels.slice(0, 4).map((l) => (
+              <div className="mb-2 flex max-w-full flex-wrap items-center gap-1.5">
+                {labels.slice(0, 3).map((l) => (
                   <span
                     key={l.label_id}
                     title={l.name}
                     className={[
-                      "inline-block h-2.5 w-2.5 rounded-full",
-                      "shadow-[0_0_0_2px_rgba(255,255,255,0.95)]",
-                      labelDotClass(l.color),
+                      "inline-flex max-w-[132px] items-center gap-1.5 rounded-full border px-2 py-0.5",
+                      "text-[10px] font-black leading-5",
+                      labelPillClass(l.color),
                     ].join(" ")}
-                  />
+                  >
+                    <span className={`h-2 w-2 flex-none rounded-full ${labelDotClass(l.color)}`} />
+                    <span className="truncate">{l.name || "Label"}</span>
+                  </span>
                 ))}
-                {labels.length > 4 && (
-                  <span className="text-[11px] font-extrabold text-slate-500">
-                    +{labels.length - 4}
+                {labels.length > 3 && (
+                  <span className="inline-flex h-6 items-center rounded-full border border-slate-200 bg-slate-50 px-2 text-[10px] font-black text-slate-600">
+                    +{labels.length - 3}
                   </span>
                 )}
               </div>
