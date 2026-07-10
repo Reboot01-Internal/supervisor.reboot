@@ -96,6 +96,10 @@ func main() {
 	r.Get("/auth/me", api.Me)
 	r.Get("/auth/resolve-user", api.ResolveUserRole)
 
+	r.Get("/api/avatar/current", api.CurrentRebootAvatar)
+	r.Get("/api/avatar/{userID}", api.RebootAvatarByID)
+	r.Get("/api/avatar", api.AdminRebootAvatar)
+
 	// admin
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Post("/users", api.AdminCreateUser)

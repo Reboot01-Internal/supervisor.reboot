@@ -1,6 +1,6 @@
 import { API_URL } from "./api";
 
-const AVATAR_CACHE_KEY = "taskflow.reboot.avatarProxyCache.v2";
+const AVATAR_CACHE_KEY = "taskflow.reboot.avatarProxyCache.v3";
 
 let cachedSessionKey = "";
 const avatarCache = new Map<string, string>();
@@ -18,7 +18,7 @@ function sessionKey() {
 }
 
 function avatarProxyURL(login: string) {
-  return `${API_URL}/admin/avatar?login=${encodeURIComponent(login)}`;
+  return `${API_URL}/api/avatar?login=${encodeURIComponent(login)}`;
 }
 
 function hydrateCache() {
