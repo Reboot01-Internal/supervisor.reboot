@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "motion": "^12.38.0"
+    "motion": "^12.38.0",
+    "sharp": "^0.34.5"
   }
 }

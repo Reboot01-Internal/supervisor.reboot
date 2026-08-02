@@ -457,7 +457,7 @@ export default function CardModal({
     return { done, total, pct };
   }, [subtasks]);
 
-  const studentsOnly = useMemo(() => boardMembers.filter((m) => m.role === "student"), [boardMembers]);
+  const assignableMembers = useMemo(() => boardMembers, [boardMembers]);
   const boardMemberByUserID = useMemo(() => {
     const next = new Map<number, BoardMember>();
     for (const member of boardMembers) next.set(member.user_id, member);
@@ -471,9 +471,9 @@ export default function CardModal({
     return avatarByLogin[loginOfUser(user)] || "";
   };
 
-  const availableStudents = useMemo(() => {
+  const availableMembers = useMemo(() => {
     const q = assigneeQuery.trim().toLowerCase();
-    return studentsOnly
+    return assignableMembers
       .filter((m) => !assigneeIds.has(m.user_id))
       .filter((m) => {
         if (!q) return true;
@@ -484,7 +484,7 @@ export default function CardModal({
         );
       })
       .slice(0, 10);
-  }, [studentsOnly, assigneeIds, assigneeQuery]);
+  }, [assignableMembers, assigneeIds, assigneeQuery]);
 
   useEffect(() => {
     let alive = true;
@@ -788,7 +788,7 @@ export default function CardModal({
   async function addAssignee(userId: number) {
     setErr("");
     setMsg("");
-    const chosen = studentsOnly.find((s) => s.user_id === userId);
+    const chosen = assignableMembers.find((member) => member.user_id === userId);
     if (chosen) {
       setAssignees((prev) => [
         ...prev,
@@ -1301,16 +1301,16 @@ export default function CardModal({
                       {canManageCard && (
                         <>
                           <div className="h-1.5" />
-                          {studentsOnly.length === 0 ? (
+                          {assignableMembers.length === 0 ? (
                             <div className="text-[13px] font-semibold text-slate-500">
-                              No talents in this board yet. Add them from members.
+                              No members in this board yet. Add them from board members.
                             </div>
                           ) : (
                             <div className="relative">
                               <input
                                 ref={assigneeInputRef}
                                 className={inputBase}
-                                placeholder="Search talent to assign..."
+                                placeholder="Search member to assign..."
                                 value={assigneeQuery}
                                 onChange={(e) => {
                                   setAssigneeQuery(e.target.value);
@@ -1319,10 +1319,10 @@ export default function CardModal({
                                 onFocus={() => setAssigneeOpen(true)}
                                 onBlur={() => setTimeout(() => setAssigneeOpen(false), 120)}
                               />
-                              {assigneeOpen && availableStudents.length > 0 && (
+                              {assigneeOpen && availableMembers.length > 0 && (
                                 <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-[14px] border border-slate-900/10 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.10)]">
                                   <div className="grid gap-2">
-                                    {availableStudents.map((m) => (
+                                    {availableMembers.map((m) => (
                                       <button
                                         key={m.user_id}
                                         type="button"
