@@ -592,12 +592,12 @@ function ListColumn({
     <div
       style={{ animationDelay: `${Math.min(columnIndex, 8) * 45}ms` }}
       className={[
-        "boardColumnIn w-[332px] shrink-0 rounded-xl border bg-slate-100/90 shadow-sm overflow-hidden",
+        "boardColumnIn board-list-panel w-[332px] shrink-0 rounded-xl border bg-slate-100/90 shadow-sm overflow-hidden",
         "border-slate-200 transition hover:-translate-y-0.5 hover:shadow-md",
         drop.isOver ? "border-[#6d5efc]/45 ring-2 ring-[#6d5efc]/15" : "",
       ].join(" ")}
     >
-      <div className="px-3 py-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-200 bg-slate-100">
+      <div className="board-list-header px-3 py-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-200 bg-slate-100">
         <div className="min-w-0 flex items-center gap-2 pr-1">
           {isEditingTitle ? (
             <input
@@ -639,6 +639,7 @@ function ListColumn({
             type="button"
             onClick={() => onAddCard(list.id)}
             className={[
+              "board-list-add-card",
               "h-9 px-3 rounded-[12px] border border-slate-200 bg-white",
               "text-slate-700 text-[13px] font-extrabold inline-flex items-center gap-1.5 whitespace-nowrap",
               "shadow-[0_4px_12px_rgba(15,23,42,0.05)] transition",
@@ -653,6 +654,7 @@ function ListColumn({
             type="button"
             onClick={() => onDeleteList(list.id, list.title)}
             className={[
+              "board-list-delete",
               "h-9 w-9 rounded-[12px] border border-slate-200 bg-white text-slate-500 grid place-items-center",
               "shadow-[0_6px_16px_rgba(15,23,42,0.06)] transition",
               "hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 hover:shadow-[0_10px_24px_rgba(251,113,133,0.24)]",
@@ -668,7 +670,7 @@ function ListColumn({
         </div>
       </div>
 
-      <div ref={drop.setNodeRef} className="p-3 grid gap-2 min-h-[120px] bg-slate-100/80">
+      <div ref={drop.setNodeRef} className="board-list-body p-3 grid gap-2 min-h-[120px] bg-slate-100/80">
         <SortableContext items={cards.map((c) => `card:${c.id}`)} strategy={verticalListSortingStrategy}>
           {cards.map((c, idx) => (
             <CardItem
@@ -1690,7 +1692,7 @@ export default function BoardPage() {
             onDragStart={canManage ? onDragStart : undefined}
             onDragEnd={canManage ? onDragEnd : undefined}
           >
-            <div className="overflow-x-auto pb-2 rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f7f8ff_0%,#eef1f8_100%)] p-3">
+            <div className="board-canvas overflow-x-auto pb-2 rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f7f8ff_0%,#eef1f8_100%)] p-3">
               <div className="flex gap-4 items-start min-h-[380px]">
                 {listsSorted.map((l, colIdx) => (
                   <ListColumn

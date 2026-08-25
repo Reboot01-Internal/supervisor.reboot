@@ -28,6 +28,205 @@ body {
 #root {
   background: #eef2f8;
 }
+
+/* 2026 product polish: shared application atmosphere and dashboard */
+:root {
+  --product-violet: #6d5efc;
+  --product-violet-deep: #5145e7;
+  --product-ink: #111827;
+  --product-canvas: #f3f5fa;
+}
+
+body {
+  background: var(--product-canvas);
+}
+
+.app-frame {
+  position: relative;
+  isolation: isolate;
+  background: #f4f6fb !important;
+}
+
+.app-frame::before {
+  content: none;
+}
+
+.app-main {
+  max-width: 1680px;
+  width: 100%;
+}
+
+.app-page-header {
+  min-height: 72px;
+}
+
+.app-eyebrow {
+  color: #7568ee !important;
+}
+
+.app-frame aside > div {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 24px 60px rgba(30, 41, 59, 0.1), inset 0 1px 0 white !important;
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+
+.app-frame aside nav button,
+.app-frame aside > div > div > div > button {
+  min-height: 46px;
+}
+
+.app-frame aside nav button:hover {
+  transform: translateX(2px);
+}
+
+.dashboard-hero {
+  color: white;
+  background:
+    linear-gradient(112deg, rgba(16, 23, 42, 0.98), rgba(35, 35, 73, 0.96) 58%, rgba(79, 66, 202, 0.94)),
+    #111827;
+  box-shadow: 0 24px 55px rgba(39, 35, 93, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.dashboard-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.55) 0.7px, transparent 0.7px);
+  background-size: 20px 20px;
+  mask-image: linear-gradient(90deg, transparent, black);
+}
+
+.dashboard-hero-orb {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(2px);
+}
+
+.dashboard-hero-orb-one {
+  width: 260px;
+  height: 260px;
+  right: 10%;
+  top: -180px;
+  background: rgba(139, 124, 255, 0.34);
+  box-shadow: 0 0 90px rgba(139, 124, 255, 0.42);
+}
+
+.dashboard-hero-orb-two {
+  width: 150px;
+  height: 150px;
+  right: -50px;
+  bottom: -90px;
+  background: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 70px rgba(34, 211, 238, 0.25);
+}
+
+.dashboard-live-pill {
+  color: #d8d5ff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.dashboard-live-pill span {
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.12), 0 0 18px rgba(52, 211, 153, 0.8);
+}
+
+.dashboard-hero-button {
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.dashboard-hero-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.dashboard-hero-button-primary {
+  color: #241f60;
+  border-color: transparent;
+  background: linear-gradient(135deg, #ffffff, #ddd9ff);
+  box-shadow: 0 10px 30px rgba(109, 94, 252, 0.3);
+}
+
+.user-dashboard-stat-card,
+.user-dashboard-panel,
+.dashboard-stat-card {
+  position: relative;
+  border-color: rgba(226, 232, 240, 0.82) !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  box-shadow: 0 14px 38px rgba(30, 41, 59, 0.075), inset 0 1px 0 white !important;
+  backdrop-filter: blur(18px);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.user-dashboard-stat-card {
+  overflow: hidden;
+}
+
+.user-dashboard-stat-card::before {
+  content: none;
+}
+
+.user-dashboard-stat-card:hover,
+.user-dashboard-panel:hover,
+.dashboard-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(109, 94, 252, 0.22) !important;
+  box-shadow: 0 20px 45px rgba(30, 41, 59, 0.11), inset 0 1px 0 white !important;
+}
+
+.user-dashboard-surface,
+.user-dashboard-metric-card {
+  border-color: rgba(226, 232, 240, 0.8) !important;
+  background: rgba(248, 250, 252, 0.78) !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(109, 94, 252, 0.28);
+  outline-offset: 2px;
+}
+
+.admin-dark.app-frame {
+  background: #070b16 !important;
+}
+
+.admin-dark .dashboard-hero {
+  border-color: rgba(139, 124, 255, 0.28) !important;
+  background: linear-gradient(112deg, #10172a, #1b1c3d 60%, #4438a7) !important;
+}
+
+@media (max-width: 640px) {
+  .dashboard-hero {
+    border-radius: 22px;
+  }
+
+  .dashboard-hero-button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* micro animations */
 @keyframes pop {
   0% { transform: scale(1); }
@@ -110,17 +309,13 @@ body {
   --admin-accent-text: #dce7ff;
   min-height: 100vh;
   color: var(--admin-text) !important;
-  background:
-    linear-gradient(180deg, rgba(6, 10, 20, 0.96), rgba(8, 12, 23, 0.98)),
-    var(--admin-bg) !important;
+  background: var(--admin-bg) !important;
 }
 
 html:has(body.admin-dark-theme),
 body.admin-dark-theme,
 body.admin-dark-theme #root {
-  background:
-    linear-gradient(180deg, rgba(6, 10, 20, 0.96), rgba(8, 12, 23, 0.98)),
-    #070b16 !important;
+  background: #070b16 !important;
 }
 
 html:has(body.admin-dark-theme),
@@ -1171,6 +1366,137 @@ body.admin-dark-theme {
   color: #dce7ff !important;
 }
 
+/* Board workspace: dashboard-style dark surfaces */
+.admin-dark .board-detail-toolbar {
+  background: #101827 !important;
+  border-color: transparent !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18) !important;
+}
+
+.admin-dark .board-detail-toolbar > div > span {
+  border-color: transparent !important;
+}
+
+.admin-dark .board-detail-toolbar > div > span:nth-child(1),
+.admin-dark .board-detail-toolbar > div > span:nth-child(2) {
+  background: #1a2942 !important;
+  color: #dce7f8 !important;
+}
+
+.admin-dark .board-detail-toolbar input {
+  background: #151f32 !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.05) !important;
+}
+
+.admin-dark .board-detail-toolbar input:focus {
+  background: #19253a !important;
+  box-shadow: 0 0 0 3px rgba(109, 94, 252, 0.18) !important;
+}
+
+.admin-dark .board-canvas {
+  min-height: 520px;
+  background: #0e1525 !important;
+  border-color: transparent !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16) !important;
+}
+
+.admin-dark .board-detail-page .board-list-panel {
+  background: #151f32 !important;
+  border-color: transparent !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.2) !important;
+}
+
+.admin-dark .board-detail-page .board-list-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.25) !important;
+}
+
+.admin-dark .board-detail-page .board-list-header {
+  background: #18243a !important;
+  border-color: transparent !important;
+  padding: 14px !important;
+}
+
+.admin-dark .board-detail-page .board-list-header > div:first-child > span {
+  background: #0d1524 !important;
+  border-color: transparent !important;
+  color: #9eacc1 !important;
+}
+
+.admin-dark .board-detail-page .board-list-body {
+  background: #151f32 !important;
+  padding: 12px !important;
+  gap: 10px !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn {
+  position: relative;
+  overflow: hidden;
+  background: #1c2940 !important;
+  border-color: transparent !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #7568ff, #4f8cff);
+  opacity: 0.9;
+}
+
+.admin-dark .board-detail-page .boardCardIn:hover {
+  background: #22314b !important;
+  border-color: transparent !important;
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28) !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn button[title="Drag"] {
+  background: #111b2c !important;
+  border-color: transparent !important;
+  color: #7f8da3 !important;
+}
+
+.admin-dark .board-detail-page .board-list-add-card {
+  background: #243654 !important;
+  border-color: transparent !important;
+  color: #dce7ff !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-detail-page .board-list-add-card:hover {
+  background: #30486f !important;
+}
+
+.admin-dark .board-detail-page .board-list-delete {
+  background: #111b2c !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .board-detail-page .board-list-delete:hover {
+  background: #3a1e2a !important;
+  color: #ff8294 !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class*="border-slate"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class~="bg-slate-50"],
+.admin-dark .board-detail-page .boardCardIn [class~="bg-slate-100"] {
+  background: #111b2c !important;
+}
+
+.admin-dark .board-detail-page .boardCardIn [class*="border-emerald"] {
+  border-color: transparent !important;
+}
+
 .admin-dark .board-detail-status-done {
   background: #14283a !important;
   border-color: #245845 !important;
@@ -1580,4 +1906,329 @@ body.admin-dark-theme [role="dialog"] [class*="border-slate-900"] {
 
 .admin-dark aside .admin-sidebar-footer {
   border-top: 1px solid #1d2940 !important;
+}
+
+/* Final board control pass: preserve clean, borderless dashboard styling. */
+.admin-dark .board-detail-page .board-detail-status-done,
+.admin-dark .board-detail-page .board-detail-status-overdue,
+.admin-dark .board-detail-page .board-detail-icon-button-warning,
+.admin-dark .board-detail-page .board-detail-icon-button-success,
+.admin-dark .board-detail-page .board-detail-icon-button-status,
+.admin-dark .board-detail-page .board-detail-icon-button-danger,
+.admin-dark .board-detail-page .board-detail-back-button {
+  border-color: transparent !important;
+}
+
+.admin-dark .board-detail-page .board-detail-icon-button-warning {
+  background: #4a3510 !important;
+  color: #ffc85a !important;
+}
+
+.admin-dark .board-detail-page .board-detail-icon-button-success,
+.admin-dark .board-detail-page .board-detail-icon-button-status {
+  background: #12372e !important;
+  color: #58e1ad !important;
+}
+
+.admin-dark .board-detail-page .board-detail-icon-button-danger {
+  background: #431d2a !important;
+  color: #ff7188 !important;
+}
+
+.admin-dark .board-detail-page .board-detail-back-button {
+  background: #18243a !important;
+}
+
+/* Dark mode refinement: depth from surfaces, never outlines. */
+.admin-dark .boards-page [class*="border-slate"],
+.admin-dark .boards-page [class*="border-[#6d5efc]"],
+.admin-dark .boards-page [class*="border-slate-900"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .boards-page > div:first-child label,
+.admin-dark .boards-page > div:first-child label + div,
+.admin-dark .boards-page [class~="bg-white/90"] {
+  background: #101827 !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .boards-page [class~="bg-white/95"] {
+  background: #151f32 !important;
+  border-color: transparent !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2) !important;
+}
+
+.admin-dark .boards-page [class~="bg-white/95"]:hover {
+  background: #19253a !important;
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.26) !important;
+}
+
+.admin-dark .boards-page [class~="bg-slate-50"],
+.admin-dark .boards-page [class~="bg-slate-900/3"] {
+  background: #1b2941 !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .users-list-panel {
+  background: #0e1525 !important;
+  border-color: transparent !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16) !important;
+}
+
+.admin-dark .users-page [class*="border-slate"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .users-page input,
+.admin-dark .users-page select {
+  background: #151f32 !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .users-page .users-row-card {
+  background: #18243a !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.admin-dark .users-page .users-row-card:hover {
+  background: #1e2d47 !important;
+  border-color: transparent !important;
+  transform: translateY(-2px);
+  box-shadow: 0 13px 28px rgba(0, 0, 0, 0.22) !important;
+}
+
+.admin-dark .users-page .users-count-pill,
+.admin-dark .users-page [class*="rounded-"][class*="border"][class*="bg-slate-50"] {
+  background: #151f32 !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .users-page .users-role-supervisor,
+.admin-dark .users-page .users-role-talent,
+.admin-dark .users-page .users-delete-toggle,
+.admin-dark .users-page .users-delete-button {
+  border-color: transparent !important;
+}
+
+.admin-dark .meetings-page [class*="border-slate"],
+.admin-dark .meetings-page [class*="border-white"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .meetings-page > section:first-of-type,
+.admin-dark .meetings-page > section:first-of-type > div:last-of-type {
+  background: #101827 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.admin-dark .meetings-page > section:first-of-type > div:last-of-type > div {
+  border-color: transparent !important;
+}
+
+.admin-dark .meetings-page section > div[class*="rounded-[24px]"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .profile-page > section,
+.admin-dark .profile-page > div > section {
+  background: #101827 !important;
+  border-color: transparent !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16) !important;
+}
+
+.admin-dark .profile-page [class*="border-slate"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .profile-page [class~="bg-slate-50"]:not(section),
+.admin-dark .profile-page [class~="bg-slate-50/80"]:not(section),
+.admin-dark .profile-page [class~="bg-white"]:not(section) {
+  background: #18243a !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .profile-page > section:first-of-type [class~="bg-slate-50"],
+.admin-dark .profile-page > section:first-of-type [class~="bg-white"] {
+  background: #18243a !important;
+}
+
+.admin-dark .profile-page > div > section [role="button"],
+.admin-dark .profile-page > div > section > div > div[class*="rounded-"] {
+  background: #18243a !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .profile-page > div > section [role="button"]:hover {
+  background: #1e2d47 !important;
+  transform: translateY(-1px);
+}
+
+.admin-dark .profile-page button[class*="border"],
+.admin-dark .profile-page span[class*="border"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .profile-page input,
+.admin-dark .profile-page select,
+.admin-dark .profile-page textarea {
+  background: #18243a !important;
+  border-color: transparent !important;
+}
+
+/* Profile needs stronger surface separation than list-heavy pages. */
+.admin-dark .profile-page > section:first-of-type {
+  background: #151f32 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22) !important;
+}
+
+.admin-dark .profile-page > section:first-of-type [class~="bg-slate-50"],
+.admin-dark .profile-page > section:first-of-type [class~="bg-white"] {
+  background: #0d1626 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
+}
+
+.admin-dark .profile-page > div > section {
+  background: #101827 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2) !important;
+}
+
+.admin-dark .profile-page > div > section [role="button"],
+.admin-dark .profile-page > div > section [class~="bg-slate-50"],
+.admin-dark .profile-page > div > section [class~="bg-slate-50/80"],
+.admin-dark .profile-page > div > section [class~="bg-white"] {
+  background: #1a2840 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.admin-dark .profile-page > div > section [role="button"]:hover {
+  background: #21324e !important;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Calendar toolbar: separated controls without outlined boxes. */
+.admin-dark .meetings-page .meetings-toolbar {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.admin-dark .meetings-page .meetings-filter,
+.admin-dark .meetings-page .meetings-calendar-button {
+  background: #151f32 !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.admin-dark .meetings-page .meetings-filter:focus,
+.admin-dark .meetings-page .meetings-calendar-button:hover {
+  background: #1b2941 !important;
+}
+
+.admin-dark .meetings-page .meetings-stats {
+  background: #151f32 !important;
+  border-color: transparent !important;
+  padding: 4px !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.admin-dark .meetings-page .meetings-mini-stat {
+  background: transparent !important;
+}
+
+.admin-dark .meetings-page .meetings-mini-stat:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+/* Supervisor users: mirror the approved admin users surface hierarchy. */
+.admin-dark .supervisor-users-panel {
+  background: #0e1525 !important;
+  border-color: transparent !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16) !important;
+}
+
+.admin-dark .supervisor-users-search,
+.admin-dark .supervisor-users-count {
+  background: #151f32 !important;
+  border-color: transparent !important;
+}
+
+.admin-dark .supervisor-users-row {
+  background: #18243a !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.admin-dark .supervisor-users-row:hover {
+  background: #1e2d47 !important;
+  border-color: transparent !important;
+  transform: translateY(-2px);
+  box-shadow: 0 13px 28px rgba(0, 0, 0, 0.22) !important;
+}
+
+.admin-dark .supervisor-users-row span[class*="border"] {
+  border-color: transparent !important;
+}
+
+.admin-dark .supervisor-users-role-talent {
+  background: #12372e !important;
+  color: #58e1ad !important;
+  border-color: transparent !important;
+}
+
+/* Create board: layered dark surfaces with native controls kept dark. */
+body.admin-dark-theme .create-board-modal .create-board-panel {
+  background: #151f32 !important;
+  border-color: transparent !important;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.admin-dark-theme .create-board-modal .create-board-field {
+  color-scheme: dark;
+  background: #0d1626 !important;
+  border-color: transparent !important;
+  color: #f8fafc !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
+}
+
+body.admin-dark-theme .create-board-modal .create-board-field:focus {
+  background: #101c30 !important;
+}
+
+body.admin-dark-theme .create-board-modal .create-board-field:disabled {
+  color: #94a3b8 !important;
+  opacity: 0.72;
+}
+
+body.admin-dark-theme .create-board-modal .create-board-member {
+  background: #1a2840 !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+body.admin-dark-theme .create-board-modal .create-board-member:hover {
+  background: #21324e !important;
+  border-color: transparent !important;
+}
+
+body.admin-dark-theme .create-board-modal .create-board-member:has(input:checked) {
+  background: #12372e !important;
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.1) !important;
+}
+
+body.admin-dark-theme .create-board-modal [class*="border-slate"] {
+  border-color: transparent !important;
+}
+
+/* Confirmation copy sits directly on the dialog, without boxed text rows. */
+body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-title,
+body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-message,
+body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-actions {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }

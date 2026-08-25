@@ -763,11 +763,11 @@ export default function MeetingsCalendarPage() {
         ) : null}
 
         <div className="meetings-page">
-        <section className="mb-4 flex min-w-0 flex-wrap items-center gap-2.5">
+        <section className="meetings-toolbar mb-4 flex min-w-0 flex-wrap items-center gap-2.5">
           <select
             value={selectedSupervisorFilter}
             onChange={(e) => setSelectedSupervisorFilter(e.target.value)}
-            className="h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
+            className="meetings-filter h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
           >
             <option value="all">All supervisors</option>
             {supervisorOptions.map((supervisor) => (
@@ -777,7 +777,7 @@ export default function MeetingsCalendarPage() {
           <select
             value={selectedBoardFilter}
             onChange={(e) => setSelectedBoardFilter(e.target.value)}
-            className="h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
+            className="meetings-filter h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
           >
             <option value="all">All boards</option>
             {filteredBoardOptions.map((board) => (
@@ -794,7 +794,7 @@ export default function MeetingsCalendarPage() {
               setCalendarNotice("");
               setShowCalendarLinker(true);
             }}
-            className="inline-flex h-12 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white max-[520px]:w-full max-[520px]:justify-center"
+            className="meetings-calendar-button inline-flex h-12 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white max-[520px]:w-full max-[520px]:justify-center"
           >
             <span>{calendarConnections.length ? "Manage Calendar Links" : "Connect Calendar"}</span>
             {calendarConnections.length ? (
@@ -804,7 +804,7 @@ export default function MeetingsCalendarPage() {
               </span>
             ) : null}
           </button>
-          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 rounded-2xl border border-slate-200/80 bg-white/70 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur max-[1180px]:ml-0 max-[1180px]:justify-start max-[520px]:w-full">
+          <div className="meetings-stats ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5 rounded-2xl border border-slate-200/80 bg-white/70 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur max-[1180px]:ml-0 max-[1180px]:justify-start max-[520px]:w-full">
             <MiniStat label="Total" value={stats.total} tone="amber" />
             <MiniStat label="Upcoming" value={stats.upcoming} tone="emerald" />
             <MiniStat label="This month" value={stats.thisMonth} tone="violet" />
@@ -1395,7 +1395,7 @@ function MiniStat({ label, value, tone }: { label: string; value: number; tone: 
   return (
     <span
       className={[
-        "inline-flex h-10 min-w-[96px] items-center justify-center gap-2 rounded-[14px] px-2.5 transition",
+        "meetings-mini-stat inline-flex h-10 min-w-[96px] items-center justify-center gap-2 rounded-[14px] px-2.5 transition",
         toneClasses.shell,
       ].join(" ")}
       title={label}

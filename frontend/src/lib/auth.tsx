@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(readStorage);
 
   const logout = useCallback(() => {
+    document.body.classList.remove("admin-dark-theme");
     localStorage.removeItem("jwt");
     localStorage.removeItem("role");
     localStorage.removeItem("email");

@@ -257,7 +257,6 @@ export default function UserDashboardPage() {
   const studentBoards = data?.student?.boards || [];
   const studentSupervisors = data?.student?.supervisors || [];
   const nextMeeting = upcomingMeetings[0];
-
   return (
     <AdminLayout active="dashboard" title="Dashboard" subtitle="A quick overview of your workspace and progress.">
       {error ? (
@@ -267,6 +266,39 @@ export default function UserDashboardPage() {
       ) : null}
 
       <div className="user-dashboard-page grid gap-4">
+        {/* Welcome hero intentionally hidden to keep the dashboard compact.
+        <section className="dashboard-hero relative overflow-hidden rounded-[28px] border border-[#6d5efc]/20 p-6 sm:p-7">
+          <div className="dashboard-hero-orb dashboard-hero-orb-one" />
+          <div className="dashboard-hero-orb dashboard-hero-orb-two" />
+          <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div className="max-w-[680px]">
+              <div className="dashboard-live-pill inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em]">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                {new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" }).format(new Date())}
+              </div>
+              <h2 className="mt-5 text-[30px] font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-[38px]">
+                {loading ? "Preparing your workspace..." : `Good to see you, ${data?.user?.full_name?.split(" ")[0] || "there"}.`}
+              </h2>
+              <p className="mt-3 max-w-[560px] text-[14px] font-semibold leading-6 text-slate-300 sm:text-[15px]">
+                {isSupervisor
+                  ? "Keep your teams aligned, follow progress, and move every board forward from one focused workspace."
+                  : data?.tasks?.left
+                    ? `You have ${data.tasks.left} active task${data.tasks.left === 1 ? "" : "s"} waiting for your attention.`
+                    : "Everything is on track. Your workspace is ready for what comes next."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              <Link to="/admin/boards" className="dashboard-hero-button dashboard-hero-button-primary inline-flex items-center gap-2 rounded-[14px] px-4 py-3 text-[13px] font-black">
+                <BoardsIcon size={16} /> Open workspace
+              </Link>
+              <Link to="/calendar" className="dashboard-hero-button inline-flex items-center gap-2 rounded-[14px] px-4 py-3 text-[13px] font-black">
+                <CalendarIcon size={16} /> View schedule
+              </Link>
+            </div>
+          </div>
+        </section>
+        */}
+
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => (
             <div key={card.label} className="user-dashboard-stat-card rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">

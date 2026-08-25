@@ -35,15 +35,15 @@ export default function ConfirmDialog({
       aria-modal="true"
     >
       <div
-        className="w-full max-w-[400px] rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.24)]"
+        className="confirm-dialog-panel w-full max-w-[400px] rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.24)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="text-[16px] font-black text-slate-900">{title}</div>
-        <div className="mt-2 text-[13px] font-semibold leading-relaxed text-slate-500">
+        <div className="confirm-dialog-title text-[16px] font-black text-slate-900">{title}</div>
+        <div className="confirm-dialog-message mt-2 text-[13px] font-semibold leading-relaxed text-slate-500">
           {message}
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="confirm-dialog-actions mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}

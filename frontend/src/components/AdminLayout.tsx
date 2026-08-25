@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
-import UserAvatar from "./UserAvatar";
 import { useAuth } from "../lib/auth";
 import { useNotifications } from "../lib/notifications";
 import faviconIcon from "/favicon-icon.png";
 import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
+import UserAvatar from "./UserAvatar";
+import { ThemeToggle } from "./SidebarWidgets";
 
 type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
@@ -140,9 +141,6 @@ export default function AdminLayout({
   useEffect(() => {
     window.localStorage.setItem("taskflow-theme", darkMode ? "dark" : "light");
     document.body.classList.toggle("admin-dark-theme", darkMode);
-    return () => {
-      document.body.classList.remove("admin-dark-theme");
-    };
   }, [darkMode]);
 
   const nonAdminNav = !isAdmin ? (
@@ -249,17 +247,7 @@ export default function AdminLayout({
       </div>
 
       <div className="admin-sidebar-footer mt-auto flex flex-col gap-2 border-t border-slate-200 pt-3">
-        <button
-          type="button"
-          onClick={() => setDarkMode((next) => !next)}
-          aria-pressed={darkMode}
-          className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:bg-slate-50"
-        >
-          <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-            ☼
-          </span>
-          <span className="text-[14px] leading-none">Toggle Theme</span>
-        </button>
+        <ThemeToggle darkMode={darkMode} onToggle={() => setDarkMode((next) => !next)} />
 
         <button
           type="button"
@@ -268,14 +256,7 @@ export default function AdminLayout({
           title="Open profile"
           aria-label="Open profile"
         >
-          <UserAvatar
-            src={avatarUrl}
-            alt={baseName}
-            fallback={profileInitials}
-            sizeClass="h-10 w-10"
-            textClass="text-[11px]"
-            className="bg-[#e8ecff] text-[#6d5efc]"
-          />
+          <UserAvatar src={avatarUrl} alt={baseName} fallback={profileInitials} sizeClass="h-10 w-10" textClass="text-[11px]" className="bg-[#e8ecff] text-[#6d5efc]" />
           <div className="min-w-0">
             <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
             <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
@@ -300,7 +281,7 @@ export default function AdminLayout({
 ) : null;
 
   return (
-    <div className={cn(darkMode && "admin-dark", "min-h-screen bg-[#f4f6fb] text-slate-900")}>
+    <div className={cn(darkMode && "admin-dark", "app-frame min-h-screen bg-[#f4f6fb] text-slate-900")}>
       <div
         className={cn(
           "grid min-h-screen min-w-0",
@@ -461,17 +442,7 @@ export default function AdminLayout({
               </div>
 
               <div className="admin-sidebar-footer mt-auto flex flex-col gap-2 border-t border-slate-200 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setDarkMode((next) => !next)}
-                  aria-pressed={darkMode}
-                  className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:bg-slate-50"
-                >
-                  <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-                    ☼
-                  </span>
-                  <span className="text-[14px] leading-none">Toggle Theme</span>
-                </button>
+                <ThemeToggle darkMode={darkMode} onToggle={() => setDarkMode((next) => !next)} />
 
                 <button
                   type="button"
@@ -481,14 +452,7 @@ export default function AdminLayout({
                   }}
                   className="flex min-w-0 items-center gap-3 rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50"
                 >
-                  <UserAvatar
-                    src={avatarUrl}
-                    alt={baseName}
-                    fallback={profileInitials}
-                    sizeClass="h-10 w-10"
-                    textClass="text-[11px]"
-                    className="bg-[#e8ecff] text-[#6d5efc]"
-                  />
+                  <UserAvatar src={avatarUrl} alt={baseName} fallback={profileInitials} sizeClass="h-10 w-10" textClass="text-[11px]" className="bg-[#e8ecff] text-[#6d5efc]" />
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
                     <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
@@ -515,11 +479,11 @@ export default function AdminLayout({
 </>
         {!isAdmin ? nonAdminNav : null}
 
-        <main className={cn("min-w-0 px-[22px] pb-[22px] pt-[34px]", "pl-0 max-[1050px]:px-[22px] max-[1050px]:pt-[72px] max-[520px]:px-3")}>
-          <header className="mb-4 flex items-start justify-between gap-3 max-[1050px]:flex-col">
+        <main className={cn("app-main min-w-0 px-[22px] pb-[22px] pt-[34px]", "pl-0 max-[1050px]:px-[22px] max-[1050px]:pt-[72px] max-[520px]:px-3")}>
+          <header className="app-page-header mb-5 flex items-start justify-between gap-3 max-[1050px]:flex-col">
             <div>
-              <div className="text-[13px] font-bold text-slate-500">Welcome back</div>
-              <div className="mt-1 text-[28px] font-black tracking-[-0.6px]">{title}</div>
+              <div className="app-eyebrow text-[12px] font-black uppercase tracking-[0.16em] text-slate-500">Workspace overview</div>
+              <div className="mt-1 text-[30px] font-black tracking-[-0.9px]">{title}</div>
               {subtitle ? <div className="mt-1 text-[14px] font-semibold text-slate-500">{subtitle}</div> : null}
             </div>
 

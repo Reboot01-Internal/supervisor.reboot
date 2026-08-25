@@ -115,15 +115,15 @@ export default function SupervisorUsersPage() {
         </div>
       ) : null}
 
-      <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+      <section className="supervisor-users-panel rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
         <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto]">
           <input
-            className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+            className="supervisor-users-search h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             placeholder="Search by name, email, or nickname..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <div className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="supervisor-users-count rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-2">
             <div className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-500">Assigned</div>
             <div className="mt-1 text-[20px] font-black tracking-[-0.02em] text-slate-900">{loading ? "..." : totalAssigned}</div>
           </div>
@@ -153,7 +153,7 @@ export default function SupervisorUsersPage() {
                       nav(`/profile/${u.id}`, { state: { backTo: "/users" } });
                     }
                   }}
-                  className="cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
+                  className="supervisor-users-row cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
                 >
                   <div className="flex items-start gap-3">
                     <UserAvatar src={avatarUrl} alt={u.full_name} fallback={initialsOf(u.full_name)} />
@@ -164,8 +164,8 @@ export default function SupervisorUsersPage() {
                         <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
                           {withAt(u.nickname)}
                         </span>
-                        <span className="inline-flex h-7 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-800">
-                          talent
+                        <span className="supervisor-users-role-talent inline-flex h-7 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-800">
+                          Talent
                         </span>
                         <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
                           {u.boards?.length || 0} board{(u.boards?.length || 0) === 1 ? "" : "s"}

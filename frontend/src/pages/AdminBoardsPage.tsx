@@ -1865,7 +1865,7 @@ export default function AdminBoardsPage() {
           </>
         }
       >
-        <div className="grid gap-4">
+        <div className="create-board-modal grid gap-4">
           {createBoardErr ? (
             <div className="rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700">
               {createBoardErr}
@@ -1873,13 +1873,13 @@ export default function AdminBoardsPage() {
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+            <div className="create-board-panel rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
               <div className="mb-3 text-[15px] font-black text-slate-900">Board details</div>
               <div className="grid gap-3">
                 <label className="grid gap-1.5">
                   <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Supervisor</span>
                   {isSupervisor ? (
-                    <div className="flex h-11 items-center rounded-[14px] border border-[#6d5efc]/18 bg-[#f7f5ff] px-3 text-[14px] font-black text-slate-900">
+                    <div className="create-board-field flex h-11 items-center rounded-[14px] border border-[#6d5efc]/18 bg-[#f7f5ff] px-3 text-[14px] font-black text-slate-900">
                       {supervisorsLoading
                         ? "Loading your workspace..."
                         : selectedSupervisor
@@ -1895,7 +1895,7 @@ export default function AdminBoardsPage() {
                         setSelectedSupervisorID(Number(e.target.value) || 0);
                       }}
                       disabled={supervisorsLoading}
-                      className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
+                      className="create-board-field h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
                     >
                       <option value="">{supervisorsLoading ? "Loading supervisors..." : "Select supervisor"}</option>
                       {supervisorOptions.map((supervisor) => (
@@ -1914,7 +1914,7 @@ export default function AdminBoardsPage() {
                       value={selectedTrack}
                       onChange={(e) => setSelectedTrack((e.target.value as ProjectTrack) || "")}
                       disabled={!selectedSupervisor}
-                      className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
+                      className="create-board-field h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
                     >
                       <option value="">Optional model</option>
                       {TRACK_OPTIONS.map((track) => (
@@ -1931,7 +1931,7 @@ export default function AdminBoardsPage() {
                       value={selectedProject}
                       onChange={(e) => setSelectedProject(e.target.value)}
                       disabled={!selectedSupervisor || !selectedTrack}
-                      className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
+                      className="create-board-field h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
                     >
                       <option value="">Optional project</option>
                       {availableProjects.map((project) => (
@@ -1958,7 +1958,7 @@ export default function AdminBoardsPage() {
                   <input
                     value={boardName}
                     onChange={(e) => setBoardName(e.target.value)}
-                    className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                    className="create-board-field h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
                     placeholder="Enter board name"
                   />
                 </label>
@@ -1969,14 +1969,14 @@ export default function AdminBoardsPage() {
                     value={boardDescription}
                     onChange={(e) => setBoardDescription(e.target.value)}
                     rows={4}
-                    className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                    className="create-board-field rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
                     placeholder="Optional board description"
                   />
                 </label>
               </div>
             </div>
 
-            <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+            <div className="create-board-panel rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
               <div className="mb-1 flex items-center justify-between gap-3">
                 <div className="text-[15px] font-black text-slate-900">Board members</div>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">
@@ -2009,7 +2009,7 @@ export default function AdminBoardsPage() {
                       <label
                         key={student.id}
                         className={[
-                          "flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
+                          "create-board-member flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
                           checked
                             ? "border-emerald-300/60 bg-emerald-50/50 shadow-[0_10px_22px_rgba(16,185,129,0.08)]"
                             : "border-slate-200/70 bg-white hover:border-slate-300/70 hover:shadow-[0_10px_18px_rgba(15,23,42,0.08)]",

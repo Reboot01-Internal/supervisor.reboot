@@ -985,7 +985,7 @@ export default function ProfilePage() {
       ) : null}
 
       {!loading && localProfile ? (
-        <div className="mx-auto grid max-w-[1280px] gap-3 [animation:pfFade_.32s_ease]">
+        <div className="profile-page mx-auto grid max-w-[1280px] gap-3 [animation:pfFade_.32s_ease]">
           <style>{`@keyframes pfFade{from{opacity:.2;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
           <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">

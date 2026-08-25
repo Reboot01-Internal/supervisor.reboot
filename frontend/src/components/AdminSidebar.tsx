@@ -6,6 +6,7 @@ import { useNotifications } from "../lib/notifications";
 import faviconIcon from "/favicon-icon.png";
 import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
 import UserAvatar from "./UserAvatar";
+import { ThemeToggle } from "./SidebarWidgets";
 
 type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
@@ -71,15 +72,6 @@ function SignOutIcon({ size = 16 }: { size?: number }) {
       <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ThemeIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 3v2.2M12 18.8V21M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M3 12h2.2M18.8 12H21M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }
@@ -346,17 +338,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
 
         <div className="admin-sidebar-footer mt-auto flex flex-col gap-2 border-t border-slate-200 pt-3">
           {onToggleTheme ? (
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              aria-pressed={darkMode}
-              className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:border-[#6d5efc]/25 hover:bg-slate-50 hover:text-slate-900"
-            >
-              <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-                <ThemeIcon size={15} />
-              </span>
-              <span className="text-[14px] leading-none">Toggle Theme</span>
-            </button>
+            <ThemeToggle darkMode={darkMode} onToggle={onToggleTheme} />
           ) : null}
 
           <div className="flex flex-col gap-2">
