@@ -1,3 +1,4 @@
+import GiteaProfileLink from "../components/GiteaProfileLink";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -992,7 +993,10 @@ export default function ProfilePage() {
             <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)]">
               <AvatarPlaceholder name={displayName} gender={genderNormalized} avatarUrl={rebootProfile?.user?.avatarUrl} />
               <div className="min-w-0">
-                <div className="truncate text-[26px] font-black tracking-[-0.02em] text-slate-900">{displayName}</div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 break-words text-[26px] font-black tracking-[-0.02em] text-slate-900">{displayName}</div>
+                  <GiteaProfileLink username={localProfile.user.nickname} />
+                </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-slate-600">
                   <span className="rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2.5 py-1">
                     {withAt(localProfile.user.nickname)}
