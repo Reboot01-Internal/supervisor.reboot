@@ -41,3 +41,12 @@
 .admin-dark .board-view-navigation { border-color: #334155; }
 .admin-dark .board-view-navigation button { color: #a8b5c9; }
 .admin-dark .board-view-navigation button.is-active { color: #b4aaff; border-color: #b4aaff; }
+/* Keep people out of the grid flow; reveal them without stretching the week. */
+.calendar-card { position: relative; }
+.calendar-card .calendar-assignees { display: none; position: absolute; left: 0; top: calc(100% - 2px); z-index: 40; width: 240px; max-height: 260px; overflow-y: auto; margin: 0; padding: 12px; border: 1px solid var(--cal-line); border-radius: 10px; background: var(--cal-bg); box-shadow: 0 12px 30px rgba(15,23,42,.18); }
+.calendar-card:hover, .calendar-card:focus-visible { z-index: 41; }
+.calendar-card:hover .calendar-assignees, .calendar-card:focus-visible .calendar-assignees { display: grid; gap: 8px; }
+.calendar-day:nth-child(7n) .calendar-assignees, .calendar-day:nth-child(7n - 1) .calendar-assignees { left: auto; right: 0; }
+.calendar-day:nth-last-child(-n + 7) .calendar-assignees { top: auto; bottom: calc(100% - 2px); }
+.calendar-card .calendar-assignee { font-size: 12px; }
+.calendar-assignees-heading { font-size: 11px; font-weight: 800; color: var(--cal-muted); }

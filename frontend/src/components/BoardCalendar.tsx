@@ -27,6 +27,7 @@ export default function BoardCalendar({ cards, lists, onOpenCard, previews, avat
       <span className="calendar-card-title">{card.status === "done" ? "✓ " : ""}{card.title}</span>
       <span className="calendar-card-meta">{lists.find(list => list.id === card.list_id)?.title}{card.priority ? ` · ${card.priority}` : ""}</span>
       <span className="calendar-assignees">
+        <span className="calendar-assignees-heading">Assigned to</span>
         {previews[card.id] ? (previews[card.id]!.assignees.length ? previews[card.id]!.assignees.map(person => (
           <span className="calendar-assignee" key={person.user_id} title={person.full_name}>
             <UserAvatar src={avatarByUserID[person.user_id]} alt={person.full_name} fallback={person.full_name.split(" ").map(part => part[0]).slice(0, 2).join("")} sizeClass="h-5 w-5" textClass="text-[8px]" />
