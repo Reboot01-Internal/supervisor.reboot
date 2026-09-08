@@ -463,7 +463,7 @@ function CardItem({
           )}
 
           {/* meta */}
-          <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {preview && preview.total > 0 && (
                 <span className="h-7 px-2.5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-700">
@@ -474,7 +474,7 @@ function CardItem({
               {due && (
                 <span
                   className={[
-                    "h-7 px-2.5 inline-flex items-center gap-2 rounded-full border text-xs font-extrabold",
+                    "h-7 shrink-0 whitespace-nowrap px-2.5 inline-flex items-center gap-2 rounded-full border text-xs font-extrabold [&>svg]:shrink-0",
                     dueClass,
                   ].join(" ")}
                   title={`Due ${due}`}
@@ -485,7 +485,7 @@ function CardItem({
               )}
             </div>
 
-            <div className="flex items-center">
+            <div className="ml-auto flex shrink-0 items-center">
               {(preview?.assignees ?? []).slice(0, 3).map((a, idx) => (
                 <div
                   key={a.user_id}
@@ -615,19 +615,19 @@ function ListColumn({
                   setIsEditingTitle(false);
                 }
               }}
-              className="h-8 min-w-0 w-full max-w-[170px] rounded-[10px] border border-[#6d5efc]/35 bg-white px-2.5 text-[13px] font-extrabold text-slate-900 outline-none focus:ring-2 focus:ring-[#6d5efc]/20"
+              className="h-8 min-w-0 w-full rounded-[10px] border border-[#6d5efc]/35 bg-white px-2.5 text-[13px] font-extrabold text-slate-900 outline-none focus:ring-2 focus:ring-[#6d5efc]/20"
             />
           ) : (
             <button
               type="button"
               onDoubleClick={() => canManage && setIsEditingTitle(true)}
-              className="max-w-[170px] font-extrabold text-slate-900 truncate text-left"
+              className="min-w-0 flex-1 whitespace-normal break-words font-extrabold text-slate-900 text-left"
               title={canManage ? "Double click to rename list" : list.title}
             >
               {list.title}
             </button>
           )}
-          <span className="h-6 px-2 inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-600">
+          <span className="h-6 shrink-0 px-2 inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-600">
             {cards.length}
           </span>
         </div>
@@ -638,17 +638,18 @@ function ListColumn({
               <button
             type="button"
             onClick={() => onAddCard(list.id)}
+            title="Add card"
+            aria-label="Add card"
             className={[
               "board-list-add-card",
-              "h-9 px-3 rounded-[12px] border border-slate-200 bg-white",
-              "text-slate-700 text-[13px] font-extrabold inline-flex items-center gap-1.5 whitespace-nowrap",
+              "h-9 w-9 rounded-[12px] border border-slate-200 bg-white",
+              "text-slate-700 inline-flex items-center justify-center",
               "shadow-[0_4px_12px_rgba(15,23,42,0.05)] transition",
               "hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50",
               "active:translate-y-0",
             ].join(" ")}
           >
-            <PlusIcon size={13} />
-            Add card
+            <PlusIcon size={16} />
               </button>
               <button
             type="button"
