@@ -96,6 +96,7 @@ func main() {
 	r.Get("/auth/me", api.Me)
 	r.Get("/auth/resolve-user", api.ResolveUserRole)
 
+	r.Post("/api/delegate/directory", api.DelegateDirectory)
 	r.Get("/api/avatar/current", api.CurrentRebootAvatar)
 	r.Get("/api/avatar/{userID}", api.RebootAvatarByID)
 	r.Get("/api/avatar", api.AdminRebootAvatar)
