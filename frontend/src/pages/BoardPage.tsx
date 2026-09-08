@@ -1,3 +1,4 @@
+import { Columns3, CalendarDays } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -29,6 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import BoardCalendar from "../components/BoardCalendar";
 import CardModal from "../components/CardModal";
 
 type List = { id: number; board_id: number; title: string; position: number };
@@ -703,6 +705,7 @@ export default function BoardPage() {
   const { confirm, dialog: confirmDialog } = useConfirm();
   const { isAdmin, isSupervisor } = useAuth();
 
+  const [view, setView] = useState<"board" | "calendar">("board");
   const [data, setData] = useState<BoardFull | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1646,6 +1649,14 @@ export default function BoardPage() {
 
       {!loading && data && (
         <div className="board-detail-page grid gap-4">
+          <nav className="board-view-navigation" aria-label="Board view">
+            {(["board", "calendar"] as const).map(option => {
+              const Icon = option === "board" ? Columns3 : CalendarDays;
+              return <button key={option} type="button" aria-pressed={view === option} onClick={() => setView(option)} className={view === option ? "is-active" : ""}>
+                <Icon size={17} /><span>{option === "board" ? "Board" : "Calendar"}</span>
+              </button>;
+            })}
+          </nav>
           <div className="board-detail-toolbar rounded-[18px] border border-slate-200 bg-white p-3 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="h-8 px-3 inline-flex items-center rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[12px] font-extrabold text-slate-700">
@@ -1686,7 +1697,7 @@ export default function BoardPage() {
             ) : null}
           </div>
 
-          {/* board */}
+          {view === "calendar" ? <BoardCalendar key={boardID} cards={data.cards} lists={listsSorted} previews={previews} avatarByUserID={avatarByUserID} onOpenCard={onOpenCard} /> : (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
@@ -1743,6 +1754,7 @@ export default function BoardPage() {
               ) : null}
             </DragOverlay>
           </DndContext>
+          )}
 
           {activeCardId && (
             <div className="text-slate-500 text-sm font-semibold">Moving card #{activeCardId}</div>

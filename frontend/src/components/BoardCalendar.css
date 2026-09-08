@@ -1,0 +1,43 @@
+.board-calendar { --cal-bg: #fff; --cal-line: #e2e8f0; --cal-text: #172033; --cal-muted: #64748b; --cal-soft: #f8fafc; --cal-event: #f2f0ff; --cal-accent: #6d5efc; background: var(--cal-bg); color: var(--cal-text); border: 1px solid var(--cal-line); border-radius: 18px; overflow: hidden; min-width: 0; }
+.admin-dark .board-calendar { --cal-bg: #182235; --cal-line: #334155; --cal-text: #e2e8f0; --cal-muted: #a8b5c9; --cal-soft: #121c2d; --cal-event: #302952; --cal-accent: #b4aaff; }
+.calendar-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; }
+.calendar-toolbar h2 { font-size: 22px; font-weight: 800; }
+.calendar-toolbar p, .calendar-unscheduled p { color: var(--cal-muted); font-size: 13px; margin-top: 4px; }
+.calendar-navigation { display: flex; gap: 6px; }
+.calendar-navigation button { border: 1px solid var(--cal-line); border-radius: 10px; height: 36px; padding: 0 12px; display: grid; place-items: center; font-weight: 700; }
+.calendar-scroll { overflow-x: auto; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 770px; }
+.calendar-weekday { text-align: center; padding: 10px; font-size: 12px; font-weight: 800; color: var(--cal-muted); border-top: 1px solid var(--cal-line); }
+.calendar-day { min-height: 145px; padding: 8px; border-top: 1px solid var(--cal-line); border-right: 1px solid var(--cal-line); }
+.calendar-day:nth-child(7n) { border-right: 0; }
+.calendar-day time { display: inline-grid; place-items: center; width: 28px; height: 28px; font-size: 12px; font-weight: 800; margin-bottom: 5px; }
+.calendar-day.outside-month { background: var(--cal-soft); }
+.calendar-day.outside-month time { color: var(--cal-muted); }
+.calendar-day time.calendar-today { background: #6d5efc; color: white; border-radius: 50%; }
+.calendar-events { display: grid; gap: 5px; }
+.calendar-card { width: 100%; min-width: 0; text-align: left; border-left: 3px solid var(--cal-accent); border-radius: 6px; background: var(--cal-event); padding: 7px 8px; }
+.calendar-card:hover { filter: brightness(.96); }
+.calendar-card-title { display: block; overflow-wrap: anywhere; font-size: 12px; font-weight: 750; }
+.calendar-card-meta { display: block; font-size: 10px; color: var(--cal-muted); margin-top: 4px; overflow-wrap: anywhere; }
+.calendar-card.is-done { border-color: #10b981; }
+.calendar-card.is-done .calendar-card-title { text-decoration: line-through; }
+.calendar-unscheduled { padding: 20px; border-top: 1px solid var(--cal-line); }
+.calendar-unscheduled h3 { font-weight: 800; }
+.calendar-unscheduled-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
+.board-calendar button:focus-visible { outline: 2px solid var(--cal-accent); outline-offset: 2px; }
+.calendar-card-labels { display: flex; flex-wrap: wrap; gap: 4px; }
+.calendar-card-labels:not(:empty) { margin-bottom: 6px; }
+.calendar-label { display: inline-flex; align-items: center; gap: 4px; padding: 2px 5px; border: 1px solid var(--cal-line); border-radius: 6px; background: var(--cal-bg); font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
+.calendar-label > span { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; }
+.calendar-assignees { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.calendar-assignee { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 10px; color: var(--cal-muted); }
+.calendar-assignee > div { flex-shrink: 0; }
+.calendar-assignee > span { overflow-wrap: anywhere; }
+.board-view-navigation { display: flex; align-items: center; gap: 24px; border-bottom: 1px solid #e2e8f0; }
+.board-view-navigation button { display: inline-flex; align-items: center; gap: 8px; padding: 12px 3px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: #64748b; font-size: 14px; font-weight: 700; transition: color .15s, border-color .15s; }
+.board-view-navigation button:hover { color: #6d5efc; }
+.board-view-navigation button.is-active { color: #6d5efc; border-bottom-color: #6d5efc; }
+.board-view-navigation button:focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; border-radius: 4px; }
+.admin-dark .board-view-navigation { border-color: #334155; }
+.admin-dark .board-view-navigation button { color: #a8b5c9; }
+.admin-dark .board-view-navigation button.is-active { color: #b4aaff; border-color: #b4aaff; }
