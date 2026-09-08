@@ -19,3 +19,19 @@ func GetBoardSupervisorUserID(conn *sql.DB, boardID int64) (int64, error) {
 // 	err := conn.QueryRow(`SELECT role FROM users WHERE id = ?`, userID).Scan(&role)
 // 	return role, err
 // }
+
+// CanViewBoard allows the owning supervisor and explicitly added board members.
+func CanViewBoard(conn *sql.DB, boardID, userID int64) (bool, error) {
+	var allowed bool
+	err := conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM boards b
+			JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
+			WHERE b.id = ? AND (sf.supervisor_user_id = ? OR EXISTS (
+				SELECT 1 FROM board_members bm
+				WHERE bm.board_id = b.id AND bm.user_id = ?
+			))
+		)
+	`, boardID, userID, userID).Scan(&allowed)
+	return allowed, err
+}

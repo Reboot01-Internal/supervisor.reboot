@@ -1158,10 +1158,13 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 		JOIN users u ON u.id = sf.supervisor_user_id
 		LEFT JOIN lists l ON l.board_id = b.id
 		LEFT JOIN cards c ON c.list_id = l.id
-		WHERE sf.supervisor_user_id = ?
+		WHERE sf.supervisor_user_id = ? OR EXISTS (
+			SELECT 1 FROM board_members bm
+			WHERE bm.board_id = b.id AND bm.user_id = ?
+		)
 		GROUP BY b.id
 		ORDER BY b.created_at DESC
-	`, actor)
+	`, actor, actor)
 	case "student":
 		rows, err = a.conn.Query(`
 		SELECT 

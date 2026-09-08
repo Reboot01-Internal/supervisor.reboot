@@ -30,8 +30,12 @@ func (a *API) AdminGetBoardFull(w http.ResponseWriter, r *http.Request) {
 	}
 	actor := actorID(r, a.conn)
 	if role == "supervisor" {
-		supID, err := db.GetBoardSupervisorUserID(a.conn, boardID)
-		if err != nil || supID == 0 || actor != supID {
+		allowed, err := db.CanViewBoard(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !allowed {
 			writeErr(w, http.StatusForbidden, "not your board")
 			return
 		}
@@ -546,8 +550,12 @@ func (a *API) AdminGetCardFull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if role == "supervisor" {
-		supID, err := db.GetBoardSupervisorUserID(a.conn, boardID)
-		if err != nil || supID == 0 || actor != supID {
+		allowed, err := db.CanViewBoard(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		if !allowed {
 			writeErr(w, http.StatusForbidden, "not your board")
 			return
 		}
