@@ -1,4 +1,4 @@
-import { API_URL } from "../lib/api";
+import { fetchRebootDirectory } from "../lib/rebootDirectory";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -36,7 +36,6 @@ type QueuedCandidate = RebootCandidate & {
   role: CreateRole;
 };
 
-const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
 const ADMIN_USERS_STATE_KEY = "taskflow.adminUsers.state";
 
 type AdminUsersPageState = {
@@ -154,14 +153,7 @@ async function fetchRebootUserByLogin(login: string): Promise<RebootCandidate | 
     }
   `;
 
-  const res = await fetch((localStorage.getItem("login") || "").toLowerCase() === "falmoath" ? `${API_URL}/api/delegate/directory` : GQL_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify((localStorage.getItem("login") || "").toLowerCase() === "falmoath" ? { operation: "user", variables: { login } } : { query, variables: { login } }),
-  });
+  const res = await fetchRebootDirectory("user", query, { login });
 
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.errors?.length) {
@@ -230,14 +222,7 @@ async function searchRebootUsers(query: string): Promise<RebootCandidate[]> {
     }
   `;
 
-  const res = await fetch((localStorage.getItem("login") || "").toLowerCase() === "falmoath" ? `${API_URL}/api/delegate/directory` : GQL_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify((localStorage.getItem("login") || "").toLowerCase() === "falmoath" ? { operation: "search", variables: { like } } : { query: gql, variables: { like } }),
-  });
+  const res = await fetchRebootDirectory("search", gql, { like });
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.errors?.length) {
     throw new Error(json?.error || json?.errors?.[0]?.message || "Failed to search Reboot users.");

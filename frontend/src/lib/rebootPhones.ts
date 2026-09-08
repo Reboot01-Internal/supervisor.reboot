@@ -1,5 +1,4 @@
-import { API_URL } from "./api";
-const GQL_URL = "https://learn.reboot01.com/api/graphql-engine/v1/graphql";
+import { fetchRebootDirectory } from "./rebootDirectory";
 
 function pickPhoneFromAttrs(attrs: any): string {
   if (!attrs) return "";
@@ -41,14 +40,7 @@ export async function fetchRebootPhones(logins: string[]): Promise<Record<string
     }
   `;
 
-  const res = await fetch((localStorage.getItem("login") || "").toLowerCase() === "falmoath" ? `${API_URL}/api/delegate/directory` : GQL_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify((localStorage.getItem("login") || "").toLowerCase() === "falmoath" ? { operation: "phones", variables: { logins: uniqueLogins } } : { query, variables: { logins: uniqueLogins } }),
-  });
+  const res = await fetchRebootDirectory("phones", query, { logins: uniqueLogins });
 
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.errors?.length) {

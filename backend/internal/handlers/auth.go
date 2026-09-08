@@ -14,13 +14,8 @@ type loginReq struct {
 	Password string `json:"password"`
 }
 
-// specialAdminNickname grants admin access only to this Reboot account.
-// Keep this exception centralized in identity resolution so both nickname and
-// email login paths receive the same effective role.
-const specialAdminNickname = "falmoath"
-
 func resolvedRole(nickname, databaseRole string) string {
-	if strings.EqualFold(strings.TrimSpace(nickname), specialAdminNickname) {
+	if isTemporaryAdmin(nickname) {
 		return "admin"
 	}
 	return strings.ToLower(strings.TrimSpace(databaseRole))
@@ -88,11 +83,12 @@ func (a *API) ResolveUserRole(w http.ResponseWriter, r *http.Request) {
 		var nickname string
 		_ = a.conn.QueryRow(`SELECT IFNULL(nickname,'') FROM users WHERE id = ?`, id).Scan(&nickname)
 		writeJSON(w, http.StatusOK, map[string]any{
-			"id":        id,
-			"full_name": fullName,
-			"email":     identifier,
-			"nickname":  nickname,
-			"role":      resolvedRole(nickname, role),
+			"id":                 id,
+			"full_name":          fullName,
+			"email":              identifier,
+			"nickname":           nickname,
+			"role":               resolvedRole(nickname, role),
+			"directory_delegate": isTemporaryAdmin(nickname),
 		})
 		return
 	}
@@ -126,10 +122,11 @@ func (a *API) ResolveUserRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"id":        row.ID,
-		"full_name": row.FullName,
-		"email":     strings.TrimSpace(strings.ToLower(row.Email)),
-		"nickname":  strings.TrimSpace(row.Nickname),
-		"role":      resolvedRole(row.Nickname, row.Role),
+		"id":                 row.ID,
+		"full_name":          row.FullName,
+		"email":              strings.TrimSpace(strings.ToLower(row.Email)),
+		"nickname":           strings.TrimSpace(row.Nickname),
+		"role":               resolvedRole(row.Nickname, row.Role),
+		"directory_delegate": isTemporaryAdmin(row.Nickname),
 	})
 }

@@ -79,7 +79,7 @@ func verifiedDirectoryDelegate(token string) bool {
 	if json.Unmarshal(data, &result) != nil || len(result.User) != 1 {
 		return false
 	}
-	return strings.EqualFold(result.User[0].Login, specialAdminNickname)
+	return isTemporaryAdmin(result.User[0].Login)
 }
 
 func (a *API) DelegateDirectory(w http.ResponseWriter, r *http.Request) {
