@@ -1,0 +1,37 @@
+.workspace-board-list { box-shadow: none; }
+.workspace-board-row { align-items: center; }
+.workspace-board-row > div:first-child > div > span { width: 32px; height: 32px; border-radius: 9px; box-shadow: none; background: #f5f3ff; }
+.workspace-board-row > div:nth-child(2) > span { border: 0; background: transparent; padding-left: 0; font-weight: 600; }
+.workspace-board-row > div:nth-child(3) > span, .workspace-board-row > div:nth-child(4) > span { border: 0; background: transparent; font-variant-numeric: tabular-nums; padding-left: 0; justify-content: start; }
+.calendar-more { color: var(--cal-accent); font-size: 11px; font-weight: 700; text-align: left; padding: 6px; }
+
+.calendar-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 18px; }
+.calendar-filterbar label { display: flex; align-items: center; gap: 10px; min-width: 180px; height: 54px; padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffffeb; box-shadow: 0 10px 24px rgba(15,23,42,.05); }
+.calendar-filterbar label > span { color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.calendar-filterbar .calendar-filter-search { flex: 1 1 300px; padding: 0 16px; }
+.calendar-filter-search > svg { flex-shrink: 0; color: #94a3b8; }
+.calendar-filterbar input { width: 100%; min-width: 0; height: 42px; border: 0; background: transparent; color: #334155; font-size: 14px; font-weight: 650; outline: none; }
+.calendar-filterbar input::placeholder { color: #94a3b8; }
+.calendar-filterbar select { min-width: 105px; max-width: 230px; height: 38px; padding: 0 10px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; font-size: 13px; font-weight: 650; outline: none; }
+.calendar-filterbar label:focus-within { border-color: #c4b5fd; box-shadow: 0 0 0 3px #8b5cf615; }
+.calendar-filterbar > button { color: #7c3aed; font-size: 12px; font-weight: 700; padding: 10px; }
+.admin-dark .calendar-filterbar label { background: #182235; border-color: #334155; }
+.admin-dark .calendar-filterbar input, .admin-dark .calendar-filterbar select { color: #e2e8f0; }
+.admin-dark .calendar-filterbar select { background: #121c2d; border-color: #334155; }
+@media(max-width:640px) { .calendar-filterbar label { flex: 1 1 100%; } .calendar-filterbar select { flex: 1; max-width: none; } }
+.calendar-summary { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+.calendar-summary-pill { display: inline-flex; align-items: center; gap: 12px; border: 1px solid #6d5efc33; border-radius: 16px; background: white; padding: 9px 14px; box-shadow: 0 12px 26px #0f172a0f; }
+.calendar-summary-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 14px; border: 1px solid #6d5efc33; background: #6d5efc1a; color: #6d5efc; }
+.calendar-summary-pill strong, .calendar-summary-pill small { display: block; line-height: 1.2; }
+.calendar-summary-pill strong { color: #172033; font-size: 16px; font-weight: 800; }
+.calendar-summary-pill small { color: #64748b; font-size: 12px; font-weight: 700; }
+.admin-dark .calendar-summary-pill { background: #182235; }
+.admin-dark .calendar-summary-pill strong { color: #e2e8f0; }
+.calendar-overview-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-bottom: 18px; }
+.calendar-overview-toolbar .calendar-filterbar { min-width: 0; flex-wrap: nowrap; margin-bottom: 0; }
+.calendar-overview-toolbar .calendar-filter-search { min-width: 0; flex: 1; }
+.calendar-overview-toolbar .calendar-summary { flex-wrap: nowrap; margin: 0; }
+.calendar-overview-toolbar .calendar-summary-pill { padding: 9px 12px; gap: 9px; }
+.calendar-overview-toolbar .calendar-summary-pill small { white-space: nowrap; }
+@media (max-width: 1200px) { .calendar-overview-toolbar { grid-template-columns: minmax(0, 1fr); } .calendar-overview-toolbar .calendar-summary { justify-content: flex-end; } }
+@media (max-width: 640px) { .calendar-overview-toolbar .calendar-filterbar, .calendar-overview-toolbar .calendar-summary { flex-wrap: wrap; } .calendar-overview-toolbar .calendar-summary { justify-content: flex-start; } .calendar-overview-toolbar .calendar-filter-search { flex-basis: 100%; } }

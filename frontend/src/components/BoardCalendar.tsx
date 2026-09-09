@@ -3,14 +3,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import UserAvatar from "./UserAvatar";
 import "./BoardCalendar.css";
 
-type CalendarCard = { id: number; list_id: number; title: string; due_date?: string; status?: string; priority?: string };
+type CalendarCard = { board_name?: string; owner?: string; id: number; list_id: number; title: string; due_date?: string; status?: string; priority?: string };
 type Preview = { labels: { label_id: number; name: string; color: string }[]; assignees: { user_id: number; full_name: string }[] };
 const labelColors: Record<string, string> = { indigo: "#4f46e5", sky: "#0284c7", emerald: "#10b981", amber: "#f59e0b", rose: "#f43f5e", violet: "#7c3aed", slate: "#64748b" };
-type Props = { previews: Record<number, Preview | undefined>; avatarByUserID: Record<number, string>; cards: CalendarCard[]; lists: { id: number; title: string }[]; onOpenCard: (id: number) => void };
+type Props = { workspace?: boolean; previews: Record<number, Preview | undefined>; avatarByUserID: Record<number, string>; cards: CalendarCard[]; lists: { id: number; title: string }[]; onOpenCard: (id: number) => void };
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-export default function BoardCalendar({ cards, lists, onOpenCard, previews, avatarByUserID }: Props) {
+export default function BoardCalendar({ cards, lists, onOpenCard, previews, avatarByUserID, workspace = false }: Props) {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const today = dateKey(new Date());
   const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const cellCount = Math.ceil((month.getDay() + days) / 7) * 7;
@@ -25,8 +26,14 @@ export default function BoardCalendar({ cards, lists, onOpenCard, previews, avat
     <button type="button" key={card.id} className={`calendar-card ${card.status === "done" ? "is-done" : ""}`} onClick={() => onOpenCard(card.id)}>
       <span className="calendar-card-labels">{(previews[card.id]?.labels ?? []).map(label => <span className="calendar-label" key={label.label_id}><span style={{ backgroundColor: labelColors[label.color] ?? "#94a3b8" }} />{label.name}</span>)}</span>
       <span className="calendar-card-title">{card.status === "done" ? "✓ " : ""}{card.title}</span>
-      <span className="calendar-card-meta">{lists.find(list => list.id === card.list_id)?.title}{card.priority ? ` · ${card.priority}` : ""}</span>
+      <span className="calendar-card-meta">{card.board_name && <strong>{card.board_name}<br /></strong>}{lists.find(list => list.id === card.list_id)?.title}{card.priority ? ` · ${card.priority}` : ""}</span>
+      {workspace && <span className="calendar-card-meta">Supervisor: {card.owner || "Unassigned"} · {previews[card.id]?.assignees.length ?? 0} assigned</span>}
       <span className="calendar-assignees">
+        <strong>{card.title}</strong>
+        {card.board_name && <span className="calendar-card-meta">{card.board_name}</span>}
+        <span className="calendar-card-meta">{lists.find(list => list.id === card.list_id)?.title} · {card.priority || "medium"}</span>
+        <span className="calendar-card-labels">{(previews[card.id]?.labels ?? []).map(label => <span className="calendar-label" key={label.label_id}><span style={{ backgroundColor: labelColors[label.color] ?? "#94a3b8" }} />{label.name}</span>)}</span>
+        {card.owner && <span className="calendar-card-meta">Supervisor: {card.owner}</span>}
         <span className="calendar-assignees-heading">Assigned to</span>
         {previews[card.id] ? (previews[card.id]!.assignees.length ? previews[card.id]!.assignees.map(person => (
           <span className="calendar-assignee" key={person.user_id} title={person.full_name}>
@@ -40,7 +47,7 @@ export default function BoardCalendar({ cards, lists, onOpenCard, previews, avat
   return (
     <section className="board-calendar" aria-label="Board calendar">
       <div className="calendar-toolbar">
-        <div><h2 aria-live="polite">{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2><p>All board cards by due date. Select a card to open it.</p></div>
+        <div><h2 aria-live="polite">{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2><p>{workspace ? "Tasks from your accessible boards. Select a task for full details." : "All board cards by due date. Select a card to open it."}</p></div>
         <div className="calendar-navigation">
           <button type="button" aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft size={18} /></button>
           <button type="button" onClick={() => setMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>Today</button>
@@ -55,12 +62,13 @@ export default function BoardCalendar({ cards, lists, onOpenCard, previews, avat
             const key = dateKey(date);
             return <div key={key} className={`calendar-day ${date.getMonth() !== month.getMonth() ? "outside-month" : ""}`}>
               <time dateTime={key} aria-current={key === today ? "date" : undefined} className={key === today ? "calendar-today" : ""}>{date.getDate()}</time>
-              <div className="calendar-events">{(scheduled.get(key) ?? []).map(event)}</div>
+              <div className="calendar-events">{(scheduled.get(key) ?? []).slice(0, 2).map(event)}{(scheduled.get(key)?.length ?? 0) > 2 && <button className="calendar-more" onClick={() => setSelectedDay(key)}>+{scheduled.get(key)!.length - 2} more</button>}</div>
             </div>;
           })}
         </div>
       </div>
-      <div className="calendar-unscheduled"><h3>Unscheduled · {unscheduled.length}</h3><p>Cards without a due date.</p><div className="calendar-unscheduled-cards">{unscheduled.map(event)}</div></div>
+      <details className="calendar-unscheduled"><summary>Unscheduled · {unscheduled.length}</summary><div className="calendar-unscheduled-cards">{unscheduled.map(event)}</div></details>
+      {selectedDay && <div className="calendar-day-overlay" onClick={() => setSelectedDay(null)}><section role="dialog" aria-modal="true" aria-label={`Tasks for ${selectedDay}`} className="calendar-day-dialog" onClick={e => e.stopPropagation()} onKeyDown={e => {if(e.key === "Escape") setSelectedDay(null)}}><header><h3>{selectedDay}</h3><button autoFocus type="button" onClick={() => setSelectedDay(null)}>Close</button></header><div>{(scheduled.get(selectedDay) ?? []).map(event)}</div></section></div>}
     </section>
   );
 }

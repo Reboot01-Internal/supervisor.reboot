@@ -1,3 +1,6 @@
+import WorkspaceCalendar from "../components/WorkspaceCalendar";
+import { CalendarDays } from "lucide-react";
+import "../components/WorkspaceViews.css";
 import "../components/ViewNavigation.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +37,7 @@ type BoardMember = {
   role_in_board: string;
 };
 
-type ViewMode = "boards" | "lists";
+type ViewMode = "boards" | "lists" | "calendar";
 type BoardStatusFilter = "all" | "active" | "inactive";
 
 const ADMIN_BOARDS_STATE_KEY = "taskflow.adminBoards.state";
@@ -55,7 +58,7 @@ function readAdminBoardsPageState(): AdminBoardsPageState | null {
     const parsed = JSON.parse(raw);
     return {
       search: String(parsed?.search || ""),
-      viewMode: parsed?.viewMode === "lists" ? "lists" : "boards",
+      viewMode: parsed?.viewMode === "calendar" ? "calendar" : parsed?.viewMode === "lists" ? "lists" : "boards",
       statusFilter: parsed?.statusFilter === "active" || parsed?.statusFilter === "inactive" ? parsed.statusFilter : "all",
       scrollY: Number.isFinite(Number(parsed?.scrollY)) ? Number(parsed.scrollY) : 0,
       membersBoardID: Number.isFinite(Number(parsed?.membersBoardID)) && Number(parsed.membersBoardID) > 0 ? Number(parsed.membersBoardID) : null,
@@ -1255,9 +1258,10 @@ export default function AdminBoardsPage() {
         <nav className="board-view-navigation mb-4" aria-label="Boards view">
           <button type="button" aria-pressed={viewMode === "boards"} className={viewMode === "boards" ? "is-active" : ""} onClick={() => setViewMode("boards")}><ViewBoardsIcon />Boards</button>
           <button type="button" aria-pressed={viewMode === "lists"} className={viewMode === "lists" ? "is-active" : ""} onClick={() => setViewMode("lists")}><ViewListIcon />Lists</button>
+          <button type="button" aria-pressed={viewMode === "calendar"} className={viewMode === "calendar" ? "is-active" : ""} onClick={() => setViewMode("calendar")}><CalendarDays size={17} />Calendar</button>
         </nav>
         {/* Toolbar */}
-        <div className="mb-4 grid gap-3">
+        <div className={`mb-4 grid gap-3 ${viewMode === "calendar" ? "hidden" : ""}`}>
           <div className="grid min-w-0 items-center gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="boards-search flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10">
               <span className="text-slate-400" aria-hidden="true">
@@ -1319,7 +1323,9 @@ export default function AdminBoardsPage() {
         )}
 
         {/* Grid */}
-        {loading ? (
+        {viewMode === "calendar" ? (
+          <WorkspaceCalendar boards={boards} />
+        ) : loading ? (
           <div className="grid grid-cols-3 gap-3 max-[1200px]:grid-cols-2 max-[780px]:grid-cols-1">
             {Array.from({ length: 8 }).map((_, i) => (
               <SkeletonCard key={i} />
@@ -1554,7 +1560,7 @@ export default function AdminBoardsPage() {
             })}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-[18px] border border-slate-900/10 bg-white/95 shadow-[0_14px_34px_rgba(15,23,42,0.07)]">
+          <div className="workspace-board-list overflow-hidden rounded-[18px] border border-slate-900/10 bg-white/95 shadow-[0_14px_34px_rgba(15,23,42,0.07)]">
             <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_240px] gap-4 border-b border-slate-200 bg-[linear-gradient(180deg,rgba(109,94,252,0.06),rgba(109,94,252,0.02))] px-5 py-3 text-[12px] font-black uppercase tracking-[0.08em] text-slate-500 max-[920px]:hidden">
               <div>Board</div>
               <div>Supervisor</div>
@@ -1565,7 +1571,7 @@ export default function AdminBoardsPage() {
 
             <div className="divide-y divide-slate-200/90">
               {filtered.map((b) => {
-                const desc = clampText(b.description, "No description provided.");
+                const desc = b.description?.trim();
                 const sup = clampText(b.supervisor_name, "Unknown supervisor");
                 const status = boardStatus(b);
 
@@ -1576,12 +1582,13 @@ export default function AdminBoardsPage() {
                     tabIndex={0}
                     onClick={() => openBoard(b.id)}
                     onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget) return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         openBoard(b.id);
                       }
                     }}
-                    className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_240px] gap-4 px-5 py-4 transition hover:bg-[#faf8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15 max-[920px]:grid-cols-1"
+                    className="workspace-board-row grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_96px_96px_240px] gap-4 px-5 py-3 transition hover:bg-[#faf8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15 max-[920px]:grid-cols-1"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
@@ -1604,7 +1611,7 @@ export default function AdminBoardsPage() {
                               Inactive since {formatDate(inactiveSinceDate(b))}
                             </div>
                           ) : null}
-                          <div className="mt-1 line-clamp-1 text-[12px] font-semibold text-slate-500">{desc}</div>
+                          {desc && <div className="mt-1 line-clamp-1 text-[12px] font-semibold text-slate-500">{desc}</div>}
                         </div>
                       </div>
                     </div>
