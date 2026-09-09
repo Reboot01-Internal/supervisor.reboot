@@ -1,0 +1,7 @@
+.gitea-profile-link { display: inline-flex; flex-shrink: 0; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 10px; color: #475569; background: transparent; font-size: 12px; font-weight: 650; text-decoration: none; transition: background .18s, color .18s; }
+.gitea-profile-link:hover { background: #f1f5f9; color: #172033; }
+.gitea-profile-link > svg:last-child { color: #94a3b8; transition: transform .18s; }
+.gitea-profile-link:hover > svg:last-child { transform: translate(1px, -1px); }
+.gitea-profile-link:focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; }
+.admin-dark .gitea-profile-link { color: #cbd5e1; }
+.admin-dark .gitea-profile-link:hover { background: #263348; color: #fff; }

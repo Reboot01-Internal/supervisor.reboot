@@ -1,3 +1,4 @@
+import "../components/ViewNavigation.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -1251,6 +1252,10 @@ export default function AdminBoardsPage() {
       }
     >
       <div className="boards-page w-full">
+        <nav className="board-view-navigation mb-4" aria-label="Boards view">
+          <button type="button" aria-pressed={viewMode === "boards"} className={viewMode === "boards" ? "is-active" : ""} onClick={() => setViewMode("boards")}><ViewBoardsIcon />Boards</button>
+          <button type="button" aria-pressed={viewMode === "lists"} className={viewMode === "lists" ? "is-active" : ""} onClick={() => setViewMode("lists")}><ViewListIcon />Lists</button>
+        </nav>
         {/* Toolbar */}
         <div className="mb-4 grid gap-3">
           <div className="grid min-w-0 items-center gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,1fr)_auto]">
@@ -1290,34 +1295,7 @@ export default function AdminBoardsPage() {
                   <option value="inactive">Inactive</option>
                 </select>
               </label>
-              <div className="inline-flex min-w-0 items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] max-[520px]:w-full">
-                <button
-                  className={[
-                    "inline-flex h-10 items-center justify-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition max-[520px]:flex-1",
-                    viewMode === "boards"
-                      ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                  ].join(" ")}
-                  type="button"
-                  onClick={() => setViewMode("boards")}
-                >
-                  <ViewBoardsIcon />
-                  Boards
-                </button>
-                <button
-                  className={[
-                    "inline-flex h-10 items-center justify-center gap-2 rounded-[14px] px-3.5 text-[13px] font-black transition max-[520px]:flex-1",
-                    viewMode === "lists"
-                      ? "border border-[#6d5efc]/18 bg-white text-[#6d5efc] shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                  ].join(" ")}
-                  type="button"
-                  onClick={() => setViewMode("lists")}
-                >
-                  <ViewListIcon />
-                  Lists
-                </button>
-              </div>
+
             </div>
 
             <div className="flex min-w-0 flex-nowrap justify-end gap-2.5 lg:col-span-2 xl:col-span-1 max-[760px]:flex-wrap max-[760px]:justify-start">

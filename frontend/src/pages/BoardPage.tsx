@@ -1,3 +1,4 @@
+import "../components/ViewNavigation.css";
 import { Columns3, CalendarDays } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";

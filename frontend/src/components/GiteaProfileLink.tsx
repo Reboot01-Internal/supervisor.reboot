@@ -1,3 +1,4 @@
+import "./GiteaProfileLink.css";
 type Props = { username?: string };
 
 export default function GiteaProfileLink({ username }: Props) {
@@ -11,7 +12,7 @@ export default function GiteaProfileLink({ username }: Props) {
       rel="noopener noreferrer"
       title={`Open @${login} on Gitea`}
       aria-label={`Open @${login}'s Gitea profile in a new tab`}
-      className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+      className="gitea-profile-link"
     >
       <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <path d="M7 9H25V21C25 25 21 28 16 28S7 25 7 21V9Z" fill="#609926" />
@@ -21,7 +22,7 @@ export default function GiteaProfileLink({ username }: Props) {
         <path d="M14 16V20M14 17H18V20" stroke="#609926" strokeWidth="1.4" />
         <circle cx="14" cy="15" r="1.4" fill="#609926" /><circle cx="14" cy="21" r="1.4" fill="#609926" /><circle cx="18" cy="21" r="1.4" fill="#609926" />
       </svg>
-      Gitea
+      <span>Gitea profile</span>
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M7 9l6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </a>
   );

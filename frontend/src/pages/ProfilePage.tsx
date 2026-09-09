@@ -1013,7 +1013,7 @@ export default function ProfilePage() {
 
             <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${role === "admin" ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
               <Info label="Email" value={rebootProfile?.user?.email || localProfile.user.email} />
-              {role === "admin" ? <Info label="Phone" value={rebootProfile?.user?.number || "-"} /> : null}
+              {role === "admin" ? <Info label="Phone" value={phoneByLogin[loginKey(localProfile.user.nickname)] || rebootProfile?.user?.number || "-"} /> : null}
               <Info
                 label="Gender"
                 value={genderNormalized === "female" ? "Female" : genderNormalized === "male" ? "Male" : "-"}

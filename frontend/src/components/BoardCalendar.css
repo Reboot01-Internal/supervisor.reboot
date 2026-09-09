@@ -33,14 +33,6 @@
 .calendar-assignee { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 10px; color: var(--cal-muted); }
 .calendar-assignee > div { flex-shrink: 0; }
 .calendar-assignee > span { overflow-wrap: anywhere; }
-.board-view-navigation { display: flex; align-items: center; gap: 24px; border-bottom: 1px solid #e2e8f0; }
-.board-view-navigation button { display: inline-flex; align-items: center; gap: 8px; padding: 12px 3px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: #64748b; font-size: 14px; font-weight: 700; transition: color .15s, border-color .15s; }
-.board-view-navigation button:hover { color: #6d5efc; }
-.board-view-navigation button.is-active { color: #6d5efc; border-bottom-color: #6d5efc; }
-.board-view-navigation button:focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; border-radius: 4px; }
-.admin-dark .board-view-navigation { border-color: #334155; }
-.admin-dark .board-view-navigation button { color: #a8b5c9; }
-.admin-dark .board-view-navigation button.is-active { color: #b4aaff; border-color: #b4aaff; }
 /* Keep people out of the grid flow; reveal them without stretching the week. */
 .calendar-card { position: relative; }
 .calendar-card .calendar-assignees { display: none; position: absolute; left: 0; top: calc(100% - 2px); z-index: 40; width: 240px; max-height: 260px; overflow-y: auto; margin: 0; padding: 12px; border: 1px solid var(--cal-line); border-radius: 10px; background: var(--cal-bg); box-shadow: 0 12px 30px rgba(15,23,42,.18); }
