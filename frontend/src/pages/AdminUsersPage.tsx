@@ -1,3 +1,5 @@
+import { Users, ShieldCheck, GraduationCap, ArrowUpRight, Phone } from "lucide-react";
+import "../components/UserDirectory.css";
 import { fetchRebootDirectory } from "../lib/rebootDirectory";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -314,14 +316,6 @@ function MinusIcon({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function XIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1031,15 +1025,19 @@ export default function AdminUsersPage() {
         </section>
       ) : null}
 
-      <section className="users-list-panel rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-        <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_150px_150px_190px]">
+      <section className="user-directory">
+        <div className="directory-overview-row">
+        <div className="directory-toolbar">
+        <label className="directory-search"><SearchIcon size={18} />
           <input
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-            placeholder="Search by name, email, or nickname..."
+            aria-label="Search users"
+            placeholder="Search users by name, email or username…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <select
+        </label>
+          <select aria-label="Filter by role"
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             value={role}
             onChange={(e) => setRole(e.target.value as "all" | "supervisor" | "student")}
@@ -1050,6 +1048,7 @@ export default function AdminUsersPage() {
           </select>
           <select
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+            aria-label="Filter by cohort"
             value={cohort}
             onChange={(e) => setCohort(e.target.value)}
           >
@@ -1060,20 +1059,10 @@ export default function AdminUsersPage() {
               </option>
             ))}
           </select>
-          {/* <select
-            className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-            value={cohort}
-            onChange={(e) => setCohort(e.target.value)}
-          >
-            <option value="all">All cohorts</option>
-            {cohortOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select> */}
+
           <select
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+            aria-label="Filter by board assignment"
             value={boardFilter}
             onChange={(e) => setBoardFilter(e.target.value as "all" | "unassigned")}
           >
@@ -1083,73 +1072,22 @@ export default function AdminUsersPage() {
           </select>
         </div>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setDeleteMode((prev) => !prev)}
-            className={[
-              "inline-flex h-11 items-center gap-2 rounded-2xl border px-4 text-[13px] font-black shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition",
-              "users-delete-toggle",
-              deleteMode
-                ? "border-rose-200 bg-[linear-gradient(180deg,#fff8f8_0%,#fff1f2_100%)] text-rose-600 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50"
-                : "border-rose-200 bg-white text-rose-500 hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600",
-            ].join(" ")}
-          >
-            <span
-              className={[
-                "grid h-7 w-7 place-items-center rounded-full border text-[14px] transition",
-                deleteMode
-                  ? "border-rose-200 bg-white text-rose-500"
-                  : "border-rose-200 bg-rose-50 text-rose-500",
-              ].join(" ")}
-              aria-hidden="true"
-            >
-              {deleteMode ? <XIcon size={14} /> : <BinIcon size={14} />}
-            </span>
-            {deleteMode ? null : "Select users to delete"}
-          </button>
-
-          {deleteMode ? (
-            <>
-              <button
-                type="button"
-                onClick={selectAllVisibleUsers}
-                disabled={visibleRows.length === 0}
-                className="inline-flex h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Select all
-              </button>
-              <button
-                type="button"
-                onClick={clearSelectedUsers}
-                disabled={selectedUserIds.size === 0}
-                className="inline-flex h-11 items-center rounded-2xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                onClick={deleteSelectedUsers}
-                disabled={selectedUserIds.size === 0 || deletingUsers}
-                className="users-delete-button inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f8_100%)] px-4 text-[13px] font-black text-rose-500 shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-[1px] hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                {deletingUsers ? (
-                  "Deleting..."
-                ) : (
-                  <>
-                    <BinIcon size={14} />
-                    <span>{selectedUserIds.size}</span>
-                  </>
-                )}
-              </button>
-            </>
-          ) : null}
-        </div>
-
-        <div className="mb-3 grid gap-2 sm:grid-cols-3">
+        <div className="directory-counters">
           <Counter label="All users" value={counters.all} />
           <Counter label="Supervisors" value={counters.sup} />
           <Counter label="Talents" value={counters.stu} />
+        </div>
+        </div>
+        <div className={`directory-selection-bar ${deleteMode ? "is-selecting" : ""}`}>
+          {deleteMode ? <>
+            <div className="directory-selection-count" aria-live="polite"><strong>{selectedUserIds.size} selected</strong><span>Choose users to remove</span></div>
+            <div className="directory-selection-actions">
+              <button type="button" disabled={deletingUsers || visibleRows.length === 0} onClick={selectAllVisibleUsers}>Select all</button>
+              <button type="button" disabled={deletingUsers || selectedUserIds.size === 0} onClick={clearSelectedUsers}>Clear</button>
+              <button type="button" disabled={deletingUsers} onClick={()=>{setDeleteMode(false);clearSelectedUsers()}}>Cancel</button>
+              <button className="directory-remove-action" type="button" onClick={deleteSelectedUsers} disabled={selectedUserIds.size === 0 || deletingUsers}><BinIcon size={15}/>{deletingUsers ? "Deleting…" : `Delete ${selectedUserIds.size || "selected"}`}</button>
+            </div>
+          </> : <button className="directory-delete-entry" title="Select users to delete" aria-label="Select users to delete" type="button" onClick={()=>{clearSelectedUsers();setDeleteMode(true)}}><BinIcon size={18}/></button>}
         </div>
 
         {loading ? (
@@ -1161,7 +1099,7 @@ export default function AdminUsersPage() {
             No users found.
           </div>
         ) : (
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className="directory-grid">
             {visibleRows.map((u) => {
               const userLogin = loginOfUser(u);
               const avatarUrl = avatarByLogin[userLogin] || "";
@@ -1172,6 +1110,7 @@ export default function AdminUsersPage() {
                   tabIndex={0}
                   onClick={() => {
                     if (deleteMode) {
+                      if (deletingUsers) return;
                       toggleUserSelection(u.id);
                       return;
                     }
@@ -1180,9 +1119,11 @@ export default function AdminUsersPage() {
                     });
                   }}
                   onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       if (deleteMode) {
+                        if (deletingUsers) return;
                         toggleUserSelection(u.id);
                         return;
                       }
@@ -1192,7 +1133,7 @@ export default function AdminUsersPage() {
                     }
                   }}
                   className={[
-                    "users-row-card rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
+                    "directory-user-card users-row-card rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
                     deleteMode ? "cursor-pointer" : "cursor-pointer",
                     deleteMode && selectedUserIds.has(u.id)
                       ? "users-delete-selected border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
@@ -1208,6 +1149,8 @@ export default function AdminUsersPage() {
                       >
                         <input
                           type="checkbox"
+                          aria-label={`Select ${u.full_name}`}
+                          disabled={deletingUsers}
                           checked={selectedUserIds.has(u.id)}
                           onChange={() => toggleUserSelection(u.id)}
                           className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
@@ -1218,18 +1161,13 @@ export default function AdminUsersPage() {
                       src={avatarUrl}
                       alt={u.full_name}
                       fallback={initialsOf(u.full_name)}
-                      sizeClass="h-11 w-11"
+                      sizeClass="h-14 w-14"
                       previewable
                     />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
-                      <div className="truncate text-[12px] font-semibold text-slate-500">
-                        {phoneByLogin[userLogin] || "-"}
-                      </div>
+                      <div className="directory-phone"><Phone size={12} />{phoneByLogin[userLogin] || "No phone available"}</div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
-                          {withAt(u.nickname)}
-                        </span>
                         <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>
                           {roleDisplay(u.role)}
                         </span>
@@ -1239,6 +1177,7 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
                   </div>
+                  <div className="directory-card-footer"><span>{withAt(u.nickname)}</span><span>{deleteMode ? (selectedUserIds.has(u.id) ? "Selected" : "Select user") : "View profile"}<ArrowUpRight size={15}/></span></div>
                 </article>
               );
             })}
@@ -1252,10 +1191,6 @@ export default function AdminUsersPage() {
 }
 
 function Counter({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-2">
-      <div className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-500">{label}</div>
-      <div className="mt-1 text-[20px] font-black tracking-[-0.02em] text-slate-900">{value}</div>
-    </div>
-  );
+  const Icon = label === "Supervisors" ? ShieldCheck : label === "Talents" ? GraduationCap : Users;
+  return <div className="directory-counter"><span className="directory-counter-icon"><Icon size={18}/></span><span><strong>{value}</strong><small>{label}</small></span></div>;
 }
