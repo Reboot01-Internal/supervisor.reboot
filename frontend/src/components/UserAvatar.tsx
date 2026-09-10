@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import ImagePreview from "./ImagePreview";
 
 type UserAvatarProps = {
   src?: string;
@@ -50,15 +50,6 @@ export default function UserAvatar({
     setImgFailed(true);
   }, [src]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open]);
-
   const handleActivate = (event: React.MouseEvent | React.KeyboardEvent) => {
     if (!canPreview) return;
     event.stopPropagation();
@@ -107,38 +98,7 @@ export default function UserAvatar({
       </div>
 
       {open && src && imgLoaded && !imgFailed && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[10000] grid place-items-center bg-slate-950/70 p-4"
-              onClick={() => setOpen(false)}
-              role="dialog"
-              aria-modal="true"
-              aria-label={`${alt} image preview`}
-            >
-              <div
-                className="max-w-[min(92vw,520px)] rounded-[28px] border border-white/20 bg-white p-4 shadow-[0_28px_80px_rgba(2,6,23,0.45)]"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="truncate text-[16px] font-black text-slate-950">{alt}</div>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
-                    aria-label="Close image preview"
-                  >
-                    Close
-                  </button>
-                </div>
-                <img
-                  src={src}
-                  alt={alt}
-                  className="max-h-[70vh] w-full rounded-[22px] object-contain"
-                />
-              </div>
-            </div>,
-            document.body
-          )
+        ? <ImagePreview src={src} title={alt} onClose={() => setOpen(false)} />
         : null}
     </>
   );

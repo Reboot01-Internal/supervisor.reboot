@@ -119,14 +119,15 @@ type CardComment struct {
 }
 
 type StudentPrivateNote struct {
-	ID           int64  `json:"id"`
-	StudentID    int64  `json:"student_id"`
-	AuthorUserID int64  `json:"author_user_id"`
-	AuthorName   string `json:"author_name"`
-	AuthorRole   string `json:"author_role"`
-	Body         string `json:"body"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
+	ID             int64  `json:"id"`
+	StudentID      int64  `json:"student_id"`
+	AuthorUserID   int64  `json:"author_user_id"`
+	AuthorName     string `json:"author_name"`
+	AuthorUsername string `json:"author_username"`
+	AuthorRole     string `json:"author_role"`
+	Body           string `json:"body"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
 }
 
 type CardAttachment struct {

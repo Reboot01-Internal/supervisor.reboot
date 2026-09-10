@@ -1,3 +1,4 @@
+import ImagePreview from "../components/ImagePreview";
 import WorkspaceCalendar from "../components/WorkspaceCalendar";
 import { CalendarDays } from "lucide-react";
 import "../components/WorkspaceViews.css";
@@ -708,7 +709,6 @@ export default function AdminBoardsPage() {
     setReassigning(false);
   }, []);
   useEscClose(!!reassignBoard, closeReassignModal);
-  useEscClose(!!previewAvatar, () => setPreviewAvatar(null));
   const closeCreateModal = useCallback(() => {
     setCreateOpen(false);
     setCreatingBoard(false);
@@ -1799,33 +1799,7 @@ export default function AdminBoardsPage() {
           </div>
         </div>
       )}
-      {previewAvatar ? (
-        <div
-          className="fixed inset-0 z-[95] grid place-items-center bg-slate-950/70 p-4"
-          onClick={() => setPreviewAvatar(null)}
-        >
-          <div
-            className="max-w-[min(92vw,520px)] rounded-[28px] border border-white/20 bg-white p-4 shadow-[0_28px_80px_rgba(2,6,23,0.45)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="truncate text-[16px] font-black text-slate-950">{previewAvatar.name}</div>
-              <button
-                type="button"
-                className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
-                onClick={() => setPreviewAvatar(null)}
-              >
-                Close
-              </button>
-            </div>
-            <img
-              src={previewAvatar.src}
-              alt={previewAvatar.name}
-              className="max-h-[70vh] w-full rounded-[22px] object-contain"
-            />
-          </div>
-        </div>
-      ) : null}
+      {previewAvatar ? <ImagePreview src={previewAvatar.src} title={previewAvatar.name} onClose={() => setPreviewAvatar(null)} /> : null}
       <Modal
         open={createOpen}
         title="Create board"

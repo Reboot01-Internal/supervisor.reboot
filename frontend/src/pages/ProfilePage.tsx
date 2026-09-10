@@ -1,3 +1,5 @@
+import { Mail, Phone, TrendingUp, Layers, ListTodo, UsersRound, UserRound } from "lucide-react";
+import "../components/ProfileOverview.css";
 import GiteaProfileLink from "../components/GiteaProfileLink";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -124,11 +126,28 @@ type StudentPrivateNote = {
   student_id: number;
   author_user_id: number;
   author_name: string;
+  author_username?: string;
   author_role: string;
   body: string;
   created_at: string;
   updated_at: string;
 };
+
+// Older API versions omit author_username. Resolve missing authors by their
+// stable user ID through the same permission-checked profile endpoint.
+async function resolveNoteAuthors(notes: StudentPrivateNote[]): Promise<StudentPrivateNote[]> {
+  const ids = [...new Set(notes.filter((note) => !note.author_username).map((note) => note.author_user_id))];
+  const usernames = new Map<number, string>();
+  await Promise.all(ids.map(async (id) => {
+    try {
+      const profile = await apiFetch(`/admin/profile/summary?user_id=${id}`);
+      if (profile?.user?.nickname) usernames.set(id, profile.user.nickname);
+    } catch {
+      // Keep the initial when the author profile is unavailable to this viewer.
+    }
+  }));
+  return notes.map((note) => ({ ...note, author_username: note.author_username || usernames.get(note.author_user_id) }));
+}
 
 function num(value: number | null | undefined, digits = 2) {
   if (typeof value !== "number" || Number.isNaN(value)) return "-";
@@ -581,9 +600,8 @@ export default function ProfilePage() {
       setNotesLoading(true);
       try {
         const res = await apiFetch(`/admin/profile/notes?user_id=${targetUserID}`);
-        if (!cancelled) {
-          setPrivateNotes(Array.isArray(res) ? res : []);
-        }
+        const notes = await resolveNoteAuthors(Array.isArray(res) ? res : []);
+        if (!cancelled) setPrivateNotes(notes);
       } catch (e: any) {
         if (!cancelled) {
           setPrivateNotes([]);
@@ -610,6 +628,7 @@ export default function ProfilePage() {
       }
       const logins = [
         localProfile?.user?.nickname,
+        ...privateNotes.map((note) => note.author_username),
         ...(localProfile?.supervisor?.assigned_students || []).map((student) => student.nickname),
         ...(Object.values(membersByBoard).flat() || []).map((member) => member.nickname),
       ].filter(Boolean) as string[];
@@ -637,6 +656,7 @@ export default function ProfilePage() {
     async function loadAvatars() {
       const logins = [
         localProfile?.user?.nickname,
+        ...privateNotes.map((note) => note.author_username),
         ...(localProfile?.supervisor?.assigned_students || []).map((student) => student.nickname),
         ...(localProfile?.student?.supervisors || []).map((supervisor) => supervisor.nickname),
         ...(Object.values(membersByBoard).flat() || []).map((member) => member.nickname || member.email.split("@")[0]),
@@ -658,7 +678,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [localProfile, membersByBoard, talentResults]);
+  }, [localProfile, membersByBoard, talentResults, privateNotes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -915,7 +935,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ user_id: targetUserID, body: noteDraft.trim() }),
       });
       const res = await apiFetch(`/admin/profile/notes?user_id=${targetUserID}`);
-      setPrivateNotes(Array.isArray(res) ? res : []);
+      setPrivateNotes(await resolveNoteAuthors(Array.isArray(res) ? res : []));
       setNoteDraft("");
     } catch (e: any) {
       setErr(e?.message || "Failed to save private note");
@@ -986,11 +1006,11 @@ export default function ProfilePage() {
       ) : null}
 
       {!loading && localProfile ? (
-        <div className="profile-page mx-auto grid max-w-[1280px] gap-3 [animation:pfFade_.32s_ease]">
+        <div className="profile-page profile-overview mx-auto grid max-w-[1280px] gap-3 [animation:pfFade_.32s_ease]">
           <style>{`@keyframes pfFade{from{opacity:.2;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-          <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-            <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)]">
+          <section className="profile-hero rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+            <div className="profile-identity">
               <AvatarPlaceholder name={displayName} gender={genderNormalized} avatarUrl={rebootProfile?.user?.avatarUrl} />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1011,7 +1031,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${role === "admin" ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
+            <div className="profile-details">
               <Info label="Email" value={rebootProfile?.user?.email || localProfile.user.email} />
               {role === "admin" ? <Info label="Phone" value={phoneByLogin[loginKey(localProfile.user.nickname)] || rebootProfile?.user?.number || "-"} /> : null}
               <Info
@@ -1023,18 +1043,93 @@ export default function ProfilePage() {
               <Info label="Audit ratio" value={num(rebootProfile?.user?.auditRatio)} />
             </div>
 
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <SnapshotItem label="Boards" value={String(boardRows.length)} />
-              {localProfile.student ? (
-                <SnapshotItem label="Supervisors" value={String(localProfile.student?.supervisors?.length || 0)} />
-              ) : null}
-              <SnapshotItem label="Assigned Tasks" value={String(localProfile.tasks?.total || 0)} />
-              <SnapshotItem label="Completed" value={String(localProfile.tasks?.done || 0)} />
-            </div>
           </section>
 
-          <div className="grid gap-3 lg:grid-cols-2 lg:[grid-auto-rows:minmax(0,1fr)]">
-            <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] lg:min-h-[450px]">
+          {canViewPrivateNotes ? (
+            <section className="profile-notes rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-[18px] font-black text-slate-900">Private notes</div>
+                  <div className="mt-1 text-[12px] font-bold text-slate-500">
+                    Visible to supervisors and admins only.
+                  </div>
+                </div>
+                <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
+                  {privateNotes.length} notes
+                </span>
+              </div>
+
+              <div className="profile-notes-layout">
+                <div className="profile-note-compose">
+                  <div className="text-[12px] font-black uppercase tracking-[0.12em] text-[#6d5efc]">
+                    Add a note
+                  </div>
+                  <textarea
+                    aria-label="Private supervisor note"
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    className="mt-3 min-h-[80px] w-full rounded-[14px] border border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-[#6d5efc]/35 focus:ring-4 focus:ring-[#6d5efc]/10"
+                    placeholder="Add a note about this talent."
+                  />
+                  <div className="mt-3 flex flex-wrap items-end justify-between gap-3 sm:flex-nowrap">
+                    <div className="max-w-[220px] text-[11px] font-bold leading-5 text-slate-500">
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addPrivateNote}
+                      disabled={savingNote || !noteDraft.trim()}
+                      className="profile-action profile-action-primary"
+                    >
+                      {savingNote ? "Saving..." : "Save note"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="profile-note-history">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="text-[13px] font-black uppercase tracking-[0.12em] text-slate-500">
+                      Recent notes
+                    </div>
+                  </div>
+
+                  {notesLoading ? (
+                    <div className="text-[13px] font-semibold text-slate-500">Loading notes...</div>
+                  ) : privateNotes.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-[13px] font-semibold text-slate-500">
+                      No private notes yet for this talent.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 overflow-y-auto pr-1 max-h-[180px]">
+                      {privateNotes.map((note) => (
+                        <div key={note.id} className="profile-note-entry">
+                          <UserAvatar src={avatarByLogin[loginKey(note.author_username || "")] || ""} alt={note.author_name} fallback={note.author_name.slice(0, 1).toUpperCase()} sizeClass="h-9 w-9" />
+                          <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="truncate text-[13px] font-black text-slate-900">{note.author_name}</div>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 capitalize">
+                                  {roleDisplay(note.author_role || "staff")}
+                                </span>
+                                <span>{formatBahrainDateTime(note.created_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 whitespace-pre-wrap text-[13px] font-semibold leading-6 text-slate-700">
+                            {note.body}
+                          </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <div className="profile-content-grid">
+            <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] profile-content-panel">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="text-[18px] font-black text-slate-900">Boards</div>
                 <div className="flex items-center gap-2">
@@ -1042,7 +1137,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setCreateBoardOpen(true)}
-                      className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
+                      className="profile-action"
                     >
                       <BoardIcon size={16} />
                       Create board
@@ -1055,7 +1150,7 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[360px]">
                 {boardRows.length === 0 ? (
-                  <div className="text-[13px] font-semibold text-slate-500">No boards yet.</div>
+                  <ProfileEmpty icon={<Layers size={22}/>} title="No boards yet" detail="Boards linked to this profile will appear here."/>
                 ) : (
                   boardRows.map((b) => (
                     <div
@@ -1152,7 +1247,7 @@ export default function ProfilePage() {
             </section>
 
             {localProfile.supervisor ? (
-              <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] lg:min-h-[450px]">
+              <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] profile-content-panel">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="text-[18px] font-black text-slate-900">Assigned Talents</div>
                   <div className="flex items-center gap-2">
@@ -1160,7 +1255,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={() => setTalentPickerOpen(true)}
-                        className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3.5 text-[13px] font-black text-[#6d5efc] shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]"
+                        className="profile-action"
                       >
                         <AddTalentIcon size={15} />
                         Add talents
@@ -1207,7 +1302,7 @@ export default function ProfilePage() {
 
                 <div className="mt-3 space-y-2 overflow-y-auto pr-1 lg:max-h-[300px]">
                   {(localProfile.supervisor?.assigned_students || []).length === 0 ? (
-                    <div className="text-[13px] font-semibold text-slate-500">No assigned talents yet.</div>
+                    <ProfileEmpty icon={<UsersRound size={22}/>} title="No assigned talents" detail="Assigned talents will appear here with their board details."/>
                   ) : (
                     (localProfile.supervisor?.assigned_students || []).map((s) => {
                       const studentLogin = loginKey(s.nickname || s.email.split("@")[0]);
@@ -1281,7 +1376,7 @@ export default function ProfilePage() {
                                   void removeAssignedTalent(s.id, s.full_name);
                                 }}
                                 disabled={removingAssignedTalentID === s.id}
-                                className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-rose-200 bg-white text-rose-600 shadow-[0_6px_16px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="profile-action profile-action-danger"
                                 title={removingAssignedTalentID === s.id ? "Removing..." : "Remove assigned talent"}
                                 aria-label={removingAssignedTalentID === s.id ? "Removing assigned talent" : "Remove assigned talent"}
                               >
@@ -1296,7 +1391,7 @@ export default function ProfilePage() {
                 </div>
               </section>
             ) : (
-              <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] lg:min-h-[450px]">
+              <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] profile-content-panel">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="text-[18px] font-black text-slate-900">Assigned Tasks</div>
                   <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
@@ -1339,7 +1434,7 @@ export default function ProfilePage() {
 
                 <div className="mt-3 space-y-2 overflow-y-auto pr-1 lg:max-h-[300px]">
                   {(localProfile.tasks?.assigned_cards || []).length === 0 ? (
-                    <div className="text-[13px] font-semibold text-slate-500">No assigned tasks yet.</div>
+                    <ProfileEmpty icon={<ListTodo size={22}/>} title="No assigned tasks" detail="Tasks assigned to this user will appear here."/>
                   ) : (
                     (localProfile.tasks?.assigned_cards || []).map((t) => (
                       <div key={t.card_id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -1369,85 +1464,6 @@ export default function ProfilePage() {
               </section>
             )}
           </div>
-
-          {canViewPrivateNotes ? (
-            <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="text-[18px] font-black text-slate-900">Private Supervisor Notes</div>
-                  <div className="mt-1 text-[12px] font-bold text-slate-500">
-                    Only supervisors and admins can see these notes. Talents cannot access them.
-                  </div>
-                </div>
-                <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
-                  {privateNotes.length} notes
-                </span>
-              </div>
-
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-                <div className="rounded-xl border border-[#6d5efc]/15 bg-[linear-gradient(180deg,#faf8ff_0%,#f6f7ff_100%)] p-3">
-                  <div className="text-[12px] font-black uppercase tracking-[0.12em] text-[#6d5efc]">
-                    Notes
-                  </div>
-                  <textarea
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    className="mt-3 min-h-[180px] w-full rounded-[14px] border border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-[#6d5efc]/35 focus:ring-4 focus:ring-[#6d5efc]/10"
-                    placeholder="Add a note about this talent."
-                  />
-                  <div className="mt-3 flex flex-wrap items-end justify-between gap-3 sm:flex-nowrap">
-                    <div className="max-w-[220px] text-[11px] font-bold leading-5 text-slate-500">
-                    </div>
-                    <button
-                      type="button"
-                      onClick={addPrivateNote}
-                      disabled={savingNote || !noteDraft.trim()}
-                      className="inline-flex h-11 min-w-[136px] shrink-0 items-center justify-center whitespace-nowrap rounded-[14px] border border-[#6d5efc]/20 bg-[#6d5efc] px-5 text-[13px] font-black text-white transition hover:bg-[#5f50f6] disabled:opacity-60"
-                    >
-                      {savingNote ? "Saving..." : "Save note"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-black uppercase tracking-[0.12em] text-slate-500">
-                      Note history
-                    </div>
-                  </div>
-
-                  {notesLoading ? (
-                    <div className="text-[13px] font-semibold text-slate-500">Loading notes...</div>
-                  ) : privateNotes.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-[13px] font-semibold text-slate-500">
-                      No private notes yet for this talent.
-                    </div>
-                  ) : (
-                    <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[320px]">
-                      {privateNotes.map((note) => (
-                        <div key={note.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="truncate text-[13px] font-black text-slate-900">{note.author_name}</div>
-                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
-                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 capitalize">
-                                  {roleDisplay(note.author_role || "staff")}
-                                </span>
-                                <span>{formatBahrainDateTime(note.created_at)}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-3 whitespace-pre-wrap text-[13px] font-semibold leading-6 text-slate-700">
-                            {note.body}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          ) : null}
 
           {canManageAssignedTalents && talentPickerOpen ? (
             <div
@@ -1830,33 +1846,14 @@ function BinIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-function Info({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon?: ReactNode;
-}) {
-  return (
-    <div className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-2.5">
-      <div className="text-[10px] font-black uppercase tracking-[0.09em] text-slate-500">{label}</div>
-      <div className="mt-1 flex items-center gap-1.5 truncate text-[13px] font-black text-slate-900">
-        {icon}
-        <span className="truncate">{value}</span>
-      </div>
-    </div>
-  );
+function ProfileEmpty({ icon, title, detail }: {icon: ReactNode; title: string; detail: string}) {
+  return <div className="profile-empty"><span>{icon}</span><strong>{title}</strong><p>{detail}</p></div>;
 }
 
-function SnapshotItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-      <div className="text-[11px] font-black uppercase tracking-[0.07em] text-slate-500">{label}</div>
-      <div className="mt-1 text-[18px] font-black tracking-[-0.02em] text-slate-900">{value}</div>
-    </div>
-  );
+function Info({ label, value, icon }: {label: string; value: string; icon?: ReactNode}) {
+  const Icon = label === "Email" ? Mail : label === "Phone" ? Phone : label === "Gender" ? UserRound : TrendingUp;
+  const href = value && value !== "-" ? label === "Email" ? `mailto:${value}` : label === "Phone" ? `tel:${value.replace(/[^+0-9]/g, "")}` : undefined : undefined;
+  return <div className="profile-info"><span className="profile-info-icon"><Icon size={16}/></span><div><div className="profile-info-label">{label}</div><div className="profile-info-value">{icon}{href?<a href={href}>{value}</a>:<span>{value}</span>}</div></div></div>;
 }
 
 function AvatarPlaceholder({

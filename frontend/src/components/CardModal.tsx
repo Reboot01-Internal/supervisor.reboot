@@ -1,3 +1,4 @@
+import ImagePreview from "./ImagePreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
 import { API_URL, apiFetch } from "../lib/api";
@@ -1949,46 +1950,7 @@ export default function CardModal({
         </div>
       )}
     </Modal>
-    {previewAttachment ? (
-      <div
-        className="fixed inset-0 z-[10000] grid place-items-center bg-slate-950/80 p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${previewAttachment.original_name} image preview`}
-        onClick={() => setPreviewAttachment(null)}
-      >
-        <div
-          className="grid max-h-[92vh] w-full max-w-5xl gap-3 rounded-[24px] border border-white/15 bg-white p-3 shadow-[0_28px_80px_rgba(2,6,23,0.45)]"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex min-w-0 items-center justify-between gap-3 px-1">
-            <div className="min-w-0">
-              <div className="truncate text-[15px] font-black text-slate-950">
-                {previewAttachment.original_name}
-              </div>
-              <div className="truncate text-[12px] font-bold text-slate-500">
-                Uploaded by {previewAttachment.uploader_name} · {formatAttachmentDate(previewAttachment.created_at)} ·{" "}
-                {formatBytes(previewAttachment.size_bytes)}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPreviewAttachment(null)}
-              className="h-9 rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
-            >
-              Close
-            </button>
-          </div>
-          <div className="min-h-0 overflow-hidden rounded-[18px] bg-slate-950">
-            <img
-              src={attachmentURL(previewAttachment.id)}
-              alt={previewAttachment.original_name}
-              className="max-h-[78vh] w-full object-contain"
-            />
-          </div>
-        </div>
-      </div>
-    ) : null}
+    {previewAttachment ? <ImagePreview wide src={attachmentURL(previewAttachment.id)} title={previewAttachment.original_name} description={`Uploaded by ${previewAttachment.uploader_name} · ${formatAttachmentDate(previewAttachment.created_at)} · ${formatBytes(previewAttachment.size_bytes)}`} onClose={() => setPreviewAttachment(null)} /> : null}
     </>
   );
 }
