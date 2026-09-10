@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
-import UserAvatar from "../components/UserAvatar";
+import { DirectoryCard, DirectoryCounter, DirectorySearch } from "../components/UserDirectory";
 import { apiFetch } from "../lib/api";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
@@ -20,25 +20,10 @@ type ProfileSummary = {
   };
 };
 
-function initialsOf(name: string) {
-  const n = (name || "").trim();
-  if (!n) return "?";
-  return n
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => (p[0] || "").toUpperCase())
-    .join("");
-}
-
-function withAt(n: string) {
-  const x = (n || "").trim();
-  if (!x) return "-";
-  return x.startsWith("@") ? x : `@${x}`;
-}
-
 export default function SupervisorUsersPage() {
   const nav = useNavigate();
   const [q, setQ] = useState("");
+  const [boardFilter, setBoardFilter] = useState("all");
   const [rows, setRows] = useState<AssignedStudent[]>([]);
   const [totalAssigned, setTotalAssigned] = useState(0);
   const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
@@ -97,15 +82,15 @@ export default function SupervisorUsersPage() {
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
-    if (!query) return rows;
+
     return rows.filter((s) => {
-      return (
+      return (boardFilter === "all" || (boardFilter === "assigned" ? s.boards?.length > 0 : !s.boards?.length)) && (
         (s.full_name || "").toLowerCase().includes(query) ||
         (s.email || "").toLowerCase().includes(query) ||
         (s.nickname || "").toLowerCase().includes(query)
       );
     });
-  }, [rows, q]);
+  }, [rows, q, boardFilter]);
 
   return (
     <AdminLayout active="users" title="Users" subtitle="Browse your assigned talents and open their profiles.">
@@ -115,18 +100,10 @@ export default function SupervisorUsersPage() {
         </div>
       ) : null}
 
-      <section className="supervisor-users-panel rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
-        <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto]">
-          <input
-            className="supervisor-users-search h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-            placeholder="Search by name, email, or nickname..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <div className="supervisor-users-count rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-500">Assigned</div>
-            <div className="mt-1 text-[20px] font-black tracking-[-0.02em] text-slate-900">{loading ? "..." : totalAssigned}</div>
-          </div>
+      <section className="user-directory">
+        <div className="directory-overview-row directory-supervisor-overview">
+          <div className="directory-toolbar"><DirectorySearch value={q} onChange={setQ}/><select aria-label="Filter by board assignment" value={boardFilter} onChange={e=>setBoardFilter(e.target.value)}><option value="all">All board states</option><option value="assigned">Assigned</option><option value="unassigned">Not assigned</option></select></div>
+          <div className="directory-counters"><DirectoryCounter label="Assigned talents" value={loading?"…":totalAssigned}/><DirectoryCounter label="Matching users" value={loading?"…":filtered.length}/></div>
         </div>
 
         {loading ? (
@@ -138,42 +115,14 @@ export default function SupervisorUsersPage() {
             No users found.
           </div>
         ) : (
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className="directory-grid">
             {filtered.map((u) => {
               const avatarUrl = avatarByLogin[String(u.nickname || u.email.split("@")[0]).toLowerCase()] || "";
               return (
-                <article
-                  key={u.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => nav(`/profile/${u.id}`, { state: { backTo: "/users" } })}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      nav(`/profile/${u.id}`, { state: { backTo: "/users" } });
-                    }
-                  }}
-                  className="supervisor-users-row cursor-pointer rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-[#6d5efc]/20 hover:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
-                >
-                  <div className="flex items-start gap-3">
-                    <UserAvatar src={avatarUrl} alt={u.full_name} fallback={initialsOf(u.full_name)} />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
-                      <div className="truncate text-[12px] font-semibold text-slate-500">{u.email}</div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-[#6d5efc]">
-                          {withAt(u.nickname)}
-                        </span>
-                        <span className="supervisor-users-role-talent inline-flex h-7 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-800">
-                          Talent
-                        </span>
-                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
-                          {u.boards?.length || 0} board{(u.boards?.length || 0) === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </article>
+                <DirectoryCard key={u.id} name={u.full_name} username={u.nickname} avatar={avatarUrl} contact={u.email}
+                  onOpen={()=>nav(`/profile/${u.id}`,{state:{backTo:"/users"}})}
+                  badges={<><span className="inline-flex h-7 items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-700">Talent</span><span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">{u.boards?.length||0} boards</span></>}
+                />
               );
             })}
           </div>

@@ -57,3 +57,5 @@
 .directory-selection-actions .directory-remove-action:hover { color: white; }
 .admin-dark .directory-selection-bar .directory-delete-entry { background: #442733; border-color: #9f3653; color: #fda4af; }
 .admin-dark .directory-selection-actions button:hover { background: #442733; color: #fecdd3; }
+.directory-supervisor-overview .directory-toolbar { grid-template-columns: minmax(0,1fr) 180px; }
+.directory-phone > svg { flex-shrink: 0; }

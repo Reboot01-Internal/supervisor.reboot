@@ -1,4 +1,4 @@
-import { Users, ShieldCheck, GraduationCap, ArrowUpRight, Phone } from "lucide-react";
+import { DirectoryCard, DirectoryCounter as Counter, DirectorySearch } from "../components/UserDirectory";
 import "../components/UserDirectory.css";
 import { fetchRebootDirectory } from "../lib/rebootDirectory";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -1028,15 +1028,7 @@ export default function AdminUsersPage() {
       <section className="user-directory">
         <div className="directory-overview-row">
         <div className="directory-toolbar">
-        <label className="directory-search"><SearchIcon size={18} />
-          <input
-            className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-            aria-label="Search users"
-            placeholder="Search users by name, email or username…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </label>
+        <DirectorySearch value={q} onChange={setQ} />
           <select aria-label="Filter by role"
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             value={role}
@@ -1104,81 +1096,11 @@ export default function AdminUsersPage() {
               const userLogin = loginOfUser(u);
               const avatarUrl = avatarByLogin[userLogin] || "";
               return (
-                <article
-                  key={u.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    if (deleteMode) {
-                      if (deletingUsers) return;
-                      toggleUserSelection(u.id);
-                      return;
-                    }
-                    nav(`/admin/users/${u.id}/profile`, {
-                      state: { backTo: "/admin/users", preserveListState: true },
-                    });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      if (deleteMode) {
-                        if (deletingUsers) return;
-                        toggleUserSelection(u.id);
-                        return;
-                      }
-                      nav(`/admin/users/${u.id}/profile`, {
-                        state: { backTo: "/admin/users", preserveListState: true },
-                      });
-                    }
-                  }}
-                  className={[
-                    "directory-user-card users-row-card rounded-[14px] border px-3 py-2.5 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15",
-                    deleteMode ? "cursor-pointer" : "cursor-pointer",
-                    deleteMode && selectedUserIds.has(u.id)
-                      ? "users-delete-selected border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50"
-                      : "border-slate-200 bg-slate-50 hover:border-[#6d5efc]/20 hover:bg-white",
-                  ].join(" ")}
-                >
-                  <div className="flex items-start gap-3">
-                    {deleteMode ? (
-                      <label
-                        className="mt-1 inline-flex h-5 w-5 flex-none cursor-pointer items-center justify-center"
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${u.full_name}`}
-                          disabled={deletingUsers}
-                          checked={selectedUserIds.has(u.id)}
-                          onChange={() => toggleUserSelection(u.id)}
-                          className="h-5 w-5 rounded border-slate-300 text-[#6d5efc] focus:ring-[#6d5efc]/20"
-                        />
-                      </label>
-                    ) : null}
-                    <UserAvatar
-                      src={avatarUrl}
-                      alt={u.full_name}
-                      fallback={initialsOf(u.full_name)}
-                      sizeClass="h-14 w-14"
-                      previewable
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14px] font-black text-slate-900">{u.full_name}</div>
-                      <div className="directory-phone"><Phone size={12} />{phoneByLogin[userLogin] || "No phone available"}</div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>
-                          {roleDisplay(u.role)}
-                        </span>
-                        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">
-                          {normalizeCohort(u.cohort) || "No cohort"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="directory-card-footer"><span>{withAt(u.nickname)}</span><span>{deleteMode ? (selectedUserIds.has(u.id) ? "Selected" : "Select user") : "View profile"}<ArrowUpRight size={15}/></span></div>
-                </article>
+                <DirectoryCard key={u.id} name={u.full_name} username={u.nickname} avatar={avatarUrl} contact={phoneByLogin[userLogin] || "No phone available"} contactType="phone"
+                  onOpen={()=>nav(`/admin/users/${u.id}/profile`, {state:{backTo:"/admin/users",preserveListState:true}})}
+                  selection={deleteMode?{selected:selectedUserIds.has(u.id),disabled:deletingUsers,onToggle:()=>toggleUserSelection(u.id)}:undefined}
+                  badges={<><span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>{roleDisplay(u.role)}</span><span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">{normalizeCohort(u.cohort)||"No cohort"}</span></>}
+                />
               );
             })}
           </div>
@@ -1188,9 +1110,4 @@ export default function AdminUsersPage() {
       </AdminLayout>
     </>
   );
-}
-
-function Counter({ label, value }: { label: string; value: number }) {
-  const Icon = label === "Supervisors" ? ShieldCheck : label === "Talents" ? GraduationCap : Users;
-  return <div className="directory-counter"><span className="directory-counter-icon"><Icon size={18}/></span><span><strong>{value}</strong><small>{label}</small></span></div>;
 }
