@@ -144,7 +144,7 @@ async function resolveLocalUser(identifier: string) {
   }
 }
 
-export default function LoginPage() {
+export default function LoginPage({ embedded = false }: { embedded?: boolean }) {
   const nav = useNavigate();
   const auth = useAuth();
 
@@ -244,8 +244,41 @@ export default function LoginPage() {
     }
   }
 
+  if (embedded) return <div className="embedded-login">
+              <form onSubmit={onLogin} className="space-y-3">
+                <label className="login-field">Email or nickname<input
+                  type="text"
+                  aria-label="Email or nickname" autoComplete="username" placeholder="Email or Nickname"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                /></label>
+
+                <label className="login-field">Password<input
+                  type="password"
+                  aria-label="Password" autoComplete="current-password" placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
+                /></label>
+
+                {error ? (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                <button
+                  className="mt-1 h-[48px] w-full rounded-xl bg-[#6d5efc] text-white font-extrabold transition hover:bg-[#5f50f6] disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={loading}
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </button>
+              </form>
+</div>;
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#f4f6fb] p-4 sm:p-6">
+    <div className="relative min-h-screen overflow-hidden bg-[#f7f8f4] p-4 sm:p-6">
       <div className="pointer-events-none absolute -top-16 -left-24 h-72 w-72 rounded-full bg-[#6d5efc]/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-[#9a8cff]/20 blur-3xl" />
 
@@ -306,7 +339,7 @@ export default function LoginPage() {
               <form onSubmit={onLogin} className="space-y-3">
                 <input
                   type="text"
-                  placeholder="Email or Nickname"
+                  aria-label="Email or nickname" autoComplete="username" placeholder="Email or Nickname"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
@@ -314,7 +347,7 @@ export default function LoginPage() {
 
                 <input
                   type="password"
-                  placeholder="Password"
+                  aria-label="Password" autoComplete="current-password" placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"

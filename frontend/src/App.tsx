@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./lib/auth";
-import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import SupervisorsPage from "./pages/SupervisorsPage";
 import SupervisorFilePage from "./pages/SupervisorFilePage";
@@ -70,7 +70,8 @@ function CatchAll() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LandingPage />} />
 
       <Route
         path="/dashboard"
