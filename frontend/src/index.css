@@ -61,7 +61,7 @@ body {
 }
 
 .app-eyebrow {
-  color: #7568ee !important;
+  color: #8474b5;
 }
 
 .app-frame aside > div {
@@ -2240,3 +2240,48 @@ body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-actions {
 .app-frame .app-page-subtitle { margin-top:4px; font-size:12px; font-weight:400; line-height:1.7; color:#79829a; }
 .app-frame.admin-dark .app-page-subtitle { color:#a9a6bc; }
 .app-frame .app-main :where(h2,h3,h4) { font-family:var(--font-sans); letter-spacing:-.035em; }
+
+/* Identical header geometry across dashboards and shared workspace pages. */
+.app-frame .app-page-header,
+.app-frame .talent-intro,
+.app-frame .ah-header {
+  align-items: flex-start;
+  padding: 0 0 23px;
+  margin: 0 0 24px;
+  min-height: 0;
+}
+.app-frame .app-page-header .app-eyebrow,
+.app-frame .talent-intro .talent-eyebrow,
+.app-frame .ah-header .ah-label {
+  display: block;
+  font-size: 10px;
+  line-height: 17px;
+  font-weight: 700;
+  letter-spacing: .17em;
+  color: #8474b5;
+}
+.app-frame .app-page-title,
+.app-frame .talent-intro h1,
+.app-frame .ah-header h1 {
+  margin: 6px 0;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 750;
+  letter-spacing: -.05em;
+  line-height: 1.15;
+}
+.app-frame .app-page-title > span,
+.app-frame .talent-intro h1 > span,
+.app-frame .ah-header h1 > span { color: #7961fc; }
+.app-frame .app-page-subtitle,
+.app-frame .talent-intro p,
+.app-frame .ah-header p {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.7;
+  color: #718099;
+}
+.app-frame.admin-dark .app-page-subtitle,
+.app-frame.admin-dark .talent-intro p,
+.app-frame.admin-dark .ah-header p { color: #a9a6bc; }
