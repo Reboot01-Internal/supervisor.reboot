@@ -1,51 +1,15 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import UserAvatar from "../components/UserAvatar";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
-
+import "./AdminDashboard.css";
 const BAHRAIN_TIMEZONE = "Asia/Bahrain";
-
-type SupervisorRow = {
-  supervisor_user_id: number;
-  full_name: string;
-  email: string;
-  file_id: number;
-  created_at: string;
-};
-
-type BoardRow = {
-  id: number;
-  cards_count: number;
-};
-
-type SupervisorActivity = {
-  active?: {
-    count: number;
-    percentage: number;
-  };
-  inactive?: {
-    count: number;
-    percentage: number;
-  };
-  total?: number;
-};
-
-type TaskCompletionStats = {
-  tasks?: {
-    count: number;
-  };
-  subtasks?: {
-    count: number;
-  };
-  on_time?: {
-    count: number;
-    percentage: number;
-  };
-  overdue?: {
-    count: number;
-  };
-  total?: number;
-};
-
+type Supervisor = { nickname?: string; supervisor_user_id: number; full_name: string; email: string };
+type Board = { id: number; name: string; supervisor_name: string; supervisor_user_id: number; cards_count: number };
+type Activity = { active?: { count: number; percentage: number }; inactive?: { count: number; percentage: number }; total?: number };
 function formatActivityWeekLabel(weekOffset: number) {
   if (weekOffset <= 0) return "This week";
   if (weekOffset === 1) return "Last week";
@@ -77,293 +41,32 @@ function formatActivityWeekLabel(weekOffset: number) {
   return `${formatter.format(start)} - ${formatter.format(end)}`;
 }
 
-function PieChart({ activePercent }: { activePercent: number }) {
-  const pct = Math.max(0, Math.min(100, activePercent));
-  const angle = (pct / 100) * 360;
-
-  return (
-    <div
-      className="activity-pie relative h-[220px] w-[220px] max-[420px]:h-[184px] max-[420px]:w-[184px] flex-none rounded-full"
-      style={{
-        background:
-          pct <= 0
-            ? "var(--activity-inactive-ring, #fde2e2)"
-            : pct >= 100
-            ? "var(--activity-active-ring, #dff7e8)"
-            : `conic-gradient(#22c55e 0deg ${angle}deg, #f87171 ${angle}deg 360deg)`,
-      }}
-    >
-      <div className="absolute inset-[28px] grid place-items-center rounded-full border border-slate-200 bg-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] max-[420px]:inset-[23px]">
-        <div>
-          <div className="text-[42px] font-black tracking-[-0.04em] text-slate-900 max-[420px]:text-[34px]">{pct}%</div>
-          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Active</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  icon,
-  subtitle,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  subtitle?: string;
-}) {
-  return (
-    <div className="dashboard-stat-card min-w-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:rounded-[12px] max-[520px]:p-2.5">
-      <div className="flex items-start justify-between gap-3 max-[520px]:block">
-        <div className="min-w-0">
-          <div className="truncate text-xs font-extrabold text-slate-500 max-[520px]:text-[9px]">{label}</div>
-          <div className="mt-1.5 text-2xl font-black text-slate-900 max-[520px]:mt-0.5 max-[520px]:text-[18px]">{value}</div>
-        </div>
-        <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50 max-[520px]:mt-1.5 max-[520px]:h-6 max-[520px]:w-6 max-[520px]:rounded-[8px] max-[520px]:[&>svg]:h-3.5 max-[520px]:[&>svg]:w-3.5">
-          {icon}
-        </div>
-      </div>
-      {subtitle ? <div className="mt-2 text-[13px] text-slate-500 max-[520px]:hidden">{subtitle}</div> : null}
-    </div>
-  );
-}
 
 export default function AdminDashboard() {
-  const [supervisors, setSupervisors] = useState<SupervisorRow[]>([]);
-  const [boardsCount, setBoardsCount] = useState(0);
-  const [cardsCount, setCardsCount] = useState(0);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [studentCount, setStudentCount] = useState(0);
-  const [supervisorActivity, setSupervisorActivity] = useState<SupervisorActivity | null>(null);
-  const [taskCompletion, setTaskCompletion] = useState<TaskCompletionStats | null>(null);
-  const [activityWeekOffset, setActivityWeekOffset] = useState(0);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadDashboardStats() {
-      setStatsLoading(true);
-      try {
-        const [sups, students, boards, activity, completion] = await Promise.all([
-          apiFetch("/admin/supervisors"),
-          apiFetch("/admin/users?role=student&q="),
-          apiFetch("/admin/all-boards"),
-          apiFetch(`/admin/dashboard/supervisor-activity?week_offset=${activityWeekOffset}`),
-          apiFetch("/admin/dashboard/task-completion"),
-        ]);
-
-        if (!mounted) return;
-        setSupervisors(Array.isArray(sups) ? sups : []);
-        setStudentCount(Array.isArray(students) ? students.length : 0);
-        const boardRows = Array.isArray(boards) ? (boards as BoardRow[]) : [];
-        setBoardsCount(boardRows.length);
-        setCardsCount(boardRows.reduce((sum, board) => sum + (board.cards_count || 0), 0));
-        setSupervisorActivity(activity || null);
-        setTaskCompletion(completion || null);
-      } catch (e) {
-        console.error(e);
-        if (!mounted) return;
-        setSupervisors([]);
-        setStudentCount(0);
-        setBoardsCount(0);
-        setCardsCount(0);
-        setSupervisorActivity(null);
-        setTaskCompletion(null);
-      } finally {
-        if (mounted) setStatsLoading(false);
-      }
-    }
-
-    void loadDashboardStats();
-    return () => {
-      mounted = false;
-    };
-  }, [activityWeekOffset]);
-
-  const totalSupervisors = supervisors.length;
-  const activeSupervisorPercent = supervisorActivity?.active?.percentage || 0;
-  const taskCount = taskCompletion?.tasks?.count || 0;
-  const subtaskCount = taskCompletion?.subtasks?.count || 0;
-  const onTimeCount = taskCompletion?.on_time?.count || 0;
-  const overdueCount = taskCompletion?.overdue?.count || 0;
-  const onTimePercent = taskCompletion?.on_time?.percentage || 0;
-  const totalTrackedItems = taskCompletion?.total || 0;
-  const activityWeekLabel = formatActivityWeekLabel(activityWeekOffset);
-
-  return (
-    <AdminLayout active="dashboard" title="Admin Dashboard" subtitle="Manage users and supervise the system.">
-      <div className="dashboard-page">
-        <section className="grid min-w-0 grid-cols-1 gap-3.5 max-[520px]:grid-cols-4 max-[520px]:gap-2 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Supervisors"
-            value={statsLoading ? "..." : totalSupervisors}
-            icon={
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="10" cy="8" r="3.5" stroke="#2563eb" strokeWidth="2" />
-                <path d="M20 20v-1.5A3.5 3.5 0 0 0 17 15.1" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-                <path d="M15.5 4.7a3.5 3.5 0 0 1 0 6.6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Talents"
-            value={statsLoading ? "..." : studentCount}
-            icon={
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                <path d="M12 3l10 5-10 5L2 8l10-5Z" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
-                <path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
-                <path d="M22 8v6" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Boards"
-            value={statsLoading ? "..." : boardsCount}
-            icon={
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                <rect x="4" y="5" width="16" height="14" rx="3" stroke="#2563eb" strokeWidth="2" />
-                <path d="M8 9h8M8 13h8M8 17h5" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Cards"
-            value={statsLoading ? "..." : cardsCount}
-            icon={
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                <rect x="6" y="5" width="12" height="14" rx="2.5" stroke="#f59e0b" strokeWidth="2" />
-                <path d="M9 9h6M9 13h6" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            }
-          />
-          {/* <StatCard
-            label="Admin"
-            value="System"
-            subtitle="You're managing the platform"
-            icon={<span className="h-[18px] w-[18px] rounded-full border-2 border-slate-300 border-t-violet-500 animate-spin" />}
-          /> */}
-        </section>
-
-        <section className="mt-3.5 grid min-w-0 grid-cols-1 gap-3.5 xl:grid-cols-[minmax(420px,500px)_minmax(0,1fr)]">
-          <div className="grid min-w-0">
-          <div className="relative h-[500px] w-full max-w-[500px] rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[760px]:h-auto max-[520px]:p-4">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs font-extrabold text-slate-500">Supervisor Activity</div>
-                <div className="mt-1.5 text-[18px] font-black text-slate-900">{activityWeekLabel}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActivityWeekOffset((prev) => prev + 1)}
-                    className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-white px-3 text-[12px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    &lt; 
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActivityWeekOffset((prev) => Math.max(0, prev - 1))}
-                    disabled={activityWeekOffset === 0}
-                    className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-white px-3 text-[12px] font-black text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                     &gt;
-                  </button>
-                </div>
-              </div>
-              <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
-                <span className="h-[18px] w-[18px] rounded-full bg-[conic-gradient(#22c55e_0deg_220deg,#f87171_220deg_360deg)]" />
-              </div>
-            </div>
-
-            <div className="flex min-h-[360px] items-center justify-center max-[760px]:min-h-[280px] max-[420px]:min-h-[230px]">
-              <PieChart activePercent={statsLoading ? 0 : activeSupervisorPercent} />
-            </div>
-
-            <div className="absolute bottom-5 right-5 flex items-center gap-6 text-right max-[420px]:static max-[420px]:mt-2 max-[420px]:justify-end max-[420px]:gap-4">
-              <div className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-500">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                <span>Active</span>
-              </div>
-              <div className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-500">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                <span>Inactive</span>
-              </div>
-            </div>
-          </div>
-          </div>
-
-          <div className="min-w-0 rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] max-[520px]:p-4">
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <div className="text-xs font-extrabold text-slate-500">Task Completion</div>
-              <div className="mt-1.5 text-[18px] font-black text-slate-900">Tasks and subtasks</div>
-            </div>
-            <div className="grid h-11 w-11 place-items-center rounded-[14px] border border-slate-200 bg-slate-50">
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                <path d="M7 12.5l3 3 7-8" stroke="#22c55e" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                <rect x="4" y="4" width="16" height="16" rx="4" stroke="#94a3b8" strokeWidth="1.8" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="grid min-w-0 grid-cols-2 gap-3 max-[420px]:grid-cols-1">
-            <StatCard
-              label="Tasks"
-              value={statsLoading ? "..." : taskCount}
-              subtitle="All cards across boards"
-              icon={
-                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                  <rect x="6" y="5" width="12" height="14" rx="2.5" stroke="#2563eb" strokeWidth="2" />
-                  <path d="M9 9h6M9 13h6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              }
-            />
-            <StatCard
-              label="Subtasks"
-              value={statsLoading ? "..." : subtaskCount}
-              subtitle="Checklist items included"
-              icon={
-                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden="true">
-                  <path d="M7 8h10M7 12h10M7 16h10" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" />
-                  <path d="M4.5 8h.01M4.5 12h.01M4.5 16h.01" stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              }
-            />
-            <StatCard
-              label="On time"
-              value={statsLoading ? "..." : onTimeCount}
-              subtitle={`${statsLoading ? "..." : `${onTimePercent}%`} on track`}
-              icon={<span className="h-3 w-3 rounded-full bg-emerald-500" />}
-            />
-            <StatCard
-              label="Overdue"
-              value={statsLoading ? "..." : overdueCount}
-              subtitle="Open items past due date"
-              icon={<span className="h-3 w-3 rounded-full bg-rose-500" />}
-            />
-          </div>
-
-          <div className="mt-5 rounded-[18px] border border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-center justify-between gap-3 text-[12px] font-bold text-slate-500">
-              <span>Completion overview</span>
-              <span>{statsLoading ? "..." : `${totalTrackedItems} tracked items`}</span>
-            </div>
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)]">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 transition-all duration-500"
-                style={{ width: `${statsLoading ? 0 : onTimePercent}%` }}
-              />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-3 text-[12px] font-semibold text-slate-500 max-[420px]:items-start">
-              <span className="min-w-0">On time items stay ahead of their due dates.</span>
-              <span className="font-black text-slate-700">{statsLoading ? "..." : `${onTimeCount} / ${totalTrackedItems}`}</span>
-            </div>
-          </div>
-          </div>
-        </section>
-      </div>
-    </AdminLayout>
-  );
+ const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+ const [boards, setBoards] = useState<Board[]>([]);
+ const [error, setError] = useState("");
+ const [loading, setLoading] = useState(true);
+ const [activity, setActivity] = useState<Activity | null>(null);
+ const [activityError, setActivityError] = useState("");
+ const [activityLoading, setActivityLoading] = useState(true);
+ const [week, setWeek] = useState(0);
+ const [trend, setTrend] = useState<(Activity | null)[]>([]);
+ const [avatars, setAvatars] = useState<Record<string,string>>({});
+ const logins=supervisors.map(s=>s.nickname||"").filter(Boolean).join(",");
+ useEffect(()=>{let alive=true;fetchRebootAvatars(logins.split(",").filter(Boolean)).then(v=>{if(alive)setAvatars(v);});return()=>{alive=false;};},[logins]);
+ useEffect(()=>{let alive=true;Promise.allSettled(Array.from({length:6},(_,i)=>apiFetch(`/admin/dashboard/supervisor-activity?week_offset=${5-i}`))).then(rows=>{if(alive)setTrend(rows.map(r=>r.status==="fulfilled"?r.value:null));});return()=>{alive=false;};},[]);
+ const [query, setQuery] = useState("");
+ useEffect(() => { let alive = true; Promise.all([apiFetch("/admin/supervisors"), apiFetch("/admin/all-boards")]).then(([s,b]) => { if(alive) {setSupervisors(Array.isArray(s)?s:[]);setBoards(Array.isArray(b)?b:[]);} }).catch(() => {if(alive) setError("Couldn’t load the supervisor directory. Refresh to try again.");}).finally(() => {if(alive) setLoading(false);});return () => {alive=false;}; },[]);
+ useEffect(() => { let alive=true;apiFetch(`/admin/dashboard/supervisor-activity?week_offset=${week}`).then(a => {if(alive)setActivity(a);}).catch(() => {if(alive)setActivityError("Activity couldn’t load. Try another week or refresh.");}).finally(() => {if(alive)setActivityLoading(false);});return () => {alive=false;};},[week]);
+ const pct=Math.max(0,Math.min(100,activity?.active?.percentage||0));
+ const filtered=supervisors.filter(s => `${s.full_name} ${s.email}`.toLowerCase().includes(query.toLowerCase()));
+ return <AdminLayout active="dashboard" title="Admin workspace" hideHeader><div className="admin-hub">
+ <header className="ah-header"><div><span className="ah-label">REBOOT / ADMIN SPACE</span><h1>The bigger picture<span>.</span></h1><p>Keep an eye on the team. Find the work behind the numbers.</p></div><span className="ah-symbol" aria-hidden="true">{ "{ }" }</span></header>
+ <div className="ah-overview"><section className="ah-activity"><div className="ah-activity-heading"><div><span className="ah-label">TEAM PULSE</span><h2>Supervisor Activity</h2></div><div className="ah-weeks"><button aria-label="Previous week" onClick={() => {setActivityLoading(true);setActivityError("");setWeek(w=>w+1);}}><ChevronLeft size={16}/></button><span>{formatActivityWeekLabel(week)}</span><button aria-label="Next week" disabled={!week} onClick={() => {setActivityLoading(true);setActivityError("");setWeek(w=>Math.max(0,w-1));}}><ChevronRight size={16}/></button></div></div>
+ {activityLoading ? <p role="status">Loading activity…</p> : activityError ? <p role="alert">{activityError}</p> : <div className="ah-pulse"><div className="ah-ring" role="img" aria-label={`${pct}% active supervisors`} style={{background:`conic-gradient(#a58ae9 ${pct}%, #504364 0)`}}><div><strong>{pct}%</strong><span>ACTIVE</span></div></div><div className="ah-pulse-copy"><h3>{activity?.total ? `${activity.active?.count||0} of ${activity.total} supervisors active` : "No supervisor activity data"}</h3><p>{formatActivityWeekLabel(week)}</p><div className="ah-legend"><span><i/>{activity?.active?.count||0} active</span><span><i/>{activity?.inactive?.count||0} inactive</span></div></div><Link to="/admin/reports" className="ah-report">Open reports <ArrowUpRight size={18}/></Link></div>}</section><section className="ah-trend"><span className="ah-label">THE LAST SIX WEEKS</span><h2>Activity over time</h2><p>Active supervisors each week</p><div className="ah-bars">{Array.from({length:6},(_,i)=>{const item=trend[i];return <button key={i} aria-pressed={week===5-i} aria-label={`${formatActivityWeekLabel(5-i)}: ${item ? `${item.active?.percentage||0}% active` : "unavailable"}`} onClick={()=>{setActivityLoading(true);setActivityError("");setWeek(5-i);}}><span className="ah-bar-track"><i style={{height:`${item?.active?.percentage||0}%`}}/></span><strong>{trend.length ? item ? `${item.active?.percentage||0}%` : "—" : "…"}</strong><small>{i===5?"Now":`${5-i}w ago`}</small></button>;})}</div></section></div>
+ <div className="ah-body"><section className="ah-directory"><div className="ah-section-head"><div><span className="ah-label">PEOPLE & PROJECTS</span><h2>Supervisor directory</h2></div><input aria-label="Search supervisors" placeholder="Find a supervisor…" value={query} onChange={e=>setQuery(e.target.value)}/></div><p className="ah-hint">Expand a supervisor to view their boards and profile.</p>
+ {loading ? <p role="status">Loading supervisors…</p> : error ? <p role="alert">{error}</p> : filtered.length ? filtered.map(s=>{const owned=boards.filter(b=>b.supervisor_user_id===s.supervisor_user_id);return <details className="ah-person" key={s.supervisor_user_id}><summary><UserAvatar src={avatars[(s.nickname||"").toLowerCase()]} alt={s.full_name} fallback={s.full_name.split(" ").map(n=>n[0]).slice(0,2).join("")} sizeClass="h-10 w-10"/><strong>{s.full_name}</strong><span>{owned.length} boards</span><span className="ah-plus">+</span></summary><div className="ah-details"><nav><Link to={`/admin/users/${s.supervisor_user_id}/profile`}>View profile ↗</Link>{s.email&&<a href={`mailto:${s.email}`}>Email ↗</a>}</nav>{owned.length ? owned.map(b=><Link className="ah-board" to={`/admin/boards/${b.id}`} key={b.id}><span>{b.name}</span><small>{b.cards_count} tasks ↗</small></Link>) : <p>No project boards for this supervisor yet.</p>}</div></details>}) : <p>No supervisors found.</p>}</section>
+ </div>
+ </div></AdminLayout>;
 }
