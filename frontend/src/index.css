@@ -2377,3 +2377,50 @@ body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-actions {
 .app-frame.admin-dark .workspace-nav-item[aria-current=page] {background:#3d314c;color:#dac6ee}
 .admin-dark .workspace-sidebar .workspace-brand,.admin-dark .workspace-sidebar .admin-sidebar-footer {border-color:#3b3447}
 .admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] {background:#2d2737;border-color:#3b3447}
+/* Account card: profile first, utility controls beneath it. */
+.app-frame .workspace-sidebar .admin-sidebar-footer {
+  position:relative;
+  isolation:isolate;
+  padding:12px 8px 7px;
+  border:1px solid #e3d9ee;
+  border-radius:14px;
+  background:radial-gradient(ellipse at 100% 0%,#d9c6ee90,transparent 65%),linear-gradient(135deg,#faf7fe,#f0eaf8);
+  gap:0;
+  overflow:hidden;
+}
+.app-frame .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] {
+  order:-1;
+  position:relative;
+  background:transparent;
+  border:0;
+  border-radius:8px;
+  padding:4px 2px 14px;
+  gap:9px;
+}
+.app-frame .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"]>div:first-child {
+  width:40px;height:46px;border-radius:10px;
+  border:2px solid #ffffff;
+  box-shadow:0 4px 12px #8a65ad20;
+}
+.app-frame .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] .text-slate-900 {font-size:12px;letter-spacing:-.025em}
+.app-frame .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] .text-slate-500 {font-size:9px;color:#9680ae}
+.app-frame .workspace-sidebar .admin-sidebar-footer .theme-switch {
+  border:0;border-top:1px solid #ded2e9;border-radius:0;background:transparent;padding:10px 2px;
+}
+.workspace-sidebar .admin-sidebar-footer .theme-switch>span:first-child {gap:7px}
+.workspace-sidebar .admin-sidebar-footer .theme-switch>span:first-child>span:first-child {width:24px;height:24px}
+.workspace-sidebar .admin-sidebar-footer .theme-switch .text-slate-800 {font-size:11px}
+.app-frame .workspace-sidebar .admin-sidebar-footer>button[aria-label="Log out"] {
+  border:0!important;border-top:1px solid #ded2e9!important;
+  border-radius:0;background:transparent!important;padding:7px 3px 3px;gap:7px;
+}
+.workspace-sidebar .admin-sidebar-footer>button[aria-label="Log out"]>span:first-child {width:24px;height:24px}
+.workspace-sidebar .admin-sidebar-footer>button[aria-label="Log out"]>span:last-child {font-size:11px;font-weight:500;color:#8f789f}
+.app-frame .workspace-sidebar .admin-sidebar-footer>button:hover {background:#ffffff50!important}
+.app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer {
+  background:radial-gradient(ellipse at 100% 0%,#64467c60,transparent 65%),linear-gradient(135deg,#302638,#292231);border-color:#49364f;
+}
+.app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] {background:transparent;border:0}
+.app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer .theme-switch,
+.app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Log out"] {border-top-color:#49364f!important}
+.app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer>button:hover {background:#ffffff08!important}

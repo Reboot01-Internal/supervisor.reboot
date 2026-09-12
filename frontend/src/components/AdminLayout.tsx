@@ -1,3 +1,4 @@
+import SidebarAccount from "./SidebarAccount";
 import WorkspaceNavIcon from "./WorkspaceNavIcon";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,8 +8,8 @@ import { useAuth } from "../lib/auth";
 import { useNotifications } from "../lib/notifications";
 import faviconIcon from "/favicon-icon.png";
 import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
-import UserAvatar from "./UserAvatar";
-import { ThemeToggle } from "./SidebarWidgets";
+
+
 
 type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
@@ -23,15 +24,6 @@ function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-function SignOutIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15 12H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m8 8-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function NavItem({
   label,
@@ -101,13 +93,6 @@ export default function AdminLayout({
   const baseName = login || email || "User";
   const avatarLogin = String(login || String(email || "").split("@")[0] || "").trim();
   const [avatarUrl, setAvatarUrl] = useState(() => getCachedRebootAvatar(avatarLogin));
-  const profileInitials = baseName
-    .replace(/^@/, "")
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((x) => x[0]?.toUpperCase() || "")
-    .join("") || "U";
 
   useEffect(() => {
     let cancelled = false;
@@ -252,36 +237,7 @@ export default function AdminLayout({
         </div>
       </div>
 
-      <div className="admin-sidebar-footer mt-auto flex flex-col gap-2 border-t border-slate-200 pt-3">
-        <ThemeToggle darkMode={darkMode} onToggle={() => setDarkMode((next) => !next)} />
-
-        <button
-          type="button"
-          onClick={() => nav("/profile")}
-          className="flex min-w-0 items-center gap-3 rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50"
-          title="Open profile"
-          aria-label="Open profile"
-        >
-          <UserAvatar src={avatarUrl} alt={baseName} fallback={profileInitials} sizeClass="h-10 w-10" textClass="text-[11px]" className="bg-[#e8ecff] text-[#6d5efc]" />
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
-            <div className="mt-0.5 text-[12px] font-bold text-slate-500">{isSupervisor ? "Supervisor · Your profile" : "Talent · Your profile"}</div>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={logout}
-          title="Log out"
-          aria-label="Log out"
-          className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-        >
-          <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-            <SignOutIcon size={15} />
-          </span>
-          <span className="text-[14px] leading-none">Log out</span>
-        </button>
-      </div>
+      <SidebarAccount name={baseName} photo={avatarUrl} role={isSupervisor ? "Supervisor" : "Talent"} dark={darkMode} onTheme={() => setDarkMode(v => !v)} onProfile={() => {nav("/profile");setAdminSidebarOpen(false);}} onLogout={logout} />
     </div>
   </aside>
 ) : null;
@@ -449,35 +405,7 @@ export default function AdminLayout({
                 </div>
               </div>
 
-              <div className="admin-sidebar-footer mt-auto flex flex-col gap-2 border-t border-slate-200 pt-3">
-                <ThemeToggle darkMode={darkMode} onToggle={() => setDarkMode((next) => !next)} />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    nav("/profile");
-                    setAdminSidebarOpen(false);
-                  }}
-                  className="flex min-w-0 items-center gap-3 rounded-[16px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50"
-                >
-                  <UserAvatar src={avatarUrl} alt={baseName} fallback={profileInitials} sizeClass="h-10 w-10" textClass="text-[11px]" className="bg-[#e8ecff] text-[#6d5efc]" />
-                  <div className="min-w-0">
-                    <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
-                    <div className="mt-0.5 text-[12px] font-bold text-slate-500">{isSupervisor ? "Supervisor · Your profile" : "Talent · Your profile"}</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="flex items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-extrabold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                >
-                  <span className="grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-                    <SignOutIcon size={15} />
-                  </span>
-                  <span className="text-[14px] leading-none">Log out</span>
-                </button>
-              </div>
+              <SidebarAccount name={baseName} photo={avatarUrl} role={isSupervisor ? "Supervisor" : "Talent"} dark={darkMode} onTheme={() => setDarkMode(v => !v)} onProfile={() => {nav("/profile");setAdminSidebarOpen(false);}} onLogout={logout} />
             </div>
           </div>
         )}
