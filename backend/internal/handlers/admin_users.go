@@ -387,77 +387,38 @@ func (a *API) AdminSupervisorActivity(w http.ResponseWriter, r *http.Request) {
 	startUTC := startLocal.UTC().Format("2006-01-02 15:04:05")
 	endUTC := endLocal.UTC().Format("2006-01-02 15:04:05")
 
-	row := a.conn.QueryRow(`
-		WITH supervisors AS (
-			SELECT u.id
-			FROM users u
-			WHERE
-				u.role = 'supervisor'
-				OR EXISTS (
-					SELECT 1
-					FROM user_roles ur
-					WHERE ur.user_id = u.id AND ur.role = 'supervisor'
-				)
-		)
-		SELECT
-			COALESCE(SUM(
-				CASE
-					WHEN
-						EXISTS (
-							SELECT 1 FROM boards b
-							WHERE b.created_by = s.id
-							  AND b.created_at >= ?
-							  AND b.created_at < ?
-						)
-						OR EXISTS (
-							SELECT 1
-							FROM meetings m
-							WHERE m.created_by = s.id
-							  AND m.created_at >= ?
-							  AND m.created_at < ?
-						)
-						OR EXISTS (
-							SELECT 1
-							FROM card_activity ca
-							WHERE ca.actor_user_id = s.id
-							  AND ca.created_at >= ?
-							  AND ca.created_at < ?
-						)
-					THEN 1 ELSE 0
-				END
-			), 0) AS active_count,
-			COALESCE(SUM(
-				CASE
-					WHEN
-						EXISTS (
-							SELECT 1 FROM boards b
-							WHERE b.created_by = s.id
-							  AND b.created_at >= ?
-							  AND b.created_at < ?
-						)
-						OR EXISTS (
-							SELECT 1
-							FROM meetings m
-							WHERE m.created_by = s.id
-							  AND m.created_at >= ?
-							  AND m.created_at < ?
-						)
-						OR EXISTS (
-							SELECT 1
-							FROM card_activity ca
-							WHERE ca.actor_user_id = s.id
-							  AND ca.created_at >= ?
-							  AND ca.created_at < ?
-						)
-					THEN 0 ELSE 1
-				END
-			), 0) AS inactive_count
-		FROM supervisors s
-	`, startUTC, endUTC, startUTC, endUTC, startUTC, endUTC, startUTC, endUTC, startUTC, endUTC, startUTC, endUTC)
-
-	var activeCount int
-	var inactiveCount int
-	if err := row.Scan(&activeCount, &inactiveCount); err != nil {
+	rows, err := a.conn.Query(`
+ SELECT u.id, u.full_name,
+ (SELECT COUNT(*) FROM boards b WHERE b.created_by=u.id AND b.created_at>=? AND b.created_at<?),
+ (SELECT COUNT(*) FROM meetings m WHERE m.created_by=u.id AND m.created_at>=? AND m.created_at<?),
+ (SELECT COUNT(*) FROM card_activity ca WHERE ca.actor_user_id=u.id AND ca.created_at>=? AND ca.created_at<?)
+ FROM users u WHERE u.role='supervisor' OR EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND ur.role='supervisor')
+ ORDER BY u.full_name
+ `, startUTC, endUTC, startUTC, endUTC, startUTC, endUTC)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer rows.Close()
+	details := []map[string]any{}
+	activeCount, inactiveCount := 0, 0
+	for rows.Next() {
+		var id int64
+		var name string
+		var boards, meetings, updates int
+		if err := rows.Scan(&id, &name, &boards, &meetings, &updates); err != nil {
+			writeErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+		active := boards+meetings+updates > 0
+		if active {
+			activeCount++
+		} else {
+			inactiveCount++
+		}
+		details = append(details, map[string]any{"user_id": id, "name": name, "active": active, "boards_created": boards, "meetings_created": meetings, "card_updates": updates})
+	}
+	if err := rows.Err(); err != nil {
 		writeErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
@@ -479,7 +440,8 @@ func (a *API) AdminSupervisorActivity(w http.ResponseWriter, r *http.Request) {
 			"count":      inactiveCount,
 			"percentage": inactivePct,
 		},
-		"total": total,
+		"total":       total,
+		"supervisors": details,
 	})
 }
 

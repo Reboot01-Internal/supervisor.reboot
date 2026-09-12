@@ -25,3 +25,13 @@
 .admin-dark .meetings-toolbar .meetings-mini-stat[data-stat="upcoming"]{--stat-color:#e8bb4d}
 .admin-dark .meetings-toolbar .meetings-mini-stat[data-stat="this-month"]{--stat-color:#58c8b1}
 .admin-dark .meetings-toolbar .meetings-mini-stat[data-stat="canceled"]{--stat-color:#f18598}
+/* Meeting controls share the calendar's orange accent in every role. */
+.meetings-toolbar{--meeting-filter-ink:#b66b08;--meeting-filter-line:#f0d9b8;--meeting-filter-fill:#fff6e8}
+.meetings-toolbar .meetings-filter-label{border-color:var(--meeting-filter-line)}
+.meetings-toolbar .meetings-filter-label>span,.meetings-toolbar .meetings-calendar-button{color:var(--meeting-filter-ink)}
+.meetings-toolbar .meetings-filter-label .meetings-filter{color:var(--meeting-filter-ink);border-color:var(--meeting-filter-line);background:var(--meeting-filter-fill)}
+.meetings-toolbar .meetings-filter:focus{border-color:#e9a23b;box-shadow:0 0 0 3px #f5a62315}
+.meetings-toolbar .meetings-filter:focus-visible,.meetings-toolbar .meetings-calendar-button:focus-visible{outline:2px solid #e9a23b;outline-offset:2px}
+.meetings-toolbar .meetings-calendar-button{border-color:var(--meeting-filter-line)}
+.meetings-toolbar .meetings-calendar-button:hover{background:var(--meeting-filter-fill);border-color:#e9a23b}
+.admin-dark .meetings-toolbar{--meeting-filter-ink:#f3b65f;--meeting-filter-line:#665039;--meeting-filter-fill:#3b3026}
