@@ -1,3 +1,4 @@
+import WorkspaceNavIcon from "./WorkspaceNavIcon";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
@@ -66,10 +67,11 @@ function NavItem({
       onClick={onClick}
       title={title || label}
       aria-label={ariaLabel || label}
-      className={cn("flex items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition", toneClass)}
+      aria-current={activeItem ? "page" : undefined}
+      className={cn("workspace-nav-item flex items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition", toneClass)}
     >
       <span className="relative grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-        {icon}
+        <WorkspaceNavIcon label={label} fallback={icon}/>
         {showNotificationDot ? (
           <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
         ) : null}
@@ -148,12 +150,12 @@ export default function AdminLayout({
 
   const nonAdminNav = !isAdmin ? (
   <aside className="sticky top-[22px] self-start max-[1050px]:hidden">
-    <div className="flex min-h-[calc(100vh-44px)] w-[220px] max-w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+    <div className="workspace-sidebar flex min-h-[calc(100vh-44px)] w-[220px] max-w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-3">
         <button
           type="button"
           onClick={() => nav("/dashboard")}
-          className="flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
+          className="workspace-brand flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
         >
           <img
             src={faviconIcon}
@@ -167,6 +169,7 @@ export default function AdminLayout({
           </div>
         </button>
 
+        <div className="workspace-section-label"><span>YOUR WORKSPACE</span><span aria-hidden="true">{ "</>" }</span></div>
         <div className="flex flex-col gap-2">
           <NavItem
             activeItem={active === "dashboard"}
@@ -262,7 +265,7 @@ export default function AdminLayout({
           <UserAvatar src={avatarUrl} alt={baseName} fallback={profileInitials} sizeClass="h-10 w-10" textClass="text-[11px]" className="bg-[#e8ecff] text-[#6d5efc]" />
           <div className="min-w-0">
             <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
-            <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
+            <div className="mt-0.5 text-[12px] font-bold text-slate-500">{isSupervisor ? "Supervisor · Your profile" : "Talent · Your profile"}</div>
           </div>
         </button>
 
@@ -337,7 +340,7 @@ export default function AdminLayout({
           />
         ) : (
           <div className="h-full overflow-y-auto bg-transparent p-3">
-            <div className="flex min-h-full w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <div className="workspace-sidebar flex min-h-full w-full flex-col rounded-[22px] border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
@@ -345,7 +348,7 @@ export default function AdminLayout({
                     nav("/dashboard");
                     setAdminSidebarOpen(false);
                   }}
-                  className="flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
+                  className="workspace-brand flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
                 >
                   <img
                     src={faviconIcon}
@@ -357,6 +360,7 @@ export default function AdminLayout({
                   </div>
                 </button>
 
+                <div className="workspace-section-label"><span>YOUR WORKSPACE</span><span aria-hidden="true">{ "</>" }</span></div>
                 <div className="flex flex-col gap-2">
                   <NavItem
                     activeItem={active === "dashboard"}
@@ -459,7 +463,7 @@ export default function AdminLayout({
                   <UserAvatar src={avatarUrl} alt={baseName} fallback={profileInitials} sizeClass="h-10 w-10" textClass="text-[11px]" className="bg-[#e8ecff] text-[#6d5efc]" />
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-extrabold text-slate-900">{baseName}</div>
-                    <div className="mt-0.5 text-[12px] font-bold text-slate-500">System access</div>
+                    <div className="mt-0.5 text-[12px] font-bold text-slate-500">{isSupervisor ? "Supervisor · Your profile" : "Talent · Your profile"}</div>
                   </div>
                 </button>
 

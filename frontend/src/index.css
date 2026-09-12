@@ -2285,3 +2285,95 @@ body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-actions {
 .app-frame.admin-dark .app-page-subtitle,
 .app-frame.admin-dark .talent-intro p,
 .app-frame.admin-dark .ah-header p { color: #a9a6bc; }
+/* Reboot workspace navigation */
+.app-frame .workspace-sidebar {
+  background:linear-gradient(165deg,#fcfbff,#f2eff9)!important;
+  border:1px solid #e8e1f1!important;
+  box-shadow:0 12px 35px #3b23540a!important;
+  border-radius:18px;
+  padding:16px 12px 12px;
+}
+.workspace-sidebar .workspace-brand { padding:6px 6px 20px; border-radius:0; border-bottom:1px solid #e4ddec; margin-bottom:6px; }
+.workspace-brand img { width:38px; height:38px; border-radius:12px; box-shadow:none; }
+.workspace-brand .font-black { font-size:17px; font-weight:700; letter-spacing:-.6px; }
+.workspace-brand .text-slate-500 { font-size:10px; font-weight:500; letter-spacing:.06em; color:#9683b3; }
+.app-frame .workspace-nav-item { position:relative; min-height:43px; padding:8px 11px; border:1px solid transparent; border-radius:9px; color:#6f6880; font-weight:500; gap:10px; transition:background .18s,color .18s,transform .18s; }
+.workspace-nav-item>span:first-child { width:23px; height:23px; border:0; border-radius:0; background:transparent; }
+.workspace-nav-item>span:last-child { font-size:13px; }
+.workspace-nav-item svg [stroke] { stroke:currentColor; }
+.workspace-nav-item svg [fill]:not([fill=none]) { fill:currentColor; }
+.app-frame .workspace-nav-item:hover { background:#eae3f4; color:#775aa3; transform:translateX(2px); }
+.app-frame .workspace-nav-item[aria-current=page] { background:#e4d9f3; border-color:#dacbeb; color:#604587; font-weight:650; box-shadow:inset 3px 0 #9e80c4; }
+.workspace-nav-item[aria-current=page]:after { content:''; width:5px; height:5px; border-radius:50%; background:#9572bd; margin-left:auto; }
+.workspace-sidebar .admin-sidebar-footer { border-color:#e4ddec; gap:4px; }
+.workspace-sidebar .admin-sidebar-footer>button { background:transparent; border-color:transparent; border-radius:9px; box-shadow:none; }
+.workspace-sidebar .admin-sidebar-footer>button:hover { background:#eae3f4; }
+.workspace-sidebar .admin-sidebar-footer .font-black,.workspace-sidebar .admin-sidebar-footer .font-extrabold { font-weight:600; }
+.workspace-sidebar .admin-sidebar-footer .text-slate-500 { font-size:10px; font-weight:400; color:#92869f; }
+.workspace-sidebar .admin-sidebar-footer>button:last-child { font-size:12px; padding-top:6px; padding-bottom:6px; color:#8e819b; }
+.workspace-sidebar .admin-sidebar-footer>button:last-child>span { border:0; background:transparent; }
+.workspace-sidebar .theme-switch { padding:8px; }
+.workspace-sidebar .theme-switch .text-slate-800 { font-size:12px; font-weight:500; }
+.workspace-sidebar .theme-switch .bg-slate-100 { background:transparent; color:#927aaa; }
+.app-frame.admin-dark .workspace-sidebar { background:linear-gradient(165deg,#242030,#201d2b)!important; border-color:#3c324c!important; }
+.admin-dark .workspace-sidebar .workspace-brand,.admin-dark .workspace-sidebar .admin-sidebar-footer { border-color:#3c324c; }
+.app-frame.admin-dark .workspace-nav-item { color:#bbb0cd; }
+.app-frame.admin-dark .workspace-nav-item[aria-current=page] { background:#49385e; border-color:#58446f; color:#e0c9fa; }
+.app-frame.admin-dark .workspace-nav-item:hover,.admin-dark .workspace-sidebar .admin-sidebar-footer>button:hover { background:#392d49; }
+@media(prefers-reduced-motion:reduce) { .app-frame .workspace-nav-item{transition:none}.app-frame .workspace-nav-item:hover{transform:none} }
+.workspace-section-label{display:flex;align-items:center;justify-content:space-between;padding:0 10px;color:#aa97be;font-size:8px;font-weight:600;letter-spacing:.13em}
+.workspace-section-label>span:last-child{font-family:monospace;font-size:13px;letter-spacing:-.08em;color:#9d80bd}
+.workspace-sidebar .workspace-brand{position:relative}
+.workspace-sidebar .workspace-brand:after{content:'';position:absolute;bottom:-1px;left:6px;width:32px;height:2px;background:#ae8bce;border-radius:2px}
+.workspace-sidebar .admin-sidebar-footer:before{content:'REBOOT × TASKFLOW';font-size:8px;letter-spacing:.16em;color:#a28cb4;padding:4px 10px 9px}
+.workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"]{border:1px solid #e1d5ed;background:#ffffff60;padding:10px 8px}
+.workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] img{border-radius:8px}
+.app-frame .workspace-nav-item[aria-current=page]{background:linear-gradient(100deg,#e4d6f2,#ede5f7);}
+.admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"]{background:#30253e;border-color:#493856}
+.app-frame.admin-dark .workspace-nav-item[aria-current=page]{background:linear-gradient(100deg,#49345d,#3a2d4b)}
+/* A quieter Reboot rail, with code brackets marking the current page. */
+.app-frame .workspace-sidebar{background:linear-gradient(180deg,#f8f5fc,#f0ebf7)!important;border-radius:14px!important;border-color:#ded3e9!important;box-shadow:6px 12px 28px #60447e08!important}
+.workspace-sidebar .workspace-brand{padding:8px 5px 18px;gap:10px}
+.workspace-sidebar .workspace-brand:before{content:'_';position:absolute;right:7px;top:8px;font-family:monospace;font-size:22px;color:#a98ac5}
+.workspace-sidebar .workspace-brand:after{width:48px;background:linear-gradient(90deg,#a584c3,transparent)}
+.app-frame .workspace-nav-item{padding:10px 15px;gap:11px;min-height:45px;border-radius:5px;}
+.app-frame .workspace-nav-item[aria-current=page]{background:#e6ddef;border-color:transparent;box-shadow:none;color:#674786;}
+.app-frame .workspace-nav-item[aria-current=page]:before{content:'';position:absolute;left:3px;top:11px;bottom:11px;width:5px;border:1.5px solid #9c7abb;border-right:0;border-radius:2px 0 0 2px}
+.app-frame .workspace-nav-item[aria-current=page]:after{content:'';position:absolute;right:3px;top:11px;bottom:11px;width:5px;height:auto;margin:0;border:1.5px solid #9c7abb;border-left:0;background:none;border-radius:0 2px 2px 0}
+.workspace-sidebar .workspace-nav-item>span:first-child{color:#9675b0}
+.workspace-sidebar .workspace-nav-item[aria-current=page]>span:first-child{color:#674786}
+.workspace-section-label{font-size:8px;letter-spacing:.18em;padding-top:5px;padding-bottom:4px}
+.workspace-sidebar .admin-sidebar-footer:before{content:'< built together />';font-family:monospace;text-transform:none;letter-spacing:.03em;color:#a28bb6}
+.workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"]{border-radius:7px;background:#ebe2f3;border-color:transparent}
+.app-frame.admin-dark .workspace-sidebar{background:linear-gradient(180deg,#272031,#211b2a)!important;border-color:#44344f!important}
+.app-frame.admin-dark .workspace-nav-item[aria-current=page]{background:#463352;color:#e4c8fa}
+.admin-dark .workspace-sidebar .workspace-nav-item[aria-current=page]>span:first-child{color:#ddbcf7}
+.admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"]{background:#35273f}
+/* Refined navigation: restrained surfaces and a single active accent. */
+.app-frame .workspace-sidebar {
+  background:#fdfcfe!important;
+  border-color:#e8e4ef!important;
+  border-radius:18px!important;
+  box-shadow:0 8px 30px #30234406!important;
+}
+.workspace-sidebar .workspace-brand {padding:8px 5px 18px;margin-bottom:0;border-color:#ece8f1}
+.workspace-sidebar .workspace-brand:before,
+.workspace-sidebar .workspace-brand:after,
+.workspace-sidebar .admin-sidebar-footer:before,
+.app-frame .workspace-nav-item[aria-current=page]:before,
+.app-frame .workspace-nav-item[aria-current=page]:after {display:none}
+.workspace-section-label {padding:6px 12px 2px;color:#aaa2b5;letter-spacing:.12em;font-size:8px}
+.workspace-section-label>span:last-child {display:none}
+.app-frame .workspace-nav-item {min-height:42px;border-radius:8px;padding:10px 12px;color:#736c7e;font-weight:500;transform:none}
+.app-frame .workspace-nav-item:hover {background:#f5f2fa;color:#6e5989;transform:none}
+.app-frame .workspace-nav-item[aria-current=page] {background:#eee8f7;border-color:transparent;color:#745395;box-shadow:none;font-weight:600}
+.workspace-sidebar .workspace-nav-item>span:first-child {color:#9b8aac}
+.workspace-sidebar .workspace-nav-item[aria-current=page]>span:first-child {color:#805ba5}
+.workspace-sidebar .admin-sidebar-footer {border-color:#ece8f1;padding-top:10px;gap:3px}
+.workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] {background:#f7f4fa;border:1px solid #ece5f2;border-radius:10px}
+.workspace-sidebar .admin-sidebar-footer>button:last-child {background:transparent!important;border-color:transparent!important;font-weight:500}
+.workspace-sidebar .admin-sidebar-footer>button:last-child>span:first-child {border:0!important;background:transparent!important}
+.app-frame.admin-dark .workspace-sidebar {background:#24212c!important;border-color:#3b3447!important}
+.app-frame.admin-dark .workspace-nav-item[aria-current=page] {background:#3d314c;color:#dac6ee}
+.admin-dark .workspace-sidebar .workspace-brand,.admin-dark .workspace-sidebar .admin-sidebar-footer {border-color:#3b3447}
+.admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Open profile"] {background:#2d2737;border-color:#3b3447}

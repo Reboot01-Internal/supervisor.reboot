@@ -1,3 +1,4 @@
+import WorkspaceNavIcon from "./WorkspaceNavIcon";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
@@ -48,15 +49,16 @@ function SidebarItem({
         nav(to);
         onNavigate?.();
       }}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
-        "flex w-full items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition",
+        "workspace-nav-item flex w-full items-center gap-3 rounded-[14px] border px-3 py-2 text-left font-extrabold transition",
         isActive
           ? "border-[#6d5efc]/22 bg-[#f3f1ff] text-slate-900"
           : "border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
       )}
     >
       <span className="relative grid h-8 w-8 place-items-center rounded-full border border-current/15 bg-white/70">
-        {icon}
+        <WorkspaceNavIcon label={label} fallback={icon}/>
         {showNotificationDot ? (
           <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
         ) : null}
@@ -132,7 +134,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
   }, [avatarLogin, avatarUrl]);
 
   const footerName = displayName || fallbackName;
-  const footerSub = isAdmin ? "System access" : role || "workspace";
+  const footerSub = isAdmin ? "Admin · Your profile" : `${role || "Workspace"} · Your profile`;
   const initials = footerName
     .replace(/^@/, "")
     .split(/[\s._-]+/)
@@ -150,7 +152,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
     >
       <div
         className={cn(
-          "flex w-[220px] max-w-full flex-col border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]",
+          "workspace-sidebar flex w-[220px] max-w-full flex-col border border-slate-200 bg-white px-3 py-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)]",
           drawer
             ? "h-full min-h-full rounded-r-[22px]"
             : "min-h-[calc(100vh-44px)] rounded-[22px] max-[1050px]:min-h-0 max-[1050px]:w-full"
@@ -163,7 +165,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
               nav(isAdmin ? "/admin" : "/admin/boards");
               onNavigate?.();
             }}
-            className="flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
+            className="workspace-brand flex items-center gap-3 rounded-[16px] px-1 py-1 text-left transition hover:bg-slate-50"
           >
             <img
               src={faviconIcon}
@@ -173,11 +175,12 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
             <div className="min-w-0">
               <div className="truncate text-[17px] font-black tracking-[-0.3px] text-slate-900">TaskFlow</div>
               <div className="mt-0.5 text-[12px] font-bold text-slate-500">
-                {isAdmin ? "Admin Console" : "Boards Workspace"}
+                {isAdmin ? "Admin space" : "Boards Workspace"}
               </div>
             </div>
           </button>
 
+          <div className="workspace-section-label"><span>YOUR WORKSPACE</span><span aria-hidden="true">{ "</>" }</span></div>
           <nav className="flex flex-col gap-2">
           {isAdmin ? (
             <>
