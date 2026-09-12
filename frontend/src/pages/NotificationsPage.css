@@ -39,3 +39,11 @@ button.inbox-event:hover{background:var(--inbox-wash);border-radius:10px}
 @media(max-width:700px){.inbox-day{grid-template-columns:1fr;gap:8px;padding:15px 0}.inbox-day h2{display:flex;gap:8px}.inbox-feed{padding:0 12px 12px}.inbox-navigation{padding:12px;flex-wrap:wrap}.inbox-filter{flex:1}.inbox-filter select{width:100%;max-width:none}.inbox-event{padding:14px 2px}.inbox-event-meta time{margin-left:0}.inbox-event-arrow{display:none}}
 .inbox-supervisor{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;margin:7px 0;color:var(--inbox-ink)}
 .inbox-supervisor small{font-size:10px;font-weight:400;color:#9b87b8}
+.inbox-event{--event-color:#b18115;--event-bg:#fff7df}
+.inbox-event[data-status=booked],.inbox-event[data-status=completed]{--event-color:#16845f;--event-bg:#eaf8f0}
+.inbox-event[data-status=canceled]{--event-color:#d14761;--event-bg:#fff0f3}
+.inbox-event[data-status=rescheduled]{--event-color:#437ac4;--event-bg:#edf4ff}
+.inbox-event[data-status=starting]{--event-color:#8a5bd2;--event-bg:#f3edff}
+.inbox-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:5px;background:var(--event-bg);color:var(--event-color);font-weight:600}
+.inbox-event-icon{color:var(--event-color);background:var(--event-bg);border-radius:50%}
+.admin-dark .inbox-status,.admin-dark .inbox-event-icon{background:color-mix(in srgb,var(--event-color) 15%,#272332);color:color-mix(in srgb,var(--event-color) 65%,white)}

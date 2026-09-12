@@ -6,7 +6,7 @@ import { apiFetch } from "../lib/api";
 import { useNotifications, type NotificationItem } from "../lib/notifications";
 import UserAvatar from "../components/UserAvatar";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
-import { Search, ArrowUpRight, Inbox, X } from "lucide-react";
+import { Search, ArrowUpRight, Inbox, X, Check, Clock3, Ban, RefreshCw, Zap } from "lucide-react";
 import "./NotificationsPage.css";
 import { getNotificationTone } from "../lib/notificationTheme";
 
@@ -110,6 +110,8 @@ export default function NotificationsPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [customDate, setCustomDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [supervisorFilter, setSupervisorFilter] = useState("all");
+  const [boards, setBoards] = useState<Array<{name:string;supervisor_user_id:number}>>([]);
+  useEffect(() => { let alive=true; apiFetch("/admin/all-boards").then(rows=>{if(alive)setBoards(Array.isArray(rows)?rows:[]);}).catch(()=>{}); return ()=>{alive=false;}; }, []);
   const [avatars, setAvatars] = useState<Record<string,string>>({});
   const [supervisors, setSupervisors] = useState<SupervisorRow[]>([]);
 
@@ -142,7 +144,11 @@ export default function NotificationsPage() {
   }, [supervisors]);
   const relatedSupervisor = (item: NotificationItem) => {
     const actor = item.body.match(/By:\s*([^.\n]+)/i)?.[1]?.trim().toLowerCase();
-    if (!actor) return undefined;
+    if (!actor) {
+      const matches = boards.filter(b => item.body.includes(` in ${b.name} for `));
+      if (matches.length === 1) return supervisors.find(s => s.supervisor_user_id === matches[0].supervisor_user_id);
+      return undefined;
+    }
     return supervisors.find(s => [s.full_name,s.nickname,s.email].some(value => value?.trim().toLowerCase() === actor));
   };
 
@@ -237,6 +243,8 @@ export default function NotificationsPage() {
 
 function NotificationCard({item,isNew,onOpen,supervisor,avatars}:{item:NotificationItem;isNew:boolean;onOpen:()=>void;supervisor?:SupervisorRow;avatars:Record<string,string>}) {
  const tone = getNotificationTone(item);
- const content = <>{supervisor ? <UserAvatar src={avatars[(supervisor.nickname || supervisor.email.split("@")[0]).toLowerCase()]} alt={supervisor.full_name} fallback={supervisor.full_name.slice(0,2)} sizeClass="h-10 w-10"/> : <span className="inbox-event-icon" aria-hidden="true">{tone.icon}</span>}<span className="inbox-event-content"><span className="inbox-event-meta"><span>{tone.label}</span>{isNew && <span className="inbox-new">New</span>}<time dateTime={item.created_at}>{formatDate(item.created_at)}</time></span>{supervisor && <span className="inbox-supervisor">{supervisor.full_name} <small>Supervisor</small></span>}<span className="inbox-event-title">{item.title}</span><span className="inbox-event-body">{item.body}</span></span>{item.link && <ArrowUpRight className="inbox-event-arrow" size={18} aria-hidden="true"/>}</>;
- return item.link ? <button type="button" className={`inbox-event ${isNew ? "is-new" : ""}`} onClick={onOpen}>{content}</button> : <article className={`inbox-event ${isNew ? "is-new" : ""}`}>{content}</article>;
+ const status = tone.label === "Canceled" ? "canceled" : tone.label === "Booked" ? "booked" : tone.label === "Rescheduled" ? "rescheduled" : item.title.toLowerCase().includes("starting now") ? "starting" : tone.label === "Completed" ? "completed" : "reminder";
+ const Icon = status === "canceled" ? Ban : status === "booked" || status === "completed" ? Check : status === "rescheduled" ? RefreshCw : status === "starting" ? Zap : Clock3;
+ const content = <>{supervisor ? <UserAvatar src={avatars[(supervisor.nickname || supervisor.email.split("@")[0]).toLowerCase()]} alt={supervisor.full_name} fallback={supervisor.full_name.slice(0,2)} sizeClass="h-10 w-10"/> : <span className="inbox-event-icon" aria-hidden="true"><Icon size={18}/></span>}<span className="inbox-event-content"><span className="inbox-event-meta"><span className="inbox-status"><Icon size={13}/>{status === "starting" ? "Starting" : tone.label}</span>{isNew && <span className="inbox-new">New</span>}<time dateTime={item.created_at}>{formatDate(item.created_at)}</time></span>{supervisor && <span className="inbox-supervisor">{supervisor.full_name} <small>Supervisor</small></span>}<span className="inbox-event-title">{item.title}</span><span className="inbox-event-body">{item.body}</span></span>{item.link && <ArrowUpRight className="inbox-event-arrow" size={18} aria-hidden="true"/>}</>;
+ return item.link ? <button type="button" data-status={status} className={`inbox-event ${isNew ? "is-new" : ""}`} onClick={onOpen}>{content}</button> : <article data-status={status} className={`inbox-event ${isNew ? "is-new" : ""}`}>{content}</article>;
 }

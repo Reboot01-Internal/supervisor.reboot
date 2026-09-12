@@ -51,7 +51,7 @@ function wsUrl(email: string, login: string, role: string) {
 }
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { authenticated, email, login, role } = useAuth();
+  const { authenticated, email, login, role, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -77,7 +77,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError("");
     try {
-      const res = await apiFetch("/admin/notifications");
+      const res = await apiFetch(isAdmin && isNotificationsPage ? "/admin/notifications?scope=all" : "/admin/notifications");
       const nextItems = Array.isArray(res) ? res : [];
       for (const item of nextItems) {
         if (!item.is_read) {
@@ -105,17 +105,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void load();
-  }, [authenticated]);
+  }, [authenticated, isAdmin, isNotificationsPage, login]);
 
   useEffect(() => {
     if (!authenticated) return;
-    if (!isNotificationsPage) return;
+    if (!isNotificationsPage || isAdmin) return;
     if (!items.some((item) => !item.is_read)) return;
 
     markAllRead().catch((e: any) => {
       setError(e?.message || "Failed to mark all notifications");
     });
-  }, [authenticated, isNotificationsPage, items]);
+  }, [authenticated, isAdmin, isNotificationsPage, items]);
 
   useEffect(() => {
     if (!authenticated) return undefined;
@@ -215,7 +215,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [authenticated, email, login, role, isNotificationsPage, navigate]);
+  }, [authenticated, email, login, role, isAdmin, isNotificationsPage, navigate]);
 
   const value = useMemo<NotificationsContextValue>(() => {
     const unreadCount = items.filter((item) => !item.is_read).length;

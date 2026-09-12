@@ -14,7 +14,9 @@ type markNotificationReq struct {
 
 func (a *API) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	actor := actorID(r, a.conn)
-	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	var nickname, databaseRole string
+	_ = a.conn.QueryRow("SELECT IFNULL(nickname, ''), role FROM users WHERE id = ?", actor).Scan(&nickname, &databaseRole)
+	role := resolvedRole(nickname, databaseRole)
 	showAll := role == "admin" && strings.TrimSpace(strings.ToLower(r.URL.Query().Get("scope"))) == "all"
 
 	var (
