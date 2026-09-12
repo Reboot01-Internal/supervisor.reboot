@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -20,7 +21,7 @@ func fetchProfileDetails(r *http.Request, login string) map[string]any {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 	defer cancel()
-	payload, _ := json.Marshal(map[string]any{"query": `query ProfileDetails($login: String!) { user(where: {login: {_eq: $login}}, limit: 1) { auditRatio attrs } group_user(where:{userLogin:{_eq:$login},accepted:{_eq:true}},order_by:{group:{updatedAt:desc}}) { group { id status path updatedAt object { name type } progresses(where:{userLogin:{_eq:$login}},order_by:{updatedAt:desc},limit:1) { grade isDone } } } }`, "variables": map[string]string{"login": login}})
+	payload, _ := json.Marshal(map[string]any{"query": `query ProfileDetails($login: String!) { user(where: {login: {_eq: $login}}, limit: 1) { auditRatio attrs } group_user(where:{userLogin:{_eq:$login},accepted:{_eq:true}},order_by:{group:{updatedAt:desc}}) { group { id status path updatedAt object { name type } progresses(where:{userLogin:{_eq:$login}},order_by:{updatedAt:desc},limit:1) { grade isDone } } } progress(where:{userLogin:{_eq:$login},path:{_like:"%/piscine-%"}},order_by:{updatedAt:desc}) { id path updatedAt grade isDone object { name type } } }`, "variables": map[string]string{"login": login}})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rebootSchoolURL()+"/api/graphql-engine/v1/graphql", bytes.NewReader(payload))
 	if err != nil {
 		return nil
@@ -36,10 +37,27 @@ func fetchProfileDetails(r *http.Request, login string) map[string]any {
 		Data struct {
 			User     []map[string]any `json:"user"`
 			Projects []map[string]any `json:"group_user"`
+			Piscines []map[string]any `json:"progress"`
 		} `json:"data"`
 	}
 	if res.StatusCode != http.StatusOK || json.NewDecoder(res.Body).Decode(&result) != nil || len(result.Data.User) == 0 {
 		return nil
+	}
+	// Only the piscine's own progress determines its overall result, not exercises.
+	for _, p := range result.Data.Piscines {
+		path, _ := p["path"].(string)
+		parts := strings.Split(strings.TrimRight(path, "/"), "/")
+		if !strings.HasPrefix(parts[len(parts)-1], "piscine-") {
+			continue
+		}
+		status := "working"
+		if done, _ := p["isDone"].(bool); done {
+			status = "finished"
+		}
+		result.Data.Projects = append(result.Data.Projects, map[string]any{"group": map[string]any{
+			"id": p["id"], "status": status, "path": path, "updatedAt": p["updatedAt"], "object": p["object"], "isPiscine": true,
+			"progresses": []any{map[string]any{"grade": p["grade"], "isDone": p["isDone"]}},
+		}})
 	}
 	user := result.Data.User[0]
 	details := map[string]any{"auditRatio": user["auditRatio"], "projects": result.Data.Projects}
