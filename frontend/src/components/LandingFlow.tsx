@@ -17,6 +17,10 @@ export function LandingFlow() {
    const anchor=window.innerHeight*(.6*entry+.4*exit);
    const progress=scroll<=0?0:scroll>=distance?1:Math.max(0,Math.min(1,(anchor-bounds.top)/bounds.height));
    container.style.setProperty('--flow-progress',String(progress));
+   container.style.setProperty('--scene-shift',`${progress*90}px`);
+   container.style.setProperty('--scene-turn',`${progress*35}deg`);
+   container.style.setProperty('--scene-hue',`${230+progress*65}`);
+   container.style.setProperty('--scene-travel',`${progress*320}px`);
   };
   const schedule=()=>{if(!frame) frame=requestAnimationFrame(update)};
   const observer=new ResizeObserver(schedule);
@@ -27,6 +31,7 @@ export function LandingFlow() {
   return ()=>{cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule)};
  },[]);
  return <div ref={root} className="landing-flow" aria-hidden="true">
+  <div className="scroll-atmosphere" aria-hidden="true"><i/><i/><span>{'{ }'}</span><span>{'</>'}</span></div>
   <svg viewBox="0 0 1000 2000" preserveAspectRatio="none"><defs><linearGradient id="landing-flow-color" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#4dcac0"/><stop offset=".5" stopColor="#ad8de0"/><stop offset="1" stopColor="#37bba7"/></linearGradient></defs>
   <path className="flow-track" d="M 30 0 C 150 180, 0 300, 50 480 S 950 500, 950 750 S 20 900, 45 1150 S 960 1250, 950 1500 S 50 1770, 500 2000"/>
   <g className="flow-glow"><path className="flow-light" d="M 30 0 C 150 180, 0 300, 50 480 S 950 500, 950 750 S 20 900, 45 1150 S 960 1250, 950 1500 S 50 1770, 500 2000"/></g></svg>

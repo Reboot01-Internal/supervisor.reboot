@@ -110,6 +110,7 @@ export function SupervisorTeam(){
  return <section id="team" className="landing-team reveal-section">
  <div className="team-gallery-heading"><div><span className="landing-eyebrow">03 / THE PEOPLE BEHIND THE PROGRESS</span><h2>Different strengths.<br/><em>One team.</em></h2></div><p>Meet the people helping our community move forward. Pick a portrait. Get to know the team.</p></div>
  <div className="team-gallery team-reel"><div className={`team-spotlight ${person.group==='head'?'is-head':''} ${person.group==='tech'?'is-tech':''}`}>
+ <div className="profile-code-art" aria-hidden="true"><span>{'</>'}</span><span>{'{ }'}</span><i/></div>
  <div className="spotlight-top"><span>{person.group==='head'?'HEAD OF SUPERVISORS':person.group==='tech'?'REBOOT / TECH TEAM':'REBOOT / SUPERVISORS'}</span><span>{String(selected+1).padStart(2,'0')} / {landingTeam.length}</span></div>
  <div className="spotlight-photo" key={person.username}><img src={person.photo} alt={person.name}/></div>
  <div className="spotlight-caption" aria-live="polite"><span>{selected===0?'Leading with purpose':person.username==='ralhalwa'?'Building with the community':'Growing together'}</span><h3>{person.name}</h3><p>{person.role}</p></div>
