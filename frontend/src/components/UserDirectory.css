@@ -78,3 +78,5 @@
 @media(max-width:1450px){.directory-overview-row{grid-template-columns:1fr}.directory-overview-row .directory-counters{justify-content:flex-end}}
 @media(max-width:1000px){.directory-overview-row .directory-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.directory-overview-row .directory-search{grid-column:1/-1}}
 @media(max-width:600px){.directory-overview-row .directory-toolbar{grid-template-columns:1fr}.directory-overview-row .directory-counters{justify-content:flex-start;flex-wrap:wrap}}
+.directory-supervisor-overview .directory-toolbar{grid-template-columns:minmax(0,1fr) 210px}
+@media(max-width:700px){.directory-supervisor-overview .directory-toolbar{grid-template-columns:1fr}.directory-supervisor-overview .directory-search{grid-column:auto}}

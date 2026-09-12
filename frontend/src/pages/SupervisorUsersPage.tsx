@@ -102,7 +102,7 @@ export default function SupervisorUsersPage() {
 
       <section className="user-directory">
         <div className="directory-overview-row directory-supervisor-overview">
-          <div className="directory-toolbar"><DirectorySearch value={q} onChange={setQ}/><select aria-label="Filter by board assignment" value={boardFilter} onChange={e=>setBoardFilter(e.target.value)}><option value="all">All board states</option><option value="assigned">Assigned</option><option value="unassigned">Not assigned</option></select></div>
+          <div className="directory-toolbar"><DirectorySearch value={q} onChange={setQ}/><label className="directory-filter"><span>Board</span><select aria-label="Filter by board assignment" value={boardFilter} onChange={e=>setBoardFilter(e.target.value)}><option value="all">All board states</option><option value="assigned">Assigned</option><option value="unassigned">Not assigned</option></select></label></div>
           <div className="directory-counters"><DirectoryCounter label="Assigned talents" value={loading?"…":totalAssigned}/><DirectoryCounter label="Matching users" value={loading?"…":filtered.length}/></div>
         </div>
 

@@ -1,3 +1,4 @@
+import "./MeetingsToolbar.css";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -764,7 +765,7 @@ export default function MeetingsCalendarPage() {
 
         <div className="meetings-page">
         <section className="meetings-toolbar mb-4 flex min-w-0 flex-wrap items-center gap-2.5">
-          <select
+          <label className="meetings-filter-label"><span>Supervisor</span><select
             value={selectedSupervisorFilter}
             onChange={(e) => setSelectedSupervisorFilter(e.target.value)}
             className="meetings-filter h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
@@ -773,8 +774,8 @@ export default function MeetingsCalendarPage() {
             {supervisorOptions.map((supervisor) => (
               <option key={supervisor.id} value={supervisor.id}>{supervisor.name}</option>
             ))}
-          </select>
-          <select
+          </select></label>
+          <label className="meetings-filter-label"><span>Board</span><select
             value={selectedBoardFilter}
             onChange={(e) => setSelectedBoardFilter(e.target.value)}
             className="meetings-filter h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
@@ -783,7 +784,7 @@ export default function MeetingsCalendarPage() {
             {filteredBoardOptions.map((board) => (
               <option key={board.id} value={board.id}>{board.name}</option>
             ))}
-          </select>
+          </select></label>
           {/* <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[13px] font-semibold text-slate-600">
             {isEffectiveSupervisor ? "You can schedule, reschedule, cancel, and manage attendance for your boards." : isEffectiveAdmin ? "Admin sees all meeting attendance and outcomes." : "Update your RSVP so supervisors can plan around attendance."}
           </div> */}
@@ -1399,6 +1400,7 @@ function MiniStat({ label, value, tone }: { label: string; value: number; tone: 
         toneClasses.shell,
       ].join(" ")}
       title={label}
+      data-stat={label.toLowerCase().replaceAll(" ", "-")}
     >
       <span className={["h-2.5 w-2.5 rounded-full", toneClasses.icon].join(" ")} />
       <span className="flex items-baseline gap-1.5 leading-none">

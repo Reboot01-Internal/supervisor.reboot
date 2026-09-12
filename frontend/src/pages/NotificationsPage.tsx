@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
+import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { useNotifications, type NotificationItem } from "../lib/notifications";
+import UserAvatar from "../components/UserAvatar";
+import { fetchRebootAvatars } from "../lib/rebootAvatars";
+import { Search, ArrowUpRight, Inbox, X } from "lucide-react";
+import "./NotificationsPage.css";
 import { getNotificationTone } from "../lib/notificationTheme";
 
 function formatDate(value: string) {
@@ -98,10 +103,14 @@ function kindLabel(kind: string) {
 
 export default function NotificationsPage() {
   const nav = useNavigate();
+  const { isSupervisor } = useAuth();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
   const { items, loading, error, isRecent } = useNotifications();
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [customDate, setCustomDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [supervisorFilter, setSupervisorFilter] = useState("all");
+  const [avatars, setAvatars] = useState<Record<string,string>>({});
   const [supervisors, setSupervisors] = useState<SupervisorRow[]>([]);
 
   useEffect(() => {
@@ -125,6 +134,17 @@ export default function NotificationsPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetchRebootAvatars(supervisors.map(s => s.nickname || s.email?.split("@")[0]).filter(Boolean)).then(result => { if (alive) setAvatars(result); });
+    return () => { alive = false; };
+  }, [supervisors]);
+  const relatedSupervisor = (item: NotificationItem) => {
+    const actor = item.body.match(/By:\s*([^.\n]+)/i)?.[1]?.trim().toLowerCase();
+    if (!actor) return undefined;
+    return supervisors.find(s => [s.full_name,s.nickname,s.email].some(value => value?.trim().toLowerCase() === actor));
+  };
 
   const supervisorDirectory = useMemo(() => {
     const map = new Map<string, string>();
@@ -163,21 +183,23 @@ export default function NotificationsPage() {
   const filteredItems = useMemo(
     () =>
       items.filter((item) => {
+        if (query.trim() && !`${item.title} ${item.body}`.toLowerCase().includes(query.trim().toLowerCase())) return false;
+        if (category !== "all" && item.kind !== category) return false;
         const matchesDate = isInDateFilter(item.created_at, dateFilter, customDate);
         if (!matchesDate) return false;
-        if (supervisorFilter === "all") return true;
+        if (isSupervisor || supervisorFilter === "all") return true;
         const resolvedSupervisor = resolveSupervisorName(item);
         if (!resolvedSupervisor) return false;
         const candidate = normalizeFilterValue(resolvedSupervisor);
         return candidate === supervisorFilter;
       }),
-    [items, dateFilter, customDate, supervisorFilter, supervisorDirectory],
+    [items, dateFilter, customDate, supervisorFilter, supervisorDirectory, query, category, isSupervisor],
   );
   const groupedItems = useMemo(() => {
     const groups: Array<{ label: string; items: NotificationItem[] }> = [];
     const lookup = new Map<string, NotificationItem[]>();
 
-    for (const item of filteredItems) {
+    for (const item of [...filteredItems].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())) {
       const label = formatDateGroup(item.created_at);
       if (!lookup.has(label)) {
         const list: NotificationItem[] = [];
@@ -190,200 +212,31 @@ export default function NotificationsPage() {
     return groups;
   }, [filteredItems]);
 
-  return (
-    <AdminLayout
-      active="notifications"
-      title="Notifications"
-      subtitle="Meeting reminders, schedule changes, and updates in one place."
-    >
-      {error ? (
-        <div className="mb-5 rounded-[18px] border border-red-200 bg-[linear-gradient(180deg,#fff5f5,#fff0f0)] px-4 py-3 text-[13px] font-semibold text-red-700">
-          {error}
-        </div>
-      ) : null}
-
-      <section className="notifications-page space-y-4">
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_36px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfcff_100%)] px-4 py-3">
-            <div>
-              <div className="text-[13px] font-black text-slate-900">Recent notifications</div>
-              <div className="mt-0.5 text-[11px] font-semibold text-slate-500">Everything new appears here automatically.</div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                <span className="sr-only">Filter notifications by supervisor</span>
-                <select
-                  value={supervisorFilter}
-                  onChange={(event) => setSupervisorFilter(event.target.value)}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black text-slate-700 outline-none transition hover:border-slate-300"
-                >
-                  <option value="all">All supervisors</option>
-                  {supervisorOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                <span className="sr-only">Filter notifications by date</span>
-                <select
-                  value={dateFilter}
-                  onChange={(event) => setDateFilter(event.target.value as DateFilter)}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black text-slate-700 outline-none transition hover:border-slate-300"
-                >
-                  <option value="all">All dates</option>
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="last7">Last 7 days</option>
-                  <option value="custom">Choose date</option>
-                </select>
-              </label>
-              {dateFilter === "custom" ? (
-                <label className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
-                  <span className="sr-only">Pick a specific date</span>
-                  <input
-                    type="date"
-                    value={customDate}
-                    onChange={(event) => setCustomDate(event.target.value)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 outline-none transition hover:border-slate-300"
-                  />
-                </label>
-              ) : null}
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black text-slate-600">
-                {filteredItems.length} items
-              </div>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="grid gap-2.5 px-4 py-4">
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="h-[96px] animate-pulse rounded-[20px] border border-slate-200 bg-[linear-gradient(90deg,#fafbff,#eef2f7,#fafbff)]" />
-              ))}
-            </div>
-          ) : filteredItems.length === 0 ? (
-            <div className="grid min-h-[340px] place-items-center px-4 py-6">
-              <div className="max-w-[420px] text-center">
-                <div className="mx-auto grid h-16 w-16 place-items-center rounded-[22px] border border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(109,94,252,0.14),_transparent_55%),#ffffff] shadow-[0_18px_38px_rgba(15,23,42,0.08)]">
-                  <svg viewBox="0 0 24 24" className="h-7 w-7 text-[#8b7fff]" fill="none" aria-hidden="true">
-                    <path d="M15 17H5l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 1 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17h-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-                    <path d="M10 20a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <div className="mt-5 text-[20px] font-black text-slate-900">
-                  No notifications for this date filter
-                </div>
-                <div className="mt-2 text-[13px] font-semibold leading-6 text-slate-500">
-                  Try another supervisor or date range, or wait for more activity to come in.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="px-3 py-3">
-              {groupedItems.map((group) => (
-                <section key={group.label} className="mb-4 last:mb-0">
-                  <div className="sticky top-0 z-[1] mb-2 rounded-[16px] border border-slate-200 bg-slate-50/95 px-3 py-2 backdrop-blur">
-                    <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
-                      {group.label}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {group.items.map((item) => (
-                      <NotificationCard
-                        key={item.id}
-                        item={item}
-                        isNew={isRecent(item.id)}
-                        showRecipient={false}
-                        onOpen={() => nav(item.link || "/notifications")}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
-        </section>
-      </section>
-    </AdminLayout>
-  );
+  const hasFilters = Boolean(query || category !== "all" || dateFilter !== "all" || (!isSupervisor && supervisorFilter !== "all"));
+  const resetFilters = () => { setQuery(""); setCategory("all"); setDateFilter("all"); setSupervisorFilter("all"); };
+  const kinds = [...new Set(items.map(item => item.kind))];
+  return <AdminLayout active="notifications" title="Notifications" subtitle="Stay close to what’s happening across your workspace.">
+    <section className="activity-inbox">
+      <div className="inbox-toolbar">
+        <label className="inbox-search"><Search size={18}/><input aria-label="Search notifications" placeholder="Find an update, meeting, or project…" value={query} onChange={e=>setQuery(e.target.value)}/>{query && <button type="button" aria-label="Clear search" onClick={()=>setQuery("")}><X size={16}/></button>}</label>
+        {!isSupervisor && <label className="inbox-filter"><span>Supervisor</span><select value={supervisorFilter} onChange={e=>setSupervisorFilter(e.target.value)}><option value="all">Everyone</option>{supervisorOptions.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
+        <label className="inbox-filter"><span>When</span><select value={dateFilter} onChange={e=>setDateFilter(e.target.value as DateFilter)}><option value="all">Any time</option><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="last7">Last 7 days</option><option value="custom">Choose date</option></select></label>
+        {dateFilter === "custom" && <label className="inbox-filter"><span>Date</span><input aria-label="Notification date" type="date" value={customDate} onChange={e=>setCustomDate(e.target.value)}/></label>}
+      </div>
+      <div className="inbox-surface">
+        <div className="inbox-navigation"><div className="inbox-tabs" aria-label="Notification type"><button type="button" aria-pressed={category === "all"} onClick={()=>setCategory("all")}>All updates <span>{items.length}</span></button>{kinds.map(kind=><button type="button" key={kind} aria-pressed={category === kind} onClick={()=>setCategory(kind)}>{kindLabel(kind)}</button>)}</div>{hasFilters && <button className="inbox-reset" type="button" onClick={resetFilters}>Reset filters <X size={13}/></button>}</div>
+        {error && <p className="inbox-error" role="alert">{error}</p>}
+        {loading ? <div className="inbox-empty" role="status">Loading your updates…</div> : !filteredItems.length ? <div className="inbox-empty"><Inbox size={32}/><h2>{hasFilters ? "No matching updates" : "You’re all caught up"}</h2><p>{hasFilters ? "Try a different search or clear the filters." : "Meeting reminders and workspace changes will appear here."}</p>{hasFilters && <button type="button" onClick={resetFilters}>Clear filters</button>}</div> : <div className="inbox-feed">
+          <div className="inbox-result-count" aria-live="polite">{filteredItems.length} updates · newest first</div>
+          {groupedItems.map(group=><section className="inbox-day" key={group.label}><h2>{group.label}<span>{group.items.length}</span></h2><div>{group.items.map(item=><NotificationCard key={item.id} item={item} supervisor={relatedSupervisor(item)} avatars={avatars} isNew={isRecent(item.id)} onOpen={()=>nav(item.link || "/notifications")}/>)}</div></section>)}
+        </div>}
+      </div>
+    </section>
+  </AdminLayout>;
 }
 
-function NotificationCard({
-  item,
-  isNew,
-  onOpen,
-  showRecipient,
-}: {
-  item: NotificationItem;
-  isNew: boolean;
-  onOpen: () => void;
-  showRecipient: boolean;
-}) {
-  const tone = getNotificationTone(item);
-
-  return (
-    <article
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
-      aria-label={item.title}
-      className={`group relative overflow-hidden rounded-[20px] border px-4 py-3.5 transition ${tone.row} ${
-        isNew
-          ? "border-violet-200 bg-[linear-gradient(180deg,#fcfaff,#f6f1ff)] shadow-[0_14px_28px_rgba(109,94,252,0.10)]"
-          : item.is_read
-          ? "border-transparent bg-transparent"
-          : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#fbfcff)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]"
-      }`}
-    >
-      <div className={`absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full ${tone.dot}`} />
-      <div className="pl-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start gap-2.5">
-              <div className={`mt-0.5 grid h-9 w-9 place-items-center rounded-[14px] border ${tone.iconWrap}`}>
-                {tone.icon}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-[14px] font-black tracking-[-0.015em] text-slate-900">{item.title}</div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold text-slate-500">
-                  <span>{formatDate(item.created_at)}</span>
-                  {showRecipient ? (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">
-                      {(item.user_name || "Unknown user")}{item.user_login ? ` · @${item.user_login}` : ""}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {isNew ? (
-              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-violet-700">
-                New
-              </span>
-            ) : null}
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${tone.accent}`}>
-              {tone.label}
-            </span>
-            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${tone.badge}`}>
-              {kindLabel(item.kind)}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-3 pr-2 text-[12px] font-semibold leading-6 text-slate-700">
-          {item.body}
-        </div>
-      </div>
-    </article>
-  );
+function NotificationCard({item,isNew,onOpen,supervisor,avatars}:{item:NotificationItem;isNew:boolean;onOpen:()=>void;supervisor?:SupervisorRow;avatars:Record<string,string>}) {
+ const tone = getNotificationTone(item);
+ const content = <>{supervisor ? <UserAvatar src={avatars[(supervisor.nickname || supervisor.email.split("@")[0]).toLowerCase()]} alt={supervisor.full_name} fallback={supervisor.full_name.slice(0,2)} sizeClass="h-10 w-10"/> : <span className="inbox-event-icon" aria-hidden="true">{tone.icon}</span>}<span className="inbox-event-content"><span className="inbox-event-meta"><span>{tone.label}</span>{isNew && <span className="inbox-new">New</span>}<time dateTime={item.created_at}>{formatDate(item.created_at)}</time></span>{supervisor && <span className="inbox-supervisor">{supervisor.full_name} <small>Supervisor</small></span>}<span className="inbox-event-title">{item.title}</span><span className="inbox-event-body">{item.body}</span></span>{item.link && <ArrowUpRight className="inbox-event-arrow" size={18} aria-hidden="true"/>}</>;
+ return item.link ? <button type="button" className={`inbox-event ${isNew ? "is-new" : ""}`} onClick={onOpen}>{content}</button> : <article className={`inbox-event ${isNew ? "is-new" : ""}`}>{content}</article>;
 }
