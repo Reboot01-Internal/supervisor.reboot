@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import TalentDashboard from "./TalentDashboard";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
-type ProfileSummary = {
+export type ProfileSummary = {
   user: {
     full_name: string;
     role: string;
@@ -53,7 +54,7 @@ type TaskCompletionStats = {
   total?: number;
 };
 
-type MeetingRow = {
+export type MeetingRow = {
   id: number;
   board_id: number;
   board_name: string;
@@ -257,6 +258,7 @@ export default function UserDashboardPage() {
   const studentBoards = data?.student?.boards || [];
   const studentSupervisors = data?.student?.supervisors || [];
   const nextMeeting = upcomingMeetings[0];
+  if (!isSupervisor) return <TalentDashboard data={data} loading={loading} error={error} meetings={weekMeetings} meetingsError={meetingsError} />;
   return (
     <AdminLayout active="dashboard" title="Dashboard" subtitle="A quick overview of your workspace and progress.">
       {error ? (

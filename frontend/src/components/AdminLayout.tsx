@@ -13,6 +13,7 @@ type Props = {
   active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
   title: React.ReactNode;
   subtitle?: React.ReactNode;
+  hideHeader?: boolean;
   right?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -82,6 +83,7 @@ export default function AdminLayout({
   active,
   title,
   subtitle,
+  hideHeader = false,
   right,
   children,
 }: Props) {
@@ -482,7 +484,7 @@ export default function AdminLayout({
         {!isAdmin ? nonAdminNav : null}
 
         <main className={cn("app-main min-w-0 px-[22px] pb-[22px] pt-[34px]", "pl-0 max-[1050px]:px-[22px] max-[1050px]:pt-[72px] max-[520px]:px-3")}>
-          <header className="app-page-header mb-5 flex items-start justify-between gap-3 max-[1050px]:flex-col">
+          {!hideHeader && <header className="app-page-header mb-5 flex items-start justify-between gap-3 max-[1050px]:flex-col">
             <div>
               <div className="app-eyebrow text-[12px] font-black uppercase tracking-[0.16em] text-slate-500">Workspace overview</div>
               <div className="mt-1 text-[30px] font-black tracking-[-0.9px]">{title}</div>
@@ -492,7 +494,7 @@ export default function AdminLayout({
             <div className="flex max-w-full flex-wrap items-center gap-2 justify-end max-[1050px]:w-full max-[1050px]:justify-start">
               {right}
             </div>
-          </header>
+          </header>}
 
           {children}
         </main>
