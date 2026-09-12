@@ -59,3 +59,22 @@
 .admin-dark .directory-selection-actions button:hover { background: #442733; color: #fecdd3; }
 .directory-supervisor-overview .directory-toolbar { grid-template-columns: minmax(0,1fr) 180px; }
 .directory-phone > svg { flex-shrink: 0; }
+/* Match the board directory's search and labeled filters. */
+.directory-overview-row .directory-toolbar { grid-template-columns:minmax(220px,1fr) 150px 180px 195px; }
+.directory-filter { display:flex; align-items:center; gap:8px; min-width:0; height:54px; padding:8px 10px; background:var(--dir-surface); border:1px solid #e4dcef; border-radius:16px; box-shadow:0 4px 16px #302a4d04; }
+.directory-filter>span { color:#6d5efc; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
+.directory-filter select { width:100%; min-width:0; height:36px; padding:0 6px; border:1px solid #e4dcef; border-radius:10px; background:#f2edf8; color:#796398; font-family:inherit; font-size:12px; font-weight:500; }
+.directory-filter select:focus-visible { outline:2px solid #ac94c6; outline-offset:2px; }
+.directory-search { border-color:#e4dcef; box-shadow:0 4px 16px #302a4d04; color:#6d5efc; }
+.directory-search input { font-family:inherit; font-weight:400; font-size:14px; }
+.directory-search input::placeholder { color:#a097ad; font-weight:400; }
+.directory-counter { border-color:#e4dcef; box-shadow:0 4px 16px #302a4d04; }
+.directory-counter-icon { background:#f2edf8; border-color:#e4dcef; }
+.directory-counter strong { font-weight:650; }
+.directory-counter small { color:#8b809b; font-weight:500; }
+.admin-dark .directory-filter { border-color:#50445f; }
+.admin-dark .directory-filter>span { color:#baa4d6; }
+.admin-dark .directory-filter select { color:#d0bbe7; background:#372e46; border-color:#50445f; }
+@media(max-width:1450px){.directory-overview-row{grid-template-columns:1fr}.directory-overview-row .directory-counters{justify-content:flex-end}}
+@media(max-width:1000px){.directory-overview-row .directory-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.directory-overview-row .directory-search{grid-column:1/-1}}
+@media(max-width:600px){.directory-overview-row .directory-toolbar{grid-template-columns:1fr}.directory-overview-row .directory-counters{justify-content:flex-start;flex-wrap:wrap}}

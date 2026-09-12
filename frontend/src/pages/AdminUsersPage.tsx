@@ -1029,7 +1029,7 @@ export default function AdminUsersPage() {
         <div className="directory-overview-row">
         <div className="directory-toolbar">
         <DirectorySearch value={q} onChange={setQ} />
-          <select aria-label="Filter by role"
+          <label className="directory-filter"><span>Role</span><select aria-label="Filter by role"
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             value={role}
             onChange={(e) => setRole(e.target.value as "all" | "supervisor" | "student")}
@@ -1037,8 +1037,8 @@ export default function AdminUsersPage() {
             <option value="all">All</option>
             <option value="supervisor">Supervisors</option>
             <option value="student">Talents</option>
-          </select>
-          <select
+          </select></label>
+          <label className="directory-filter"><span>Cohort</span><select
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             aria-label="Filter by cohort"
             value={cohort}
@@ -1050,9 +1050,9 @@ export default function AdminUsersPage() {
                 {option}
               </option>
             ))}
-          </select>
+          </select></label>
 
-          <select
+          <label className="directory-filter"><span>Board</span><select
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
             aria-label="Filter by board assignment"
             value={boardFilter}
@@ -1061,7 +1061,7 @@ export default function AdminUsersPage() {
             <option value="all">All board states</option>
             <option value="unassigned">Not assigned</option>
             <option value="assigned">Assigned</option>
-          </select>
+          </select></label>
         </div>
 
         <div className="directory-counters">
