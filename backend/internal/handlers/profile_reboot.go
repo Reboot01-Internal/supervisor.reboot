@@ -20,7 +20,7 @@ func fetchProfileDetails(r *http.Request, login string) map[string]any {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 	defer cancel()
-	payload, _ := json.Marshal(map[string]any{"query": `query ProfileDetails($login: String!) { user(where: {login: {_eq: $login}}, limit: 1) { auditRatio attrs } }`, "variables": map[string]string{"login": login}})
+	payload, _ := json.Marshal(map[string]any{"query": `query ProfileDetails($login: String!) { user(where: {login: {_eq: $login}}, limit: 1) { auditRatio attrs } group_user(where:{userLogin:{_eq:$login},accepted:{_eq:true}},order_by:{group:{updatedAt:desc}}) { group { id status path updatedAt object { name type } progresses(where:{userLogin:{_eq:$login}},order_by:{updatedAt:desc},limit:1) { grade isDone } } } }`, "variables": map[string]string{"login": login}})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rebootSchoolURL()+"/api/graphql-engine/v1/graphql", bytes.NewReader(payload))
 	if err != nil {
 		return nil
@@ -34,14 +34,15 @@ func fetchProfileDetails(r *http.Request, login string) map[string]any {
 	defer res.Body.Close()
 	var result struct {
 		Data struct {
-			User []map[string]any `json:"user"`
+			User     []map[string]any `json:"user"`
+			Projects []map[string]any `json:"group_user"`
 		} `json:"data"`
 	}
 	if res.StatusCode != http.StatusOK || json.NewDecoder(res.Body).Decode(&result) != nil || len(result.Data.User) == 0 {
 		return nil
 	}
 	user := result.Data.User[0]
-	details := map[string]any{"auditRatio": user["auditRatio"]}
+	details := map[string]any{"auditRatio": user["auditRatio"], "projects": result.Data.Projects}
 	if attrs, ok := user["attrs"].(map[string]any); ok {
 		safeAttrs := map[string]any{}
 		for _, key := range []string{"gender", "genders", "sex", "Gender"} {

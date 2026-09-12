@@ -1,3 +1,4 @@
+import ProfileProjects, { type ProjectMembership } from "../components/ProfileProjects";
 import { Mail, Phone, TrendingUp, Layers, ListTodo, UsersRound, UserRound } from "lucide-react";
 import "../components/ProfileOverview.css";
 import GiteaProfileLink from "../components/GiteaProfileLink";
@@ -18,6 +19,7 @@ const BAHRAIN_TIMEZONE = "Asia/Bahrain";
 
 type LocalProfile = {
   user: {
+    reboot_details?: { projects?: ProjectMembership[] };
     id: number;
     full_name: string;
     email: string;
@@ -1055,6 +1057,8 @@ export default function ProfilePage() {
             </div>
 
           </section>
+
+          {role === "admin" && <ProfileProjects projects={localProfile.user.reboot_details?.projects} />}
 
           {canViewPrivateNotes ? (
             <section className="profile-notes rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
