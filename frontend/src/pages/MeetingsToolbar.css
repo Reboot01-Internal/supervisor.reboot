@@ -35,3 +35,21 @@
 .meetings-toolbar .meetings-calendar-button{border-color:var(--meeting-filter-line)}
 .meetings-toolbar .meetings-calendar-button:hover{background:var(--meeting-filter-fill);border-color:#e9a23b}
 .admin-dark .meetings-toolbar{--meeting-filter-ink:#f3b65f;--meeting-filter-line:#665039;--meeting-filter-fill:#3b3026}
+/* Use available page width, including when the sidebar reduces the viewport. */
+.meetings-page{container-type:inline-size}
+.meetings-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto;gap:10px;align-items:stretch}
+.meetings-toolbar .meetings-filter-label .meetings-filter{flex:1;width:0;min-width:0;max-width:none;text-overflow:ellipsis}
+.meetings-toolbar .meetings-calendar-button{justify-content:center;white-space:nowrap}
+.meetings-toolbar .meetings-stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;margin-left:0;gap:10px}
+.meetings-toolbar .meetings-mini-stat{min-width:0;width:100%}
+@container(min-width:1200px){
+ .meetings-toolbar{grid-template-columns:minmax(170px,1fr) minmax(170px,1fr) auto minmax(360px,1.4fr)}
+ .meetings-toolbar .meetings-stats{grid-column:auto;gap:8px}
+}
+@container(max-width:650px){
+ .meetings-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .meetings-toolbar .meetings-calendar-button{grid-column:1/-1;width:100%}
+ .meetings-toolbar .meetings-filter-label{height:auto;min-height:48px;flex-direction:column;align-items:stretch}
+ .meetings-toolbar .meetings-filter-label .meetings-filter{width:100%;flex:auto}
+ .meetings-toolbar .meetings-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
