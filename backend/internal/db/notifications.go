@@ -68,10 +68,19 @@ func ListNotificationsByUser(conn DBTX, userID int64) ([]models.AppNotification,
 	return out, rows.Err()
 }
 
+// ListAllNotifications returns workspace updates, not each recipient's delivery.
+// Participant copies use /calendar and contain less context than the admin copy.
 func ListAllNotifications(conn DBTX) ([]models.AppNotification, error) {
 	rows, err := conn.Query(`
+		WITH updates AS (
+			SELECT MAX(id) AS id
+			FROM app_notifications
+			WHERE link = '/notifications'
+			GROUP BY kind, title, body, link, created_at
+		)
 		SELECT n.id, n.user_id, IFNULL(u.full_name, ''), IFNULL(u.nickname, ''), n.kind, n.title, n.body, n.link, n.is_read, n.created_at
-		FROM app_notifications n
+		FROM updates e
+		JOIN app_notifications n ON n.id = e.id
 		LEFT JOIN users u ON u.id = n.user_id
 		ORDER BY datetime(n.created_at) DESC, n.id DESC
 		LIMIT 200
