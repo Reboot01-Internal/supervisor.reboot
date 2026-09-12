@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import SupervisorDashboard from "./SupervisorDashboard";
 import TalentDashboard from "./TalentDashboard";
 import AdminLayout from "../components/AdminLayout";
 import { apiFetch } from "../lib/api";
@@ -12,6 +13,7 @@ export type ProfileSummary = {
   };
   supervisor?: {
     assigned_students_overall: number;
+    assigned_students?: { id: number; full_name: string; nickname: string; email: string; boards: { id: number; name: string }[] }[];
     boards: { id: number; name: string; students_count: number }[];
   };
   student?: {
@@ -37,7 +39,7 @@ export type ProfileSummary = {
   };
 };
 
-type TaskCompletionStats = {
+export type TaskCompletionStats = {
   tasks?: {
     count: number;
   };
@@ -258,6 +260,7 @@ export default function UserDashboardPage() {
   const studentBoards = data?.student?.boards || [];
   const studentSupervisors = data?.student?.supervisors || [];
   const nextMeeting = upcomingMeetings[0];
+  if (isSupervisor) return <SupervisorDashboard data={data} loading={loading} error={error} meetings={weekMeetings} meetingsError={meetingsError} completion={taskCompletion} completionError={taskCompletionError} />;
   if (!isSupervisor) return <TalentDashboard data={data} loading={loading} error={error} meetings={weekMeetings} meetingsError={meetingsError} />;
   return (
     <AdminLayout active="dashboard" title="Dashboard" subtitle="A quick overview of your workspace and progress.">
