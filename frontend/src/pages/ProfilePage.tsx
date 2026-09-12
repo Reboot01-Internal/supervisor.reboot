@@ -500,13 +500,24 @@ export default function ProfilePage() {
 
   const loadProfileData = useCallback(async () => {
     const local = await apiFetch(
-      isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}` : "/admin/profile/summary"
+      isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}${role === "admin" ? "&reboot_details=1" : ""}` : `/admin/profile/summary${role === "admin" ? "?reboot_details=1" : ""}`
     );
     const targetLogin =
       String(local?.user?.nickname || "").trim() || (isTargetUserView ? "" : ownLogin);
-    const reboot = targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt) : null;
+    let reboot = targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt).catch((error) => {
+      if (local?.user?.reboot_details) return null;
+      throw error;
+    }) : null;
+    const details = local?.user?.reboot_details;
+    if (details) {
+      const gender = pickGenderFromAttrs(details.attrs);
+      reboot = { ...reboot, user: { ...reboot?.user,
+        ...(gender ? { gender } : {}),
+        ...(typeof details.auditRatio === "number" ? { auditRatio: details.auditRatio } : {}),
+      } } as RebootProfile;
+    }
     return { local: local as LocalProfile, reboot };
-  }, [isTargetUserView, jwt, ownLogin, targetUserID]);
+  }, [isTargetUserView, jwt, ownLogin, targetUserID, role]);
 
   useEffect(() => {
     let mounted = true;

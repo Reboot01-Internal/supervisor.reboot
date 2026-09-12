@@ -11,12 +11,13 @@ import (
 )
 
 type profileUser struct {
-	ID       int64  `json:"id"`
-	FullName string `json:"full_name"`
-	Email    string `json:"email"`
-	Nickname string `json:"nickname"`
-	Cohort   string `json:"cohort"`
-	Role     string `json:"role"`
+	ID            int64          `json:"id"`
+	FullName      string         `json:"full_name"`
+	Email         string         `json:"email"`
+	Nickname      string         `json:"nickname"`
+	Cohort        string         `json:"cohort"`
+	Role          string         `json:"role"`
+	RebootDetails map[string]any `json:"reboot_details,omitempty"`
 }
 
 type profileBoardLite struct {
@@ -190,6 +191,11 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out.User.Role = strings.ToLower(strings.TrimSpace(out.User.Role))
+	// Resolve admin access from the stored identity, including existing overrides.
+	var actorLogin, actorRole string
+	if err := a.conn.QueryRow("SELECT IFNULL(nickname,''), role FROM users WHERE id = ?", actorID(r, a.conn)).Scan(&actorLogin, &actorRole); err == nil && resolvedRole(actorLogin, actorRole) == "admin" && r.URL.Query().Get("reboot_details") == "1" {
+		out.User.RebootDetails = fetchProfileDetails(r, out.User.Nickname)
+	}
 
 	hasSupervisorRole, err := db.UserHasRole(a.conn, uid, "supervisor")
 	if err != nil {
