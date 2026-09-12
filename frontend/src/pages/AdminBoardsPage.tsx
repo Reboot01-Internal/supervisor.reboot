@@ -3,6 +3,7 @@ import WorkspaceCalendar from "../components/WorkspaceCalendar";
 import { CalendarDays } from "lucide-react";
 import "../components/WorkspaceViews.css";
 import "../components/ViewNavigation.css";
+import "./AdminBoardsPage.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -1261,7 +1262,7 @@ export default function AdminBoardsPage() {
           <button type="button" aria-pressed={viewMode === "calendar"} className={viewMode === "calendar" ? "is-active" : ""} onClick={() => setViewMode("calendar")}><CalendarDays size={17} />Calendar</button>
         </nav>
         {/* Toolbar */}
-        <div className={`mb-4 grid gap-3 ${viewMode === "calendar" ? "hidden" : ""}`}>
+        <div className={`boards-toolbar mb-4 grid gap-3 ${viewMode === "calendar" ? "hidden" : ""}`}>
           <div className="grid min-w-0 items-center gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="boards-search flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur focus-within:border-[#6d5efc]/24 focus-within:ring-4 focus-within:ring-[#6d5efc]/10">
               <span className="text-slate-400" aria-hidden="true">
@@ -1270,6 +1271,7 @@ export default function AdminBoardsPage() {
 
               <input
                 className="min-w-0 flex-1 bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
+                aria-label="Search boards, supervisors, cohorts, or descriptions"
                 placeholder="Search boards, supervisors, cohorts, or descriptions..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1287,7 +1289,7 @@ export default function AdminBoardsPage() {
             </div>
 
             <div className="flex min-w-0 items-center justify-end gap-2 max-[520px]:flex-col max-[520px]:items-stretch">
-              <label className="inline-flex h-12 min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)] max-[520px]:w-full">
+              <label className="boards-status inline-flex h-12 min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 px-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)] max-[520px]:w-full">
                 <span className="text-[11px] font-black uppercase tracking-[0.08em] text-slate-400">Status</span>
                 <select
                   value={statusFilter}
@@ -1302,7 +1304,7 @@ export default function AdminBoardsPage() {
 
             </div>
 
-            <div className="flex min-w-0 flex-nowrap justify-end gap-2.5 lg:col-span-2 xl:col-span-1 max-[760px]:flex-wrap max-[760px]:justify-start">
+            <div className="boards-totals flex min-w-0 flex-nowrap justify-end gap-2.5 lg:col-span-2 xl:col-span-1 max-[760px]:flex-wrap max-[760px]:justify-start">
               <StatPill icon={<BoardIcon />} label="Boards" value={totals.totalBoards} />
               <StatPill icon={<LayersIcon />} label="Lists" value={totals.totalLists} />
               <StatPill icon={<CardStackIcon />} label="Cards" value={totals.totalCards} />
@@ -1367,7 +1369,7 @@ export default function AdminBoardsPage() {
                   tabIndex={0}
                   onClick={() => openBoard(b.id)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
+                    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
                       e.preventDefault();
                       openBoard(b.id);
                     }
@@ -1583,7 +1585,7 @@ export default function AdminBoardsPage() {
                     onClick={() => openBoard(b.id)}
                     onKeyDown={(e) => {
                       if (e.target !== e.currentTarget) return;
-                      if (e.key === "Enter" || e.key === " ") {
+                      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
                         e.preventDefault();
                         openBoard(b.id);
                       }
@@ -1748,7 +1750,7 @@ export default function AdminBoardsPage() {
                     className="board-member-row flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 transition hover:border-[#6d5efc]/25 hover:bg-white hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6d5efc]/15"
                     onClick={() => openMemberProfile(m)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
+                      if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
                         e.preventDefault();
                         openMemberProfile(m);
                       }

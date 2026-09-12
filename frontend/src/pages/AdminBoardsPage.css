@@ -1,0 +1,35 @@
+/* Keep the original directory layout; match workspace typography and lavender. */
+.boards-page { --boards-purple: #8474b5; --boards-border: #e4dcef; --boards-tint: #f2edf8; font-family: var(--font-sans); }
+.boards-page :where(button, input, select) { font-family: inherit; }
+.boards-page :where(.font-black, .font-extrabold) { font-weight: 600; }
+.boards-page [class*="text-[#6d5efc]"] { color: var(--boards-purple); }
+.boards-page [class*="bg-[#6d5efc]/10"] { background-color: var(--boards-tint); }
+.boards-page [class*="border-[#6d5efc]/20"] { border-color: var(--boards-border); }
+.boards-page .board-view-navigation button.is-active { color: var(--boards-purple); border-bottom-color: var(--boards-purple); }
+.boards-page .boards-search,
+.boards-page .boards-status,
+.boards-page .calendar-filterbar label { border-color: var(--boards-border); box-shadow: 0 4px 16px #302a4d04; }
+.boards-page .boards-search input,
+.boards-page .calendar-filterbar input { font-weight: 400; color: #302a4d; }
+.boards-page .boards-search input::placeholder,
+.boards-page .calendar-filterbar input::placeholder { color: #a097ad; font-weight: 400; }
+.boards-page .boards-search > span,
+.boards-page .calendar-filter-search > svg { color: var(--boards-purple); }
+.boards-page .boards-status > span,
+.boards-page .calendar-filterbar label > span { color: var(--boards-purple); font-weight: 600; letter-spacing: .08em; }
+.boards-page .boards-status select,
+.boards-page .calendar-filterbar select { color: #796398; background: var(--boards-tint); border-color: var(--boards-border); font-weight: 500; }
+.boards-page .boards-search:focus-within,
+.boards-page .calendar-filterbar label:focus-within { border-color: #ac94c6; box-shadow: 0 0 0 3px #ac94c615; }
+.boards-page select:focus-visible { outline: 2px solid #ac94c6; outline-offset: 2px; }
+.boards-page .boards-totals > span,
+.boards-page .calendar-summary-pill { border-color: var(--boards-border); box-shadow: 0 4px 16px #302a4d04; }
+.boards-page .calendar-summary-icon { color: var(--boards-purple); background: var(--boards-tint); border-color: var(--boards-border); }
+.boards-page .calendar-summary-pill strong { font-weight: 650; }
+.boards-page .calendar-summary-pill small { color: #8b809b; font-weight: 500; }
+.boards-page .boards-totals .font-extrabold { color: #8b809b; font-weight: 500; }
+.admin-dark .boards-page { --boards-purple: #baa4d6; --boards-border: #50445f; --boards-tint: #372e46; }
+.admin-dark .boards-page .boards-search input,
+.admin-dark .boards-page .calendar-filterbar input { color: #e8e0f1; }
+.admin-dark .boards-page .boards-status select,
+.admin-dark .boards-page .calendar-filterbar select { color: #d0bbE7; }
