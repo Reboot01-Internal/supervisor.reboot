@@ -2232,3 +2232,11 @@ body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-actions {
   border: 0 !important;
   box-shadow: none !important;
 }
+/* Shared workspace typography, matching the dashboard. */
+.app-frame { font-family: var(--font-sans); }
+.app-frame .app-page-header .app-eyebrow { font-size:10px; font-weight:700; letter-spacing:.17em; color:#9380bc; }
+.app-frame .app-page-title { margin:7px 0; font-size:clamp(28px,3vw,32px); font-weight:750; letter-spacing:-.05em; line-height:1.2; overflow-wrap:anywhere; }
+.app-frame .app-page-title>span { color:#8061e4; }
+.app-frame .app-page-subtitle { margin-top:4px; font-size:12px; font-weight:400; line-height:1.7; color:#79829a; }
+.app-frame.admin-dark .app-page-subtitle { color:#a9a6bc; }
+.app-frame .app-main :where(h2,h3,h4) { font-family:var(--font-sans); letter-spacing:-.035em; }
