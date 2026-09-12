@@ -1,0 +1,14 @@
+.workspace-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;user-select:none;contain:paint}
+.workspace-background-glow{position:absolute;inset:0;background:radial-gradient(ellipse 650px 330px at 85% 0%,#b5a5fa15,transparent 75%),radial-gradient(ellipse 480px 400px at 45% 100%,#a797ef13,transparent 75%)}
+.workspace-background-symbol{position:absolute;color:#9583db;font:400 36px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.18;text-shadow:0 0 15px #a390f56b,0 0 32px #b8a6fa38;animation:workspace-symbol-glow 9s ease-in-out infinite;will-change:opacity}
+.symbol-position-0{top:44px;right:8%;transform:rotate(12deg)}
+.symbol-position-1{top:32%;right:9px;transform:rotate(-12deg);font-size:28px;animation-delay:-3s}
+.symbol-position-2{bottom:44px;right:13%;transform:rotate(-9deg);font-size:42px;animation-delay:-6s}
+.symbol-position-3{top:60%;left:251px;font-size:48px;animation-delay:-2s}
+.symbol-position-4{top:20px;left:56%;transform:rotate(18deg);font-size:32px;animation-delay:-5s}
+.symbol-position-5{bottom:28px;left:32%;font-size:24px;transform:rotate(8deg);animation-delay:-7s}
+.admin-dark .workspace-background-symbol{color:#b09cf5;opacity:.15;text-shadow:0 0 18px #a18be84d}
+@keyframes workspace-symbol-glow{0%,100%{opacity:.12}50%{opacity:.25}}
+@media(max-width:1050px){.symbol-position-3{left:8px}.symbol-position-0{right:12%;top:26px}.symbol-position-4{left:65%}}
+@media(max-width:600px){.workspace-background-symbol{font-size:24px}.symbol-position-3,.symbol-position-4{display:none}.symbol-position-2{bottom:20px;right:9%}}
+@media(prefers-reduced-motion:reduce){.workspace-background-symbol{animation:none;will-change:auto;opacity:.16}}

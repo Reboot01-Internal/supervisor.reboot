@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
+import WorkspaceBackground from "./WorkspaceBackground";
 import { useAuth } from "../lib/auth";
 import { useNotifications } from "../lib/notifications";
 import faviconIcon from "/favicon-icon.png";
@@ -282,6 +283,7 @@ export default function AdminLayout({
 
   return (
     <div className={cn(darkMode && "admin-dark", "app-frame min-h-screen bg-[#f4f6fb] text-slate-900")}>
+      <WorkspaceBackground/>
       <div
         className={cn(
           "grid min-h-screen min-w-0",
