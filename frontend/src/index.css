@@ -2424,3 +2424,22 @@ body.admin-dark-theme .confirm-dialog-panel > .confirm-dialog-actions {
 .app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer .theme-switch,
 .app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer>button[aria-label="Log out"] {border-top-color:#49364f!important}
 .app-frame.admin-dark .workspace-sidebar .admin-sidebar-footer>button:hover {background:#ffffff08!important}
+
+/* Shared interactive purple across navigation and dashboards. */
+.app-frame { --workspace-accent: #6d5efc; }
+.app-frame.admin-dark { --workspace-accent: #b5a7ff; }
+.app-frame .workspace-nav-item[aria-current=page],
+.app-frame .workspace-sidebar .workspace-nav-item[aria-current=page]>span:first-child {
+  color:var(--workspace-accent);
+}
+.app-frame .talent-intro h1 span,
+.app-frame .ah-header h1 span,
+.app-frame .app-page-title>span { color:var(--workspace-accent); }
+.app-frame .talent-text-link { color:var(--workspace-accent); }
+.app-frame .talent-people .talent-text-link { color:#dbccff; }
+.app-frame .talent-week a.is-today { background:#6d5efc; }
+.app-frame .talent-work { border-top-color:#6d5efc; }
+.app-frame .ah-bars button[aria-pressed=true] strong,
+.app-frame .ah-bars button[aria-pressed=true] small { color:var(--workspace-accent); }
+.app-frame .ah-bar-track i { background:linear-gradient(180deg,#aa97ef,#6d5efc); }
+.app-frame .ah-legend span:first-child i { background:#9f8aff; }

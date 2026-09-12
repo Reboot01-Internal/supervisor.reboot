@@ -1,5 +1,5 @@
 /* Keep the original directory layout; match workspace typography and lavender. */
-.boards-page { --boards-purple: #8474b5; --boards-border: #e4dcef; --boards-tint: #f2edf8; font-family: var(--font-sans); }
+.boards-page { --boards-purple: #6d5efc; --boards-border: #e4dcef; --boards-tint: #f2edf8; font-family: var(--font-sans); }
 .boards-page :where(button, input, select) { font-family: inherit; }
 .boards-page :where(.font-black, .font-extrabold) { font-weight: 600; }
 .boards-page [class*="text-[#6d5efc]"] { color: var(--boards-purple); }
@@ -33,3 +33,23 @@
 .admin-dark .boards-page .calendar-filterbar input { color: #e8e0f1; }
 .admin-dark .boards-page .boards-status select,
 .admin-dark .boards-page .calendar-filterbar select { color: #d0bbE7; }
+
+/* Dialogs follow the workspace typography, without changing the form flow. */
+.board-create-dialog, .board-members-popup { font-family: var(--font-sans); }
+.board-create-dialog :where(button, input, select, textarea) { font-family: inherit; }
+.board-create-dialog :where(.font-black, .font-extrabold),
+.board-members-popup :where(.font-black, .font-extrabold) { font-weight: 600; }
+.board-create-dialog .create-board-panel { box-shadow: none; border-color: #e5dfef; border-radius: 14px; }
+.board-create-dialog .create-board-panel label > span { color: #8474b5; font-size: 11px; font-weight: 600; }
+.board-create-dialog :where(input, select, textarea) { font-weight: 400; border-color: #e5dfef; background-color: #faf8fd; }
+.board-create-dialog :where(input, select, textarea):focus { outline: 2px solid #b8a4df; outline-offset: 1px; }
+.board-create-dialog .modal-close, .board-members-popup .board-popup-close,
+.board-members-popup .board-popup-edit { color: #8474b5; border-color: #e5dfef; background: #f6f2fa; }
+.board-create-dialog .modal-close:hover, .board-members-popup .board-popup-close:hover { color: #6d5efc; background: #eee7f8; }
+.board-members-popup { border-color: #e5dfef; padding: 22px; }
+.board-members-popup .board-member-row { border-color: #e5dfef; background: #faf8fd; box-shadow: none; }
+.board-members-popup .text-indigo-600 { color: #6d5efc; font-weight: 500; }
+.board-members-popup .text-violet-700 { color: #8474b5; }
+.board-members-popup .border-violet-200 { border-color: #e5dfef; }
+.board-members-popup .bg-violet-50 { background: #f3edf9; }
+.admin-dark .board-members-popup .board-member-row { background: #30293f; border-color: #50445f; }

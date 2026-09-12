@@ -1,6 +1,6 @@
 import ImagePreview from "../components/ImagePreview";
 import WorkspaceCalendar from "../components/WorkspaceCalendar";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, X } from "lucide-react";
 import "../components/WorkspaceViews.css";
 import "../components/ViewNavigation.css";
 import "./AdminBoardsPage.css";
@@ -1176,7 +1176,7 @@ export default function AdminBoardsPage() {
               </div>
             </div>
             <button
-              className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+              className="h-9 rounded-lg border border-slate-200 bg-slate-50 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
               onClick={closeReassignModal}
               disabled={reassigning}
             >
@@ -1720,10 +1720,12 @@ export default function AdminBoardsPage() {
                   </button>
                 ) : null}
                 <button
-                  className="board-popup-close h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                  aria-label="Close members"
+                  title="Close"
+                  className="board-popup-close grid place-items-center w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
                   onClick={closeMembersModal}
                 >
-                  Close
+                  <X size={18} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -1803,6 +1805,7 @@ export default function AdminBoardsPage() {
       )}
       {previewAvatar ? <ImagePreview src={previewAvatar.src} title={previewAvatar.name} onClose={() => setPreviewAvatar(null)} /> : null}
       <Modal
+        className="board-create-dialog"
         open={createOpen}
         title="Create board"
         onClose={closeCreateModal}

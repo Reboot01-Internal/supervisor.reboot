@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 
@@ -18,7 +19,9 @@ export default function Modal({
   onClose,
   footer,
   children,
+  className = "",
 }: {
+  className?: string;
   open: boolean;
   title: string;
   onClose: () => void;
@@ -32,11 +35,11 @@ export default function Modal({
 
   return createPortal(
     <div
-      className="
+      className={`${className}
         fixed inset-0 z-[9999]
         bg-slate-900/45 backdrop-blur-[2px]
         overflow-y-auto
-      "
+      `}
       onMouseDown={onClose}
       role="dialog"
       aria-modal="true"
@@ -67,9 +70,11 @@ export default function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="h-8 rounded-[10px] border border-slate-300 bg-slate-50 px-3 text-[13px] font-extrabold text-slate-700 transition hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
+              aria-label="Close dialog"
+              title="Close"
+              className="modal-close grid w-8 place-items-center h-8 rounded-[10px] border border-slate-300 bg-slate-50 text-[13px] font-extrabold text-slate-700 transition hover:border-[#6d5efc]/25 hover:bg-[#f2f5ff]"
             >
-              Close
+              <X size={18} aria-hidden="true" />
             </button>
           </div>
 
