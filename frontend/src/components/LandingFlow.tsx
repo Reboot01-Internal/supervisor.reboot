@@ -29,7 +29,7 @@ export function LandingFlow() {
  return <div ref={root} className="landing-flow" aria-hidden="true">
   <svg viewBox="0 0 1000 2000" preserveAspectRatio="none"><defs><linearGradient id="landing-flow-color" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#4dcac0"/><stop offset=".5" stopColor="#ad8de0"/><stop offset="1" stopColor="#37bba7"/></linearGradient></defs>
   <path className="flow-track" d="M 30 0 C 150 180, 0 300, 50 480 S 950 500, 950 750 S 20 900, 45 1150 S 960 1250, 950 1500 S 50 1770, 500 2000"/>
-  <path className="flow-light" d="M 30 0 C 150 180, 0 300, 50 480 S 950 500, 950 750 S 20 900, 45 1150 S 960 1250, 950 1500 S 50 1770, 500 2000"/></svg>
+  <g className="flow-glow"><path className="flow-light" d="M 30 0 C 150 180, 0 300, 50 480 S 950 500, 950 750 S 20 900, 45 1150 S 960 1250, 950 1500 S 50 1770, 500 2000"/></g></svg>
   {['</>','[ ]',';','</>','{ }','/','[ ]',';'].map((symbol,i)=><span key={i} className="flow-symbol" style={{top:`${7+i*12}%`,left:i%2?'92%':'2%',animationDelay:`${-i*1.7}s`}}>{symbol}</span>)}
  </div>
 }
