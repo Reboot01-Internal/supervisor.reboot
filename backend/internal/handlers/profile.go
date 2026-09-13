@@ -128,7 +128,12 @@ func (a *API) authorizeStudentPrivateNotesAccess(viewerRole string, viewerID, st
 
 func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 	uid := actorID(r, a.conn)
-	reqRole := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
+	var actorLogin, actorRole string
+	if err := a.conn.QueryRow("SELECT IFNULL(nickname,''), role FROM users WHERE id = ?", uid).Scan(&actorLogin, &actorRole); err != nil {
+		writeErr(w, http.StatusUnauthorized, "unknown user")
+		return
+	}
+	reqRole := resolvedRole(actorLogin, actorRole)
 
 	// Admin can inspect any user profile by id.
 	if reqRole == "admin" {
@@ -191,9 +196,8 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out.User.Role = strings.ToLower(strings.TrimSpace(out.User.Role))
-	// Resolve admin access from the stored identity, including existing overrides.
-	var actorLogin, actorRole string
-	if err := a.conn.QueryRow("SELECT IFNULL(nickname,''), role FROM users WHERE id = ?", actorID(r, a.conn)).Scan(&actorLogin, &actorRole); err == nil && resolvedRole(actorLogin, actorRole) == "admin" && r.URL.Query().Get("reboot_details") == "1" {
+	// Enrich only after the target profile access checks above have succeeded.
+	if r.URL.Query().Get("reboot_details") == "1" {
 		out.User.RebootDetails = fetchProfileDetails(r, out.User.Nickname)
 	}
 

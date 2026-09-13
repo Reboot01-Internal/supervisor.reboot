@@ -232,6 +232,7 @@ export default function MeetingsCalendarPage() {
   const [calendarConnections, setCalendarConnections] = useState<CalendarConnection[]>([]);
   const [selectedBoardFilter, setSelectedBoardFilter] = useState("all");
   const [selectedSupervisorFilter, setSelectedSupervisorFilter] = useState("all");
+  useEffect(() => { if (!isEffectiveAdmin) setSelectedSupervisorFilter("all"); }, [isEffectiveAdmin]);
   const [composerSupervisorID, setComposerSupervisorID] = useState("");
   const [selectedDate, setSelectedDate] = useState(toLocalDateInput());
   const [selectedMeetingID, setSelectedMeetingID] = useState<number | null>(null);
@@ -764,8 +765,8 @@ export default function MeetingsCalendarPage() {
         ) : null}
 
         <div className="meetings-page">
-        <section className="meetings-toolbar mb-4 flex min-w-0 flex-wrap items-center gap-2.5">
-          <label className="meetings-filter-label"><span>Supervisor</span><select
+        <section className="meetings-toolbar mb-4 flex min-w-0 flex-wrap items-center gap-2.5" data-admin={isEffectiveAdmin}>
+          {isEffectiveAdmin && <label className="meetings-filter-label"><span>Supervisor</span><select
             value={selectedSupervisorFilter}
             onChange={(e) => setSelectedSupervisorFilter(e.target.value)}
             className="meetings-filter h-12 min-w-0 flex-1 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-bold text-slate-800 shadow-[0_10px_24px_rgba(15,23,42,0.05)] outline-none backdrop-blur focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[200px] sm:flex-none"
@@ -774,7 +775,7 @@ export default function MeetingsCalendarPage() {
             {supervisorOptions.map((supervisor) => (
               <option key={supervisor.id} value={supervisor.id}>{supervisor.name}</option>
             ))}
-          </select></label>
+          </select></label>}
           <label className="meetings-filter-label"><span>Board</span><select
             value={selectedBoardFilter}
             onChange={(e) => setSelectedBoardFilter(e.target.value)}

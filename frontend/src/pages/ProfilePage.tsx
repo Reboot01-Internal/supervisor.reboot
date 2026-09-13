@@ -502,7 +502,7 @@ export default function ProfilePage() {
 
   const loadProfileData = useCallback(async () => {
     const local = await apiFetch(
-      isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}${role === "admin" ? "&reboot_details=1" : ""}` : `/admin/profile/summary${role === "admin" ? "?reboot_details=1" : ""}`
+      isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}&reboot_details=1` : "/admin/profile/summary?reboot_details=1"
     );
     const targetLogin =
       String(local?.user?.nickname || "").trim() || (isTargetUserView ? "" : ownLogin);
@@ -1058,7 +1058,7 @@ export default function ProfilePage() {
 
           </section>
 
-          {role === "admin" && <ProfileProjects projects={localProfile.user.reboot_details?.projects} />}
+          {<ProfileProjects projects={localProfile.user.reboot_details?.projects} />}
 
           {canViewPrivateNotes ? (
             <section className="profile-notes rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">

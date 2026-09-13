@@ -53,3 +53,6 @@
  .meetings-toolbar .meetings-filter-label .meetings-filter{width:100%;flex:auto}
  .meetings-toolbar .meetings-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+.meetings-toolbar[data-admin="false"]{grid-template-columns:minmax(0,1fr) auto}
+@container(min-width:1200px){.meetings-toolbar[data-admin="false"]{grid-template-columns:minmax(170px,1fr) auto minmax(360px,1.4fr)}}
+@container(max-width:650px){.meetings-toolbar[data-admin="false"]{grid-template-columns:minmax(0,1fr)}}

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Only called after ProfileSummary has verified the viewer's admin identity.
+// Only called after ProfileSummary has authorized access to the target profile.
 // Service credentials stay on the server; missing upstream fields remain absent.
 func fetchProfileDetails(r *http.Request, login string) map[string]any {
 	if login == "" {
