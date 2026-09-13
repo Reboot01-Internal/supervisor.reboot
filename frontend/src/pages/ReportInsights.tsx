@@ -1,3 +1,4 @@
+import RustPiscineReport from './RustPiscineReport';
 import ProjectDistribution from './ProjectDistribution';
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -6,7 +7,7 @@ import UserAvatar from '../components/UserAvatar';
 type Person={supervisor_user_id:number;full_name:string;nickname:string};
 type Board={id:number;name:string;lists_count?:number;supervisor_name:string};
 type Meeting={id:number;supervisor_id:number;status:string;starts_at:string;title:string};
-type Talent={id:number;role:string;cohort?:string;assigned_boards?:string[]};
+type Talent={id:number;full_name:string;nickname:string;role:string;cohort?:string;assigned_boards?:string[]};
 export default function ReportInsights({boards,people,avatars,done,cards,complete,revision}:{boards:Board[];people:Person[];avatars:Record<string,string>;done:number;cards:number;complete:boolean;revision:number}){
  const [meetings,setMeetings]=useState<Meeting[]>([]),[users,setUsers]=useState<Talent[]>([]),[busy,setBusy]=useState(true),[error,setError]=useState('');
  const [week,setWeek]=useState(0);
@@ -19,5 +20,5 @@ export default function ReportInsights({boards,people,avatars,done,cards,complet
  return <>{error&&<p role="alert">{error}</p>}<div className="insight-stats">{stats.map(([label,value,note])=><div key={label}><span>{label}</span><strong>{busy||error?'—':value}</strong><small>{busy?'Loading…':note}</small></div>)}</div>
  <section className="insight-week"><header><div><span>WEEKLY MEETING REVIEW</span><h2>Who’s checking in?</h2><p>{dayLabel(start)} – {dayLabel(new Date(end.getTime()-1))} · {week===0?'Week in progress':'Previous week'}</p></div><div><button aria-label="Previous meeting week" onClick={()=>setWeek(w=>w+1)}><ChevronLeft size={18}/></button><button disabled={!week} onClick={()=>setWeek(0)}>This week</button><button disabled={!week} aria-label="Next meeting week" onClick={()=>setWeek(w=>w-1)}><ChevronRight size={18}/></button></div></header><p className="insight-note">Ranked by meetings marked completed, using their scheduled date. History uses saved meeting records and reflects later edits.</p>
  {busy||error?<p>{error||'Loading meeting history…'}</p>:<div className="insight-week-grid"><div><h3>Meeting ranking</h3>{ranking.map(p=><div className="insight-rank" key={p.supervisor_user_id}><small>{1+ranking.filter(r=>r.count>p.count).length}</small><UserAvatar src={avatars[p.nickname?.toLowerCase()]} alt={p.full_name} fallback={p.full_name.slice(0,2)} sizeClass="h-8 w-8"/><span>{p.full_name}</span><strong>{p.count}<small>completed</small></strong></div>)}</div><div className="insight-missing"><h3>{week===0?'No completed meeting yet':'No completed meeting'} <span>{ranking.filter(p=>!p.count).length}</span></h3><p>At least one completed meeting per supervisor per week.</p>{ranking.filter(p=>!p.count).map(p=><div key={p.supervisor_user_id}><UserAvatar src={avatars[p.nickname?.toLowerCase()]} alt={p.full_name} fallback={p.full_name.slice(0,2)} sizeClass="h-8 w-8"/><span>{p.full_name}<small>{p.scheduled} scheduled in this week</small></span></div>)}{ranking.every(p=>p.count>0)&&<p>Every supervisor has a completed meeting.</p>}</div></div>}</section>
- <ProjectDistribution boards={boards} users={users} avatars={avatars} loading={busy} error={error}/></>;
+ <RustPiscineReport users={users} loading={busy} error={error}/><ProjectDistribution boards={boards} users={users} avatars={avatars} loading={busy} error={error}/></>;
 }
