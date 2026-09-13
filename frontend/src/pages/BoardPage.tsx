@@ -1,5 +1,6 @@
+import "./BoardWorkspace.css";
 import "../components/ViewNavigation.css";
-import { Columns3, CalendarDays } from "lucide-react";
+import { Columns3, CalendarDays, Plus, X, ArrowUpRight } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -374,7 +375,7 @@ function CardItem({
             type="button"
             onDoubleClick={(e) => e.stopPropagation()}
             className={[
-              "h-9 w-9 rounded-lg border border-slate-200 bg-slate-50",
+              "board-card-grip h-9 w-9 rounded-lg border border-slate-200 bg-slate-50",
               "grid place-items-center cursor-grab active:cursor-grabbing",
               "hover:border-slate-300 hover:bg-slate-100 transition",
               "shrink-0",
@@ -521,9 +522,7 @@ function CardItem({
           </div>
 
           {!isOverlay && (
-            <div className="mt-2 text-[11px] font-semibold text-slate-500">
-              Double click to open
-            </div>
+            <button type="button" className="board-card-open" onClick={()=>onOpen(card.id)} onDoubleClick={e=>e.stopPropagation()}>Open card <ArrowUpRight size={13}/></button>
           )}
         </div>
       </div>
@@ -711,6 +710,7 @@ export default function BoardPage() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [listComposerOpen,setListComposerOpen]=useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [creatingList, setCreatingList] = useState(false);
 
@@ -899,6 +899,7 @@ export default function BoardPage() {
         body: JSON.stringify({ board_id: boardID, title }),
       });
       setNewListTitle("");
+      setListComposerOpen(false);
       await load();
     } catch (e: any) {
       setErr(e.message || "Failed to create list");
@@ -1675,27 +1676,11 @@ export default function BoardPage() {
               </span>
             </div>
 
-            {canManage ? (
-            <form onSubmit={createList} className="flex items-center gap-2.5">
-              {/* <div className="h-10 w-10 rounded-xl border border-[#6d5efc]/25 bg-gradient-to-br from-[#f2f0ff] to-[#ebe8ff] text-[#6d5efc] grid place-items-center">
-                <PlusIcon />
-              </div> */}
-
-              <input
-                className="h-10 flex-1 rounded-xl border border-slate-300 bg-slate-50/80 px-3.5 text-[14px] font-semibold text-slate-900 outline-none transition placeholder:font-semibold placeholder:text-slate-400 focus:border-[#6d5efc]/40 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/15"
-                placeholder="Create a new list..."
-                value={newListTitle}
-                onChange={(e) => setNewListTitle(e.target.value)}
-              />
-
-              <button
-                className="h-10 px-4 rounded-xl font-extrabold text-white shadow-[0_12px_26px_rgba(109,94,252,0.28)] disabled:opacity-70 bg-gradient-to-r from-[#6d5efc] to-[#9a8cff]"
-                disabled={creatingList || !newListTitle.trim()}
-              >
-                {creatingList ? "..." : "+"}
-              </button>
-            </form>
-            ) : null}
+            {canManage && (listComposerOpen ? <form onSubmit={createList} className="board-list-composer">
+              <input autoFocus aria-label="New list name" placeholder="List name…" value={newListTitle} onChange={e=>setNewListTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Escape'&&!creatingList)setListComposerOpen(false);}} disabled={creatingList}/>
+              <button type="submit" disabled={creatingList||!newListTitle.trim()}>{creatingList?'Adding…':'Add list'}</button>
+              <button type="button" className="composer-dismiss" aria-label="Cancel new list" disabled={creatingList} onClick={()=>setListComposerOpen(false)}><X size={16}/></button>
+            </form> : <button type="button" className="board-new-list" onClick={()=>setListComposerOpen(true)}><Plus size={16}/>New list</button>)}
           </div>
 
           {view === "calendar" ? <BoardCalendar key={boardID} cards={data.cards} lists={listsSorted} previews={previews} avatarByUserID={avatarByUserID} onOpenCard={onOpenCard} /> : (
