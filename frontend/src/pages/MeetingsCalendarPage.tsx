@@ -248,6 +248,12 @@ export default function MeetingsCalendarPage() {
   const [savingParticipantKey, setSavingParticipantKey] = useState("");
   const [savingOutcome, setSavingOutcome] = useState(false);
   const [showCalendarLinker, setShowCalendarLinker] = useState(false);
+  useEffect(() => {
+    if ((location.state as { openCalendarLinker?: boolean } | null)?.openCalendarLinker) {
+      setShowCalendarLinker(true);
+      window.history.replaceState({ ...window.history.state, usr: { ...location.state, openCalendarLinker: false } }, "");
+    }
+  }, [location.key, location.state]);
   const [calendarEmail, setCalendarEmail] = useState(email || "");
   const [connectingProvider, setConnectingProvider] = useState<"" | "google" | "microsoft">("");
   const [disconnectingProvider, setDisconnectingProvider] = useState<"" | "google" | "microsoft">("");

@@ -1,8 +1,11 @@
+import { useConfirm } from "../lib/useConfirm";
+import { Link2, Plus, LayoutDashboard, CalendarDays, Pencil, Trash2 } from "lucide-react";
+import "./BoardMeetingsPage.css";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import UserAvatar from "../components/UserAvatar";
-import { API_URL, apiFetch, authHeaders } from "../lib/api";
+import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
@@ -117,18 +120,11 @@ function CalendarIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-function DownloadIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 4v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="m8 10 4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5 20h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export default function BoardMeetingsPage() {
   const nav = useNavigate();
+ const {confirm,dialog}=useConfirm();
+ const [editing,setEditing]=useState<number|null>(null);
+ const [deleting,setDeleting]=useState(false);
   const { boardId } = useParams();
   const boardID = Number(boardId);
   const { isAdmin, isSupervisor } = useAuth();
@@ -142,7 +138,6 @@ export default function BoardMeetingsPage() {
   const [selectedMeetingID, setSelectedMeetingID] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -231,31 +226,8 @@ export default function BoardMeetingsPage() {
     }
   }, [loadParticipants, participantsByMeeting, participantsLoading, selectedMeeting]);
 
-  async function exportBoardMeetings() {
-    setExporting(true);
-    setError("");
-    try {
-      const res = await fetch(`${API_URL}/admin/meetings/export?board_id=${boardID}`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) throw new Error("Failed to export meetings");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${(board?.name || `board-${boardID}`).replace(/\s+/g, "-").toLowerCase()}-meetings.ics`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e: any) {
-      setError(e?.message || "Failed to export meetings");
-    } finally {
-      setExporting(false);
-    }
-  }
-
   function startCreateMeeting() {
+ setEditing(null);
     setForm({
       title: "",
       location: "Online",
@@ -284,9 +256,10 @@ export default function BoardMeetingsPage() {
     try {
       const startsAt = new Date(`${form.date}T${form.start_time}`);
       const endsAt = new Date(`${form.date}T${form.end_time}`);
-      const res = await apiFetch("/admin/meetings", {
+      const res = await apiFetch(editing ? "/admin/meetings/update" : "/admin/meetings", {
         method: "POST",
         body: JSON.stringify({
+          meeting_id: editing || undefined,
           board_id: boardID,
           title: form.title.trim(),
           location: form.location.trim(),
@@ -306,22 +279,34 @@ export default function BoardMeetingsPage() {
     }
   }
 
+  function editMeeting() {
+ if(!selectedMeeting||!canManage)return;
+ const m=selectedMeeting;const start=new Date(m.starts_at),end=new Date(m.ends_at);
+ const time=(d:Date)=>`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+ setEditing(m.id);setForm({title:m.title,location:m.location,notes:m.notes||'',date:toLocalDateInput(start),start_time:time(start),end_time:time(end)});setShowComposer(true);
+ }
+ async function deleteMeeting() {
+ if(!selectedMeeting||deleting||!canManage)return;
+ const m=selectedMeeting;
+ if(!await confirm({title:'Delete meeting',message:`Delete "${m.title}"? This cannot be undone.`,confirmLabel:'Delete',danger:true}))return;
+ setDeleting(true);setError('');try{await apiFetch('/admin/meetings/delete',{method:'POST',body:JSON.stringify({meeting_id:m.id})});await load();}catch(e){setError(errorMessage(e,'Failed to delete meeting'));}finally{setDeleting(false);}
+ }
   const pageTitle = board?.name ? `${board.name} Meetings` : `Board #${boardID} Meetings`;
 
   return (
     <AdminLayout
       active={isAdmin ? "boards" : "boards"}
-      title={pageTitle}
-      subtitle="All meetings for this board, with attendance, notes, and outcomes in one place."
+      title="Board meetings"
+      subtitle={pageTitle}
       right={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="board-meeting-actions flex flex-wrap items-center gap-2">
           {canManage ? (
             <button
               type="button"
               onClick={startCreateMeeting}
               className="h-10 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-4 text-[13px] font-black text-white shadow-[0_14px_34px_rgba(245,158,11,0.24)] transition hover:-translate-y-[1px]"
             >
-              Book Meeting
+              <Plus size={16}/> Book Meeting
             </button>
           ) : null}
           <button
@@ -329,18 +314,19 @@ export default function BoardMeetingsPage() {
             onClick={() => nav(`/admin/boards/${boardID}`)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-extrabold text-slate-700 transition hover:bg-slate-50"
           >
-            Board
+            <LayoutDashboard size={15}/> Board
           </button>
           <button
             type="button"
             onClick={() => nav("/admin/meetings")}
             className="h-10 rounded-xl border border-amber-200 bg-amber-50 px-3 text-[13px] font-extrabold text-amber-700 transition hover:bg-amber-100"
           >
-            Full calendar
+            <CalendarDays size={15}/> Full calendar
           </button>
         </div>
       }
     >
+      <div className="board-meetings-content">
       {error ? (
         <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {error}
@@ -368,28 +354,23 @@ export default function BoardMeetingsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-[12px] font-black text-slate-700">
                       <CalendarIcon size={14} />
-                      {meetings.length} Meetings
+                      {meetings.length} {meetings.length===1?"Meeting":"Meetings"}
                     </span>
-                    {selectedMeeting ? (
-                      <span className={`inline-flex h-9 items-center rounded-full border px-3 text-[12px] font-black ${statusTone(selectedMeeting.status)}`}>
-                        {selectedMeeting.status}
-                      </span>
-                    ) : null}
+                    <span className="board-meeting-summary">{meetings.filter(m=>m.status==='scheduled').length} scheduled <span>·</span> {meetings.filter(m=>m.status==='completed').length} completed</span>
                   </div>
 
                   <button
                     type="button"
-                    onClick={exportBoardMeetings}
-                    disabled={exporting}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-extrabold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 max-[520px]:w-full"
+                    onClick={() => nav("/admin/meetings", { state: { openCalendarLinker: true } })}
+                    className="board-calendar-connect inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-extrabold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 max-[520px]:w-full"
                   >
-                    <DownloadIcon size={14} />
-                    {exporting ? "Exporting..." : "Export calendar"}
+                    <Link2 size={16} />
+                    Connect Calendar
                   </button>
                 </div>
               </div>
 
-              <div className="grid min-h-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)] xl:h-[calc(100vh-300px)]">
+              <div className="grid min-h-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)] ">
               <div className="min-h-0 rounded-[22px] border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] overflow-hidden">
                 <div className="mb-2 px-2 text-[12px] font-black uppercase tracking-[0.16em] text-slate-400">
                   Board timeline
@@ -446,6 +427,7 @@ export default function BoardMeetingsPage() {
                       </div>
                     </div>
 
+                    {canManage&&<div className="board-meeting-edit"><button type="button" onClick={editMeeting} disabled={deleting}><Pencil size={15}/>Edit</button><button type="button" onClick={deleteMeeting} disabled={deleting} className="danger"><Trash2 size={15}/>{deleting?'Deleting…':'Delete'}</button></div>}
                     <span className={`rounded-full border px-3 py-1.5 text-[12px] font-black capitalize ${statusTone(selectedMeeting.status)}`}>
                       {selectedMeeting.status}
                     </span>
@@ -530,7 +512,7 @@ export default function BoardMeetingsPage() {
           <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">Book a meeting</div>
+                <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">{editing ? "Edit meeting" : "Book a meeting"}</div>
                 <div className="mt-1 max-w-[430px] text-[13px] font-semibold text-slate-500 max-[520px]:text-[12px]">
                   This will be added to {board?.name || "this board"} and participants will sync from the board.
                 </div>
@@ -572,13 +554,14 @@ export default function BoardMeetingsPage() {
 
               <div className="flex justify-end max-[520px]:sticky max-[520px]:bottom-0 max-[520px]:bg-white max-[520px]:py-2">
                 <button type="submit" disabled={saving} className="h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70 max-[520px]:w-full">
-                  {saving ? "Saving..." : "Create meeting"}
+                  {saving ? "Saving..." : editing ? "Save changes" : "Create meeting"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       ) : null}
+      {dialog}</div>
     </AdminLayout>
   );
 }
