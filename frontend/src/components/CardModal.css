@@ -1,0 +1,114 @@
+/* Card details use the same lavender palette and quiet surfaces as the board. */
+.card-editor-modal > div > div {
+  max-width: 940px;
+  border-radius: 18px;
+  border-color: #e6e0f2;
+  color: #302a45;
+}
+.card-editor-modal > div > div > div:first-child {
+  padding: 12px 18px;
+  border-color: #ece7f5;
+}
+.card-editor-modal > div > div > div:first-child > div {
+  font-size: 16px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.card-editor-modal > div > div > div:nth-child(2) {
+  background: white;
+  padding: 0;
+}
+.card-editor-modal > div > div > div:last-child {
+  padding: 10px 18px;
+  border-color: #ece7f5;
+  background: #fcfbff;
+}
+.card-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  align-items: start;
+}
+.card-editor-layout > div:first-child { padding: 6px 18px 18px; min-width: 0; }
+.card-editor-properties { display: grid; grid-template-columns: 1fr; }
+.card-editor-modal .card-modal-section {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #eee9f6;
+  border-radius: 0;
+  padding: 10px 0;
+  box-shadow: none;
+}
+.card-editor-modal .card-modal-section:hover { box-shadow: none; border-color: #eee9f6; }
+.card-editor-modal .card-editor-section-title { font-size: 13px; color: #665a7e; letter-spacing: .01em; }
+.card-editor-modal input,
+.card-editor-modal textarea,
+.card-editor-modal select {
+  border-color: #e4ddef;
+  border-radius: 10px;
+  background: #fcfbfe;
+  font-size: 14px;
+  font-weight: 400;
+}
+.card-editor-modal input:focus,
+.card-editor-modal textarea:focus,
+.card-editor-modal select:focus { border-color: #9a8df6; background: white; }
+.card-editor-modal input[placeholder="Card title"] {
+  font-size: 16px;
+  font-weight: 600;
+  height: 36px;
+}
+.card-editor-modal button { font-weight: 550; font-size: 13px; transition: background .15s, border-color .15s; }
+.card-editor-modal .card-editor-primary {
+  background: #6d5efc;
+  color: white;
+  border: 1px solid #6d5efc;
+  box-shadow: none;
+}
+.card-editor-modal .card-editor-primary:hover:not(:disabled) { background: #5949e8; }
+.card-editor-modal .card-editor-primary:disabled { opacity: .45; }
+.card-editor-modal .font-black,
+.card-editor-modal .font-extrabold { font-weight: 550; }
+.card-editor-conversation {
+  min-width: 0;
+  padding: 14px;
+  background: #f8f6fc;
+  border-left: 1px solid #ece7f5;
+  align-self: stretch;
+}
+.card-editor-conversation .card-modal-section { padding: 0; border: 0; min-height: 0; }
+.card-editor-conversation textarea { background: white; min-height: 72px; }
+.card-editor-modal .card-modal-danger-icon { color: #d64968; border-color: #f2dce3; background: #fff8fa; }
+.card-editor-modal button:focus-visible { outline: 3px solid #b6aafa; outline-offset: 2px; }
+@media (max-width: 760px) {
+  .card-editor-layout { grid-template-columns: 1fr; }
+  .card-editor-layout > div:first-child { padding: 6px 18px 18px; }
+  .card-editor-conversation { border-left: 0; border-top: 1px solid #ece7f5; padding: 18px; }
+}
+.dark .card-editor-modal > div > div,
+.dark .card-editor-modal > div > div > div { background: #241f33; border-color: #40364f; color: #eee8f7; }
+.dark .card-editor-conversation { background: #211c2e; border-color: #40364f; }
+.dark .card-editor-modal .card-modal-section { border-color: #40364f; }
+.dark .card-editor-modal input,
+.dark .card-editor-modal textarea,
+.dark .card-editor-modal select { background: #2d263d; border-color: #4b405b; color: #eee8f7; }
+.dark .card-editor-modal .card-editor-section-title { color: #bdb0d4; }
+.card-editor-properties > .card-modal-section { grid-column: auto; }
+.card-editor-properties > .card-modal-section:nth-child(2) > .grid { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+
+.card-editor-scroll { max-height: 62vh; overflow-y: auto; overflow-x: hidden; }
+.card-editor-properties { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, .8fr); gap: 10px; }
+.card-editor-properties .card-modal-section { min-width: 0; }
+.card-editor-properties .card-modal-section > div:first-child { min-height: 28px; }
+.card-editor-properties .card-modal-section .rounded-full { display: none; }
+.card-editor-properties input, .card-editor-properties select { padding: 0 8px; font-size: 12px; height: 36px; }
+.card-editor-properties > .card-modal-section:nth-child(2) > .grid { grid-template-columns: 1fr; gap: 3px; }
+.card-editor-properties > .card-modal-section:nth-child(2) button { justify-self: end; border: 0; background: none; height: 20px; font-size: 11px; padding: 0; }
+.card-conversation-tabs { display: flex; gap: 4px; padding: 3px; margin-bottom: 14px; border-radius: 10px; background: #eee9f7; }
+.card-editor-modal .card-conversation-tabs button { flex: 1; border: 0; background: transparent; color: #827591; padding: 0 8px; border-radius: 8px; }
+.card-editor-modal .card-conversation-tabs button[aria-pressed="true"] { background: white; color: #6d5efc; box-shadow: 0 1px 4px #302a4510; }
+.card-image-upload { display: inline-flex; align-items: center; gap: 6px; color: #6d5efc; background: transparent; border: 0; padding: 6px 0; }
+.card-image-upload:hover { color: #5040d3; }
+.card-checklist-composer { display: grid; grid-template-columns: minmax(0, 1fr) 130px auto; gap: 6px; align-items: center; margin-top: 10px; }
+.card-checklist-composer input { min-width: 0; padding: 0 8px; font-size: 12px; }
+@media(max-width: 760px) { .card-editor-properties { grid-template-columns: 1fr 1fr; } .card-editor-properties > :first-child { grid-column: 1 / -1; } }
+@media(max-width: 420px) { .card-checklist-composer { grid-template-columns: 1fr auto; } .card-checklist-composer > :first-child { grid-column: 1 / -1; } }

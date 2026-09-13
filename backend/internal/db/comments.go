@@ -45,6 +45,7 @@ func ListCardComments(conn *sql.DB, cardID int64, limit int) ([]models.CardComme
 			c.card_id,
 			COALESCE(c.actor_user_id, 0) as actor_user_id,
 			COALESCE(u.full_name, 'System') as actor_name,
+ COALESCE(u.nickname, ''),
 			c.body,
 			c.created_at,
 			c.updated_at
@@ -62,7 +63,7 @@ func ListCardComments(conn *sql.DB, cardID int64, limit int) ([]models.CardComme
 	out := []models.CardComment{}
 	for rows.Next() {
 		var x models.CardComment
-		if err := rows.Scan(&x.ID, &x.CardID, &x.ActorUserID, &x.ActorName, &x.Body, &x.CreatedAt, &x.UpdatedAt); err != nil {
+		if err := rows.Scan(&x.ID, &x.CardID, &x.ActorUserID, &x.ActorName, &x.ActorNickname, &x.Body, &x.CreatedAt, &x.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, x)

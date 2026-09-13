@@ -109,13 +109,14 @@ type CardAssignee struct {
 }
 
 type CardComment struct {
-	ID          int64  `json:"id"`
-	CardID      int64  `json:"card_id"`
-	ActorUserID int64  `json:"actor_user_id"`
-	ActorName   string `json:"actor_name"`
-	Body        string `json:"body"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ActorNickname string `json:"actor_nickname"`
+	ID            int64  `json:"id"`
+	CardID        int64  `json:"card_id"`
+	ActorUserID   int64  `json:"actor_user_id"`
+	ActorName     string `json:"actor_name"`
+	Body          string `json:"body"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 type StudentPrivateNote struct {

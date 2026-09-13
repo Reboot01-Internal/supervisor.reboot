@@ -1,3 +1,5 @@
+import { ImagePlus } from "lucide-react";
+import "./CardModal.css";
 import ImagePreview from "./ImagePreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal";
@@ -58,6 +60,7 @@ type CardLabel = { label_id: number; name: string; color: string };
 type Label = { id: number; board_id: number; name: string; color: string };
 
 type Comment = {
+  actor_nickname?: string;
   id: number;
   card_id: number;
   actor_user_id: number;
@@ -346,13 +349,11 @@ const inputBase =
   "h-9 w-full rounded-[10px] border border-slate-300 bg-slate-50 px-3 text-[14px] text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-3 focus:ring-[#6d5efc]/15";
 
 const btnPrimary =
-  "h-9 rounded-[10px] px-4 text-[14px] font-extrabold text-white disabled:opacity-70 disabled:cursor-not-allowed shadow-sm bg-slate-800 hover:bg-slate-900";
+  "card-editor-primary h-9 rounded-[10px] px-4 text-[14px] font-extrabold text-white disabled:opacity-70 disabled:cursor-not-allowed shadow-sm bg-slate-800 hover:bg-slate-900";
 
 const btnGhost =
   "h-9 rounded-[10px] px-4 text-[14px] font-extrabold border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100";
 
-const btnSoft =
-  "h-9 rounded-[10px] px-4 text-[14px] font-extrabold border border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
 const btnDangerIcon =
   "card-modal-danger-icon inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-300 bg-white text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600";
 const btnEditIcon =
@@ -364,7 +365,7 @@ const pillBase =
 const section =
   "card-modal-section rounded-[14px] border border-slate-200 bg-[#fbfcff] p-3 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]";
 const sectionHead = "mb-1.5 flex items-center justify-between gap-2";
-const sectionTitle = "text-[13px] font-black text-slate-900";
+const sectionTitle = "card-editor-section-title text-[13px] font-semibold text-slate-900";
 
 export default function CardModal({
   open,
@@ -390,7 +391,7 @@ export default function CardModal({
     total?: number;
   }) => void;
 }) {
-  const { isAdmin, isSupervisor } = useAuth();
+  const { isAdmin, isSupervisor, login, displayName } = useAuth();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -491,7 +492,7 @@ export default function CardModal({
     let alive = true;
 
     async function loadAvatars() {
-      const logins = [...boardMembers, ...assignees].map(loginOfUser).filter(Boolean);
+      const logins = [...boardMembers, ...assignees].map(loginOfUser).concat(login, ...comments.map(c => c.actor_nickname || "")).filter(Boolean);
       const unique = [...new Set(logins)];
       if (unique.length === 0) {
         setAvatarByLogin({});
@@ -511,7 +512,7 @@ export default function CardModal({
     return () => {
       alive = false;
     };
-  }, [assignees, boardMembers]);
+  }, [assignees, boardMembers, comments, login]);
 
   const cardLabelIds = useMemo(() => new Set(cardLabels.map((x) => x.label_id)), [cardLabels]);
   const nowStamp = () => new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -937,7 +938,8 @@ export default function CardModal({
           id: Number(res?.id),
           card_id: card.id,
           actor_user_id: 0,
-          actor_name: "You",
+          actor_name: displayName || login || "You",
+          actor_nickname: login,
           body: commentBody.trim(),
           created_at: nowStamp(),
           updated_at: nowStamp(),
@@ -1072,6 +1074,7 @@ export default function CardModal({
     <>
     {confirmDialog}
     <Modal
+      className="card-editor-modal"
       open={open}
       title={card?.title?.trim() || (cardId ? `Card #${cardId}` : "Card")}
       onClose={onClose}
@@ -1089,7 +1092,7 @@ export default function CardModal({
             </button>
           )}
           <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Saving..." : "Save changes"}
           </button>
         </>
       }
@@ -1113,10 +1116,10 @@ export default function CardModal({
             <div className="text-[13px] font-semibold text-slate-500">No card loaded.</div>
           ) : (
             <>
-              <div className="dropdownAnim max-h-[62vh] overflow-y-auto overflow-x-hidden pr-[2px]">
-                <div className="grid items-start gap-2.5 xl:grid-cols-[1.25fr_0.95fr]">
+              <div className="dropdownAnim card-editor-scroll">
+                <div className="card-editor-layout">
                   <div className="grid gap-2.5">
-                    <div className="grid gap-2 xl:grid-cols-12">
+                    <div className="card-editor-properties">
                       <div className={`${section} xl:col-span-7`}>
                         <div className={sectionHead}>
                           <div className={sectionTitle}>Title</div>
@@ -1159,8 +1162,6 @@ export default function CardModal({
                           </button>
                         </div>
                       </div>
-                    </div>
-
                     <div className={section}>
                       <div className="grid gap-2">
                         <div className={sectionHead}>
@@ -1181,6 +1182,7 @@ export default function CardModal({
                       </div>
                     </div>
 
+                    </div>
                     <div className={section}>
                       <div className={sectionHead}>
                         <div className={sectionTitle}>Description</div>
@@ -1204,11 +1206,11 @@ export default function CardModal({
                         </div>
                         <button
                           type="button"
-                          className="h-9 rounded-[10px] border border-indigo-500/25 bg-indigo-500/10 px-3 text-[13px] font-black text-slate-900 hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="card-image-upload"
                           onClick={() => attachmentInputRef.current?.click()}
                           disabled={uploadingAttachment}
                         >
-                          {uploadingAttachment ? "Uploading..." : "+ Upload image"}
+                          <ImagePlus size={16} /> {uploadingAttachment ? "Uploading..." : "Add image"}
                         </button>
                         <input
                           ref={attachmentInputRef}
@@ -1388,39 +1390,13 @@ export default function CardModal({
                         <>
                           <div className="h-1.5" />
 
-                          <div className="grid gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <input
-                                className={inputBase}
-                                placeholder="Add an item..."
-                                value={subtaskTitle}
-                                onChange={(e) => setSubtaskTitle(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addSubtask();
-                                  }
-                                }}
-                              />
-                              <button className={btnPrimary} onClick={addSubtask} disabled={!subtaskTitle.trim()}>
-                                Add
-                              </button>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`${pillBase} border-slate-900/10 bg-slate-900/5 text-slate-700`}>
-                                <ClockIcon /> Due (optional)
-                              </span>
-                              <input
-                                className={inputBase + " max-w-[220px]"}
-                                type="date"
-                                value={subtaskDue}
-                                onChange={(e) => setSubtaskDue(e.target.value)}
-                              />
-                              <button className={btnSoft} type="button" onClick={() => setSubtaskDue("")}>
-                                Clear
-                              </button>
-                            </div>
+                          <div className="card-checklist-composer">
+                            <input className={inputBase} aria-label="Checklist item" placeholder="Add an item..." value={subtaskTitle}
+                              onChange={e => setSubtaskTitle(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSubtask(); } }} />
+                            <input className={inputBase} type="date" aria-label="Optional item due date" title="Optional due date"
+                              value={subtaskDue} onChange={e => setSubtaskDue(e.target.value)} />
+                            <button className={btnPrimary} onClick={addSubtask} disabled={!subtaskTitle.trim()}>Add</button>
                           </div>
                         </>
                       )}
@@ -1790,9 +1766,9 @@ export default function CardModal({
                     </div>
                   </div>
 
-                  <div className="grid gap-2.5 xl:sticky xl:top-0">
+                  <div className="card-editor-conversation">
                     <div className={`${section} min-h-[320px]`}>
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <div className="card-conversation-tabs">
                         <button
                           type="button"
                           className={[
@@ -1801,6 +1777,7 @@ export default function CardModal({
                               ? "border-indigo-500/35 bg-indigo-500/12 text-slate-900"
                               : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
                           ].join(" ")}
+                          aria-pressed={rightTab === "comments"}
                           onClick={() => setRightTab("comments")}
                         >
                           <ChatIcon />
@@ -1815,6 +1792,7 @@ export default function CardModal({
                               ? "border-indigo-500/35 bg-indigo-500/12 text-slate-900"
                               : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
                           ].join(" ")}
+                          aria-pressed={rightTab === "activity"}
                           onClick={() => setRightTab("activity")}
                         >
                           <ActivityIcon />
@@ -1848,12 +1826,12 @@ export default function CardModal({
                             <div className="mt-2 grid max-h-[45vh] gap-2 overflow-y-auto pr-1">
                               {comments.slice(0, 40).map((c) => (
                                 <div key={c.id} className="flex gap-2.5 rounded-[12px] border border-slate-200 bg-white/90 p-2.5">
-                                  <div className="grid h-[30px] w-[30px] place-items-center rounded-full border border-slate-200 bg-slate-100 text-[11px] font-black text-slate-800">
-                                    {initials(c.actor_name)}
-                                  </div>
+                                  <UserAvatar
+                                    src={avatarByLogin[c.actor_nickname || ""] || (boardMemberByUserID.get(c.actor_user_id) ? avatarForUser(boardMemberByUserID.get(c.actor_user_id)!) : "") || (c.actor_name === displayName ? avatarByLogin[login] : "")}
+                                    alt={c.actor_name} fallback={initials(c.actor_name)} sizeClass="h-8 w-8" />
 
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-baseline justify-between gap-3">
+                                    <div className="flex flex-wrap items-baseline justify-between gap-1">
                                       <div className="truncate text-[13px] font-black text-slate-900">{c.actor_name}</div>
                                       <div className="shrink-0 text-[11px] font-semibold text-slate-500">{c.created_at}</div>
                                     </div>
