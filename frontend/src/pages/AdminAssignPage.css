@@ -86,3 +86,32 @@
   .assignGrid{ grid-template-columns: 1fr; }
   .assignSplit{ grid-template-columns: 1fr; }
 }
+.assignment-columns { display:grid; grid-template-columns:minmax(240px,.85fr) repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+.assignment-workspace .assignment-panel { background:white; border:1px solid #e8e1f1; border-radius:16px; padding:16px; box-shadow:none; backdrop-filter:none; }
+.assignment-workspace .font-black,.assignment-workspace .font-extrabold { font-weight:550; }
+.assignment-workspace .font-bold,.assignment-workspace .font-semibold { font-weight:450; }
+.assignment-workspace .text-slate-500 { color:#94879f; }
+.assignment-workspace .assign-field { min-width:0; height:38px; padding:8px 10px; border:1px solid #e8e1f1; border-radius:9px; background:#fcfbfe; font-size:12px; box-shadow:none; }
+.assignment-workspace .assign-field:focus { border-color:#a395ed; outline:3px solid #6d5efc12; }
+.assignment-workspace button { font-size:12px; border-radius:9px; box-shadow:none; }
+.assignment-workspace button:hover { box-shadow:none; }
+.assignment-workspace button:focus-visible { outline:2px solid #a999ee; outline-offset:2px; }
+.assignment-workspace .assignment-add { background:#6d5efc; border-color:#6d5efc; color:white; margin-left:auto; }
+.assignment-workspace .assignment-add:hover:not(:disabled) { background:#5949df; }
+.assignment-workspace button:disabled { opacity:.4; }
+.assignment-workspace .assignment-person { border:1px solid transparent; border-bottom-color:#eee8f5; border-radius:10px; background:transparent; padding:12px 9px; box-shadow:none; }
+.assignment-workspace .assignment-person:hover { background:#faf8fd; box-shadow:none; }
+.assignment-workspace .assignment-person[aria-pressed=true],.assignment-workspace .assign-selected-add { background:#f3effc; border-color:#d8cef1; }
+.assignment-workspace .assign-selected-remove { background:#fff3f6; border-color:#f2ccd8; }
+.assignment-person input[type=checkbox] { accent-color:#6d5efc; flex-shrink:0; }
+.assignment-workspace .assignment-person .mt-1 { flex-wrap:wrap; gap:5px; }
+.assignment-workspace .assignment-person span.rounded-full { height:22px; font-size:10px; padding:0 7px; }
+.assignment-workspace .assignment-person span.rounded-full svg { width:12px; height:12px; }
+.assignment-panel > .overflow-y-auto { max-height:540px; }
+.assignment-workspace .border-dashed { padding:24px 14px; margin-top:10px; text-align:center; border-color:#e8e1f1; background:#fcfbfe; font-size:12px; border-radius:12px; }
+.admin-dark .assignment-workspace .assignment-panel { background:#292337; border-color:#493d59; }
+.admin-dark .assignment-workspace .assign-field,.admin-dark .assignment-workspace .border-dashed { background:#241e30; color:#e4dcec; border-color:#493d59; }
+.admin-dark .assignment-workspace .assignment-person { border-bottom-color:#493d59; }
+.admin-dark .assignment-workspace .assignment-person:hover,.admin-dark .assignment-workspace .assignment-person[aria-pressed=true],.admin-dark .assignment-workspace .assign-selected-add { background:#393047; }
+@media(max-width:1150px) { .assignment-columns { grid-template-columns:1fr 1fr; } .assignment-panel:first-child { grid-column:1 / -1; } .assignment-panel:first-child > .overflow-y-auto { max-height:230px; } }
+@media(max-width:650px) { .assignment-columns { grid-template-columns:1fr; } .assignment-panel:first-child { grid-column:auto; } }

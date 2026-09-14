@@ -1,3 +1,4 @@
+import "./AdminAssignPage.css";
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
 import UserAvatar from "../components/UserAvatar";
@@ -411,7 +412,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
     <AdminLayout
   active={from === "users" ? "users" : "supervisors"}
   title="Assign Talents"
-  subtitle={from === "users" ? "Assign talents from the users flow" : "Assign talents to supervisors"}
+  subtitle="Choose a supervisor, select talents, and manage their assignments."
   right={
     <button
       type="button"
@@ -423,7 +424,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
   }
 
     >
-      <div className="w-full max-w-full overflow-x-hidden">
+      <div className="assignment-workspace w-full max-w-full overflow-x-hidden">
         {err && (
           <div className="assign-message assign-message-error mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-800">
             {err}
@@ -435,9 +436,9 @@ const backTo = location.state?.backTo || "/admin/supervisors";
           </div>
         )}
 
-        <div className="grid min-w-0 h-auto grid-cols-1 gap-3 xl:h-[calc(100vh-220px)] xl:grid-cols-[360px_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="assignment-columns">
           {/* ============== Column 1: Supervisors ============== */}
-          <section className="min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
+          <section className="assignment-panel min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <div className="text-[16px] font-black text-slate-900">Supervisors</div>
@@ -447,7 +448,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
 
             <input
               className="assign-field mb-2 w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10"
-              placeholder="Search supervisors by name/email/nickname..."
+              placeholder="Find a supervisor…"
               value={supQ}
               onChange={(e) => setSupQ(e.target.value)}
             />
@@ -473,9 +474,10 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                   <button
                     key={s.id}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => setSelectedSup(s)}
                     className={cn(
-                      "w-full rounded-2xl border px-3 py-2.5 text-left transition",
+                      "assignment-person w-full rounded-2xl border px-3 py-2.5 text-left transition",
                       "flex items-center gap-3 bg-white/80",
                       "hover:border-[#6d5efc]/25 hover:shadow-[0_10px_22px_rgba(109,94,252,0.10)]",
                       active
@@ -518,7 +520,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
           </section>
 
           {/* ============== Column 2: Available Talents ============== */}
-          <section className="min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
+          <section className="assignment-panel min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="text-[16px] font-black text-slate-900">Available talents</div>
@@ -534,7 +536,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                   "focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10",
                   !selectedSup && "cursor-not-allowed opacity-60"
                 )}
-                placeholder="Search talents by name/email/nickname..."
+                placeholder="Find a talent…"
                 value={stuQ}
                 onChange={(e) => setStuQ(e.target.value)}
                 disabled={!selectedSup}
@@ -588,14 +590,14 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                 <button
                   type="button"
                   className={cn(
-                    "inline-flex h-9 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3 text-[12px] font-black text-[#6d5efc]",
+                    "assignment-add inline-flex h-9 items-center rounded-2xl border border-[#6d5efc]/18 bg-white/90 px-3 text-[12px] font-black text-[#6d5efc]",
                     "shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:border-[#6d5efc]/28 hover:bg-[#f7f5ff]",
                     "disabled:cursor-not-allowed disabled:opacity-70"
                   )}
                   disabled={addDisabled}
                   onClick={addSelected}
                 >
-                  {saving ? "Adding..." : `Add selected ${selectedStuIds.size}`}
+                  {saving ? "Adding..." : `Assign (${selectedStuIds.size})`}
                 </button>
               </div>
             ) : null}
@@ -613,7 +615,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                     <label
                       key={s.id}
                       className={cn(
-                        "flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
+                        "assignment-person flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition",
                         checked && "assign-selected-add",
                         checked
                           ? "border-emerald-300/60 bg-emerald-50/50 shadow-[0_10px_22px_rgba(16,185,129,0.08)]"
@@ -663,7 +665,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
           </section>
 
           {/* ============== Column 3: Assigned Talents ============== */}
-          <section className="min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
+          <section className="assignment-panel min-w-0 min-h-0 flex flex-col rounded-[18px] border border-slate-200/70 bg-white/75 p-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="text-[16px] font-black text-slate-900">Assigned</div>
@@ -683,7 +685,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
               <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
                 <input
                   className="assign-field w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-[13px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/40 focus:ring-4 focus:ring-[#6d5efc]/10"
-                  placeholder="Search assigned by name/email/nickname..."
+                  placeholder="Find assigned talents…"
                   value={assignedQ}
                   onChange={(e) => setAssignedQ(e.target.value)}
                 />
@@ -739,7 +741,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                   disabled={selectedAssignedIds.size === 0 || saving}
                 >
                   <BinIcon size={14} />
-                  {saving ? "Removing..." : `${selectedAssignedIds.size}`}
+                  {saving ? "Removing..." : `Remove (${selectedAssignedIds.size})`}
                 </button>
               </div>
             ) : null}
@@ -761,7 +763,7 @@ const backTo = location.state?.backTo || "/admin/supervisors";
                   <label
                     key={s.id}
                     className={cn(
-                      "flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 transition",
+                      "assignment-person flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 transition",
                       checked && "assign-selected-remove",
                       checked
                         ? "border-red-200 bg-red-50/35 shadow-[0_10px_22px_rgba(239,68,68,0.06)]"
