@@ -293,8 +293,11 @@ async function loadRebootProfile(login: string, jwt: string): Promise<RebootProf
   const level = levels.length ? Math.max(...levels) : null;
   const xpRaw = Number(json?.data?.transaction_aggregate?.aggregate?.sum?.amount);
 
-  const gender = await loadRebootGender(login, jwt);
-  const avatarUrl = jwt ? await fetchRebootAvatar(login) : "";
+  const knownGender = pickGenderFromAttrs(json?.data?.user?.[0]?.attrs);
+  const [gender, avatarUrl] = await Promise.all([
+    knownGender ? Promise.resolve(knownGender) : loadRebootGender(login, jwt),
+    jwt ? fetchRebootAvatar(login) : Promise.resolve(""),
+  ]);
   const number =
     eventUsers
       .map((e: any) => String(e?.user?.number || "").trim() || pickPhoneFromAttrs(e?.user?.attrs))
@@ -471,6 +474,7 @@ export default function ProfilePage() {
   const [rebootProfile, setRebootProfile] = useState<RebootProfile | null>(null);
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [rebootLoading, setRebootLoading] = useState(true);
   const [err, setErr] = useState("");
   const [membersByBoard, setMembersByBoard] = useState<Record<number, BoardMember[]>>({});
   const [membersOpen, setMembersOpen] = useState<Record<number, boolean>>({});
@@ -500,13 +504,15 @@ export default function ProfilePage() {
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  const loadProfileData = useCallback(async () => {
+  const loadProfileData = useCallback(async (initial?: LocalProfile) => {
+    const knownLogin = String(initial?.user?.nickname || (isTargetUserView ? "" : ownLogin)).trim();
+    const rebootRequest = knownLogin && jwt ? loadRebootProfile(knownLogin, jwt).catch(() => null) : null;
     const local = await apiFetch(
       isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}&reboot_details=1` : "/admin/profile/summary?reboot_details=1"
     );
     const targetLogin =
       String(local?.user?.nickname || "").trim() || (isTargetUserView ? "" : ownLogin);
-    let reboot = targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt).catch((error) => {
+    let reboot = rebootRequest ? await rebootRequest : targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt).catch((error) => {
       if (local?.user?.reboot_details) return null;
       throw error;
     }) : null;
@@ -525,9 +531,19 @@ export default function ProfilePage() {
     let mounted = true;
     async function load() {
       setLoading(true);
+      setRebootLoading(true);
       setErr("");
       try {
-        const { local, reboot } = await loadProfileData();
+        // Render local identity and assignments immediately; upstream enrichment
+        // must not hold the entire profile behind the loading screen.
+        const initial = await apiFetch(isTargetUserView
+          ? `/admin/profile/summary?user_id=${targetUserID}`
+          : "/admin/profile/summary") as LocalProfile;
+        if (!mounted) return;
+        setLocalProfile(initial);
+        setRebootProfile(null);
+        setLoading(false);
+        const { local, reboot } = await loadProfileData(initial);
         if (!mounted) return;
         setLocalProfile(local);
         setRebootProfile(reboot);
@@ -535,7 +551,7 @@ export default function ProfilePage() {
         if (!mounted) return;
         setErr(e?.message || "Failed to load profile");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) { setLoading(false); setRebootLoading(false); }
       }
     }
     load();
@@ -1058,7 +1074,7 @@ export default function ProfilePage() {
 
           </section>
 
-          {<ProfileProjects projects={localProfile.user.reboot_details?.projects} />}
+          {<ProfileProjects loading={rebootLoading} projects={localProfile.user.reboot_details?.projects} />}
 
           {canViewPrivateNotes ? (
             <section className="profile-notes rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
@@ -1146,7 +1162,7 @@ export default function ProfilePage() {
           <div className="profile-content-grid">
             <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] profile-content-panel">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="text-[18px] font-black text-slate-900">Boards</div>
+                <div className="profile-panel-title"><Layers size={18} /> Boards</div>
                 <div className="flex items-center gap-2">
                   {canCreateProfileBoard ? (
                     <button
@@ -1179,7 +1195,7 @@ export default function ProfilePage() {
                           openBoard(b.id);
                         }
                       }}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[#6d5efc]/25 hover:bg-[#f6f4ff] focus:outline-none focus:ring-4 focus:ring-[#6d5efc]/12"
+                      className="profile-board-row rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[#6d5efc]/25 hover:bg-[#f6f4ff] focus:outline-none focus:ring-4 focus:ring-[#6d5efc]/12"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -1264,7 +1280,7 @@ export default function ProfilePage() {
             {localProfile.supervisor ? (
               <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] profile-content-panel">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="text-[18px] font-black text-slate-900">Assigned Talents</div>
+                  <div className="profile-panel-title"><UsersRound size={18} /> Assigned talents</div>
                   <div className="flex items-center gap-2">
                     {canManageAssignedTalents ? (
                       <button
@@ -1330,7 +1346,7 @@ export default function ProfilePage() {
                             else if (role === "supervisor") nav(`/profile/${s.id}`, { state: { backTo: currentProfileBackTo } });
                           }}
                           className={[
-                            "w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition",
+                            "profile-talent-row w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition",
                             role === "admin" || role === "supervisor"
                               ? "cursor-pointer hover:border-[#6d5efc]/30 hover:bg-[#f7f5ff]"
                               : "cursor-default",
