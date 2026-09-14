@@ -115,3 +115,36 @@
 .admin-dark .assignment-workspace .assignment-person:hover,.admin-dark .assignment-workspace .assignment-person[aria-pressed=true],.admin-dark .assignment-workspace .assign-selected-add { background:#393047; }
 @media(max-width:1150px) { .assignment-columns { grid-template-columns:1fr 1fr; } .assignment-panel:first-child { grid-column:1 / -1; } .assignment-panel:first-child > .overflow-y-auto { max-height:230px; } }
 @media(max-width:650px) { .assignment-columns { grid-template-columns:1fr; } .assignment-panel:first-child { grid-column:auto; } }
+
+/* Let the lists use the remaining viewport, rather than stretching the page. */
+@media (min-width: 1151px) {
+  .app-main:has(.assignment-workspace) {
+    height: 100dvh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .app-main:has(.assignment-workspace) > .app-page-header { flex-shrink: 0; }
+  .assignment-workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .assignment-message { flex-shrink: 0; }
+  .assignment-columns { flex: 1; min-height: 0; align-items: stretch; }
+  .assignment-workspace .assignment-panel { height: 100%; min-height: 0; overflow: hidden; }
+  .assignment-panel > :not(.overflow-y-auto) { flex-shrink: 0; }
+  .assignment-panel > .overflow-y-auto {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+}
