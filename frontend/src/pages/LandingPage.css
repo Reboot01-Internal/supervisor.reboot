@@ -48,3 +48,6 @@
 .scroll-atmosphere>span:nth-of-type(2){top:73%;right:2%}
 .scroll-atmosphere>span{opacity:.14;transform:translateY(calc(var(--scene-travel,0px) * -.35)) rotate(var(--scene-turn,0deg))}
 @media(max-width:600px){.scroll-atmosphere i{width:400px;height:650px}}
+
+/* Clip horizontal artwork without creating a scroll container for the launch scene. */
+.tf-landing{overflow:clip}

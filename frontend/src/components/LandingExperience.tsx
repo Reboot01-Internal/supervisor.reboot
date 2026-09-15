@@ -1,5 +1,6 @@
 import rebootPhoto from "../reboot.JPG";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import "./TeamShowcase.css";
 import { ArrowRight } from "lucide-react";
 // Curated public team, independent of workspace accounts.
 export const landingTeam = [
@@ -106,14 +107,38 @@ export function ProjectExperience(){
 }
 export function SupervisorTeam(){
  const [selected,setSelected]=useState(0);
+ const root=useRef<HTMLElement>(null);
  const person=landingTeam[selected];
- return <section id="team" className="landing-team reveal-section">
- <div className="team-gallery-heading"><div><span className="landing-eyebrow">03 / THE PEOPLE BEHIND THE PROGRESS</span><h2>Different strengths.<br/><em>One team.</em></h2></div><p>Meet the people helping our community move forward. Pick a portrait. Get to know the team.</p></div>
- <div className="team-gallery team-reel"><div className={`team-spotlight ${person.group==='head'?'is-head':''} ${person.group==='tech'?'is-tech':''}`}>
- <div className="profile-code-art" aria-hidden="true"><span>{'</>'}</span><span>{'{ }'}</span><i/></div>
- <div className="spotlight-top"><span>{person.group==='head'?'HEAD OF SUPERVISORS':person.group==='tech'?'REBOOT / TECH TEAM':'REBOOT / SUPERVISORS'}</span><span>{String(selected+1).padStart(2,'0')} / {landingTeam.length}</span></div>
- <div className="spotlight-photo" key={person.username}><img src={person.photo} alt={person.name}/></div>
- <div className="spotlight-caption" aria-live="polite"><span>{selected===0?'Leading with purpose':person.username==='ralhalwa'?'Building with the community':'Growing together'}</span><h3>{person.name}</h3><p>{person.role}</p></div>
- <div className="spotlight-navigation"><button aria-label="Previous supervisor" onClick={()=>setSelected((selected+landingTeam.length-1)%landingTeam.length)}><ArrowRight size={19} style={{transform:'rotate(180deg)'}}/></button><div className="collective-position"><span>THE REBOOT COLLECTIVE</span><div aria-hidden="true">{landingTeam.map((member,i)=><i key={member.username} className={selected===i?'active':''}/>)}</div></div><button aria-label="Next supervisor" onClick={()=>setSelected((selected+1)%landingTeam.length)}><ArrowRight size={19}/></button></div></div>
- <div className="team-contact-sheet"><div className="contact-sheet-label"><span>THE PEOPLE BEHIND YOUR PROGRESS.</span><span>SCROLL TO EXPLORE →</span></div><div className="team-portrait-grid team-filmstrip">{landingTeam.map((member,i)=><button type="button" key={member.username} className={`team-tile team-group-${member.group} ${selected===i?'is-selected':''}`} aria-pressed={selected===i} onClick={()=>setSelected(i)}><div className="team-tile-photo"><img src={member.photo} alt="" loading="lazy"/><span>{member.group==='head'?'HEAD':member.group==='tech'?'TECH TEAM':'SUPERVISOR'}</span></div><strong>{member.name}</strong><small>{member.role}</small></button>)}</div><p className="team-gallery-note">A little guidance. A shared ambition.<br/><em>A whole community moving forward.</em></p></div></div></section>
+ const select=(index:number)=>setSelected((index+landingTeam.length)%landingTeam.length);
+ useEffect(()=>{
+  let frame=0;
+  const update=()=>{
+   frame=0;if(!root.current)return;
+   const rect=root.current.getBoundingClientRect();
+   const progress=Math.max(0,Math.min(1,(window.innerHeight-rect.top)/(window.innerHeight*.8)));
+   root.current.style.setProperty('--team-enter',String(progress));
+  };
+  const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)};
+  window.addEventListener('scroll',schedule,{passive:true});window.addEventListener('resize',schedule);update();
+  return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule)};
+ },[]);
+ return <section ref={root} id="team" className="team-showcase" aria-labelledby="team-title">
+  <header className="team-showcase-heading"><span className="landing-eyebrow">03 / THE PEOPLE BEHIND THE PROGRESS</span><h2 id="team-title">Big on ideas.<br/><em>Bigger on people.</em></h2><p>No one builds alone. Meet the supervisors and tech team helping the Reboot community find its next step.</p></header>
+  <div className="team-stage">
+   <div className="team-stage-type" aria-hidden="true">TOGETHER.</div>
+   <div className="team-feature" aria-live="polite" aria-atomic="true">
+    <span className="team-feature-index">THE REBOOT COLLECTIVE <b>{String(selected+1).padStart(2,'0')} / {landingTeam.length}</b></span>
+    <div key={person.username} className="team-feature-copy"><span className="team-feature-group">{person.group==='head'?'LEADERSHIP':person.group==='tech'?'TECH TEAM':'SUPERVISORS'}</span><h3>{person.name}</h3><p>{person.role}</p></div>
+    <div className="team-stage-controls"><button type="button" aria-label="Previous team member" onClick={()=>select(selected-1)}><ArrowRight size={20} style={{transform:'rotate(180deg)'}}/></button><span>Find your people</span><button type="button" aria-label="Next team member" onClick={()=>select(selected+1)}><ArrowRight size={20}/></button></div>
+   </div>
+   <div className="team-portrait-stage">
+    <div className="team-orbit-line" aria-hidden="true"/><span className="team-portrait-brace" aria-hidden="true">{'{ }'}</span>
+    <button type="button" className="team-wing wing-left" onClick={()=>select(selected-1)} aria-label={`Meet ${landingTeam[(selected+landingTeam.length-1)%landingTeam.length].name}`}><img src={landingTeam[(selected+landingTeam.length-1)%landingTeam.length].photo} alt=""/><span>PREVIOUS ↖</span></button>
+    <figure className="team-feature-portrait" key={person.username}><img src={person.photo} alt={person.name}/><figcaption><span>{person.role}</span><b>{String(selected+1).padStart(2,'0')}</b></figcaption></figure>
+    <button type="button" className="team-wing wing-right" onClick={()=>select(selected+1)} aria-label={`Meet ${landingTeam[(selected+1)%landingTeam.length].name}`}><img src={landingTeam[(selected+1)%landingTeam.length].photo} alt=""/><span>NEXT ↗</span></button>
+   </div>
+  </div>
+  <div className="team-roster-heading"><span>DIFFERENT STRENGTHS. ONE TEAM.</span><span>CHOOSE A FACE. MEET YOUR TEAM. ↙</span></div>
+  <div className="team-roster" aria-label="Choose a team member">{landingTeam.map((member,i)=><button type="button" key={member.username} className={selected===i?'selected':''} aria-pressed={selected===i} onClick={()=>select(i)} onKeyDown={event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();const next=(i+(event.key==='ArrowRight'?1:-1)+landingTeam.length)%landingTeam.length;select(next);const buttons=event.currentTarget.parentElement?.querySelectorAll('button');buttons?.[next]?.focus();}}}><span className="roster-photo"><img src={member.photo} alt="" loading="lazy"/><span>{String(i+1).padStart(2,'0')}</span></span><strong>{member.name}</strong><small>{member.role}</small></button>)}</div>
+ </section>
 }
