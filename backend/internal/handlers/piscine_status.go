@@ -99,29 +99,31 @@ func (a *API) RustPiscineStatuses(w http.ResponseWriter, r *http.Request) {
 	for _, u := range data.Data.Users {
 		out[strings.ToLower(u.Login)] = "not_started"
 	}
-	seen := map[string]bool{}
+	attempts := map[string]string{}
 	for _, p := range data.Data.Progress {
 		l := strings.ToLower(p.Login)
-		if p.Done && p.Grade != nil && *p.Grade >= 1 {
-			out[l] = "passed"
-			seen[l] = true
-			continue
-		}
-		if seen[l] {
-			continue
-		}
-		seen[l] = true
-		status := "working"
-		if p.Done {
-			status = "unknown"
-			if p.Grade != nil {
-				status = "failed"
-				if *p.Grade >= 1 {
-					status = "passed"
-				}
-			}
-		}
-		out[l] = status
+		attempts[l] = mergeRustPiscineStatus(attempts[l], p.Done, p.Grade)
+	}
+	for login, status := range attempts {
+		out[login] = status
 	}
 	writeJSON(w, 200, out)
+}
+
+// Progress arrives newest first. Completed results take precedence over retries:
+// any pass wins, then any failure; otherwise retain the latest attempt's status.
+func mergeRustPiscineStatus(current string, done bool, grade *float64) string {
+	if current == "passed" || (done && grade != nil && *grade >= 1) {
+		return "passed"
+	}
+	if current == "failed" || (done && grade != nil && *grade < 1) {
+		return "failed"
+	}
+	if current == "working" || current == "unknown" {
+		return current
+	}
+	if done {
+		return "unknown"
+	}
+	return "working"
 }
