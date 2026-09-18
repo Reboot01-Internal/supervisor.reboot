@@ -4,3 +4,13 @@
 .piscine-status-badge[data-status=passed]{color:#15805a;background:#edf9f2}
 .piscine-status-badge[data-status=failed]{color:#c53b5c;background:#fff0f3}
 .piscine-status-badge[data-status=working]{color:#a56b08;background:#fff7df}
+.assigned-piscine-filters{margin-top:16px}
+.assigned-piscine-filter-controls{display:flex;flex-wrap:wrap;gap:8px}
+.assigned-piscine-filter-controls label{display:flex;align-items:center;gap:8px;flex:1;min-width:135px;padding:7px 10px;border:1px solid #e6e0f1;border-radius:10px;background:#fcfbfe}
+.assigned-piscine-filter-controls label>span{font-size:11px;font-weight:700;color:#7b659b}
+.assigned-piscine-filter-controls select{min-width:0;width:100%;background:transparent;color:#514761;font-size:11px;cursor:pointer}
+.assigned-piscine-filter-controls select:disabled{cursor:wait;opacity:.6}
+.assigned-piscine-filter-controls select:focus-visible{outline:2px solid #8c79ec;outline-offset:3px;border-radius:3px}
+.assigned-piscine-filter-summary{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:10px;color:#8c819b}
+.assigned-piscine-filter-summary button{color:#7660b6;font-weight:600}
+.assigned-piscine-filter-summary button:hover{text-decoration:underline}

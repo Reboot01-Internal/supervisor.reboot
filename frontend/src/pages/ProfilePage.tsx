@@ -475,6 +475,15 @@ export default function ProfilePage() {
   const [rebootProfile, setRebootProfile] = useState<RebootProfile | null>(null);
   const canViewPiscineStatuses = role === "admin" || role === "supervisor";
   const piscineStatuses = useAssignedPiscineStatuses(!!localProfile && canViewPiscineStatuses);
+  const [assignedPiscineFilters, setAssignedPiscineFilters] = useState({ rust: 'all', js: 'all' });
+  const assignedTalents = localProfile?.supervisor?.assigned_students || [];
+  const hasAssignedPiscineFilter = canViewPiscineStatuses && Object.values(assignedPiscineFilters).some(value => value !== 'all');
+  const filteredAssignedTalents = assignedTalents.filter(student => !canViewPiscineStatuses || (['rust', 'js'] as const).every(track => {
+    const selected = assignedPiscineFilters[track];
+    const login = loginKey(student.nickname || student.email.split('@')[0]);
+    const status = piscineStatuses[track] ? piscineStatuses[track]?.[login] || 'unknown' : 'loading';
+    return selected === 'all' || selected === status;
+  }));
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [rebootLoading, setRebootLoading] = useState(true);
@@ -1302,44 +1311,25 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="mb-2 flex items-center justify-between text-[12px] font-bold text-slate-600">
-                    <span>{localProfile.supervisor?.assigned_students_overall || 0} assigned</span>
-                    <span>{boardRows.length} boards</span>
+                {canViewPiscineStatuses && assignedTalents.length > 0 && <div className="assigned-piscine-filters">
+                  <div className="assigned-piscine-filter-controls">
+                    {(['rust', 'js'] as const).map(track => <label key={track}>
+                      <span>{track === 'rust' ? 'Rust' : 'JS'}</span>
+                      <select aria-label={`Filter assigned talents by ${track === 'rust' ? 'Rust' : 'JS'} piscine status`} disabled={!piscineStatuses[track]} value={assignedPiscineFilters[track]} onChange={event => setAssignedPiscineFilters(previous => ({ ...previous, [track]: event.target.value }))}>
+                        <option value="all">{piscineStatuses[track] ? 'All statuses' : 'Loading…'}</option>
+                        <option value="passed">Passed</option><option value="failed">Failed</option><option value="working">Working</option><option value="not_started">No record</option><option value="unknown">Unavailable</option>
+                      </select>
+                    </label>)}
                   </div>
-                  <div className="h-2 rounded-full bg-slate-200">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-[#6d5efc] to-[#8f83ff]"
-                      style={{
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            boardRows.length > 0
-                              ? Math.round(
-                                  (((localProfile.supervisor?.assigned_students || []).filter(
-                                    (s) => (s.boards || []).length > 0
-                                  ).length || 0) /
-                                    Math.max(1, localProfile.supervisor?.assigned_students_overall || 1)) *
-                                    100
-                                )
-                              : 0
-                          )
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="mt-1 text-right text-[11px] font-extrabold text-slate-600">
-                    {(localProfile.supervisor?.assigned_students || []).filter((s) => (s.boards || []).length > 0).length}{" "}
-                    linked to boards
-                  </div>
-                </div>
-
+                  <div className="assigned-piscine-filter-summary"><span role="status">{filteredAssignedTalents.length} of {assignedTalents.length} talents</span>{hasAssignedPiscineFilter && <button type="button" onClick={() => setAssignedPiscineFilters({ rust: 'all', js: 'all' })}>Clear filters</button>}</div>
+                </div>}
                 <div className="mt-3 space-y-2 overflow-y-auto pr-1 lg:max-h-[300px]">
-                  {(localProfile.supervisor?.assigned_students || []).length === 0 ? (
+                  {assignedTalents.length === 0 ? (
                     <ProfileEmpty icon={<UsersRound size={22}/>} title="No assigned talents" detail="Assigned talents will appear here with their board details."/>
+                  ) : filteredAssignedTalents.length === 0 ? (
+                    <ProfileEmpty icon={<UsersRound size={22}/>} title="No matching talents" detail="Try another status or clear the filters to see everyone."/>
                   ) : (
-                    (localProfile.supervisor?.assigned_students || []).map((s) => {
+                    filteredAssignedTalents.map((s) => {
                       const studentLogin = loginKey(s.nickname || s.email.split("@")[0]);
                       return (
                         <button
