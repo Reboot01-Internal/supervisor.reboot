@@ -1425,75 +1425,18 @@ export default function ProfilePage() {
                 </div>
               </section>
             ) : (
-              <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] profile-content-panel">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="text-[18px] font-black text-slate-900">Assigned Tasks</div>
-                  <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-black text-slate-700">
-                    {localProfile.tasks?.total || 0} total
-                  </span>
+              <section className="profile-content-panel profile-assigned-tasks">
+                <header className="profile-task-heading"><div className="profile-panel-title"><ListTodo size={18}/> Assigned tasks</div><span className="profile-task-total">{localProfile.tasks?.total || 0} total</span></header>
+                {(localProfile.student?.supervisors || []).length > 0 && <div className="profile-task-supervisors"><span className="profile-task-label">SUPERVISION</span><div>{localProfile.student?.supervisors.map(s => <span className="profile-task-supervisor" key={s.id}><UserRound size={14}/><strong>{s.full_name}</strong><span>{withAt(s.nickname)}</span></span>)}</div></div>}
+                <div className="profile-task-progress">
+                  <div><span>{localProfile.tasks?.done || 0} completed <span className="profile-task-muted">· {localProfile.tasks?.left || 0} remaining</span></span><strong>{localProfile.tasks?.progress_pct || 0}%</strong></div>
+                  <div className="profile-task-progress-track" role="progressbar" aria-label="Assigned tasks completed" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.max(0, Math.min(100, localProfile.tasks?.progress_pct || 0))}><span style={{width: `${Math.max(0, Math.min(100, localProfile.tasks?.progress_pct || 0))}%`}}/></div>
                 </div>
-
-                {(localProfile.student?.supervisors || []).length > 0 ? (
-                  <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <div className="mb-2 text-[13px] font-black text-slate-900">Supervisors</div>
-                    <div className="flex flex-wrap gap-2">
-                      {(localProfile.student?.supervisors || []).map((s) => (
-                        <span
-                          key={s.id}
-                          className="inline-flex items-center gap-2 rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2.5 py-1 text-[11px] font-black text-slate-800"
-                        >
-                          <span>{s.full_name}</span>
-                          <span className="text-slate-500">{withAt(s.nickname)}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="mb-2 flex items-center justify-between text-[12px] font-bold text-slate-600">
-                    <span>{localProfile.tasks?.done || 0} done</span>
-                    <span>{localProfile.tasks?.left || 0} left</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-200">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-[#6d5efc] to-[#8f83ff]"
-                      style={{ width: `${Math.max(0, Math.min(100, localProfile.tasks?.progress_pct || 0))}%` }}
-                    />
-                  </div>
-                  <div className="mt-1 text-right text-[11px] font-extrabold text-slate-600">
-                    {localProfile.tasks?.progress_pct || 0}% complete
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-2 overflow-y-auto pr-1 lg:max-h-[300px]">
-                  {(localProfile.tasks?.assigned_cards || []).length === 0 ? (
-                    <ProfileEmpty icon={<ListTodo size={22}/>} title="No assigned tasks" detail="Tasks assigned to this user will appear here."/>
-                  ) : (
-                    (localProfile.tasks?.assigned_cards || []).map((t) => (
-                      <div key={t.card_id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <div className="truncate text-[13px] font-black text-slate-900">{t.card_title}</div>
-                        <div className="mt-0.5 text-[12px] font-semibold text-slate-500">{t.board_name}</div>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
-                          <span
-                            className={
-                              t.status === "done"
-                                ? "rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-700"
-                                : "rounded-full border border-slate-300 bg-white px-2 py-0.5 text-slate-700"
-                            }
-                          >
-                            {t.status || "open"}
-                          </span>
-                          <span className="rounded-full border border-[#6d5efc]/20 bg-[#6d5efc]/10 px-2 py-0.5 text-slate-700">
-                            {t.priority || "medium"}
-                          </span>
-                          <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-slate-700">
-                            {t.subtasks_all > 0 ? `${t.subtasks_done}/${t.subtasks_all}` : "no checklist"}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                <div className="profile-task-list">
+                  {(localProfile.tasks?.assigned_cards || []).length === 0 ? <ProfileEmpty icon={<ListTodo size={22}/>} title="No assigned tasks" detail="Tasks assigned to this user will appear here."/> : localProfile.tasks.assigned_cards.map(t => <article key={t.card_id} className="profile-task-row">
+                    <span className="profile-task-symbol"><ListTodo size={16}/></span>
+                    <div className="profile-task-copy"><h3>{t.card_title}</h3><p>{t.board_name}</p><div className="profile-task-meta"><span className="profile-task-status" data-status={t.status}>{(t.status || 'open').replace(/[_-]/g, ' ')}</span><span className="profile-task-priority">{t.priority || 'medium'} priority</span>{t.subtasks_all > 0 && <span title="Checklist items completed">{t.subtasks_done}/{t.subtasks_all} checklist</span>}</div></div>
+                  </article>)}
                 </div>
               </section>
             )}

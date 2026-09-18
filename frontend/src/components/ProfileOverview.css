@@ -66,3 +66,31 @@
 .profile-content-panel > div:first-child { flex-wrap: wrap; row-gap: 10px; }
 .admin-dark .profile-overview .profile-board-row:hover,
 .admin-dark .profile-overview .profile-talent-row:hover { background: #30283f; }
+
+/* Assigned tasks use the same quiet rows and lavender accents as the profile. */
+.profile-overview .profile-assigned-tasks{background:var(--profile-surface);border:1px solid var(--profile-line)}
+.profile-task-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.profile-task-total{font-size:10px;font-weight:550;padding:5px 9px;border-radius:7px;background:#f5f1fb;color:#8d77a6}
+.profile-task-label{font-size:9px;letter-spacing:1.4px;font-weight:600;color:#a18cb9}
+.profile-task-supervisors{padding-bottom:16px;border-bottom:1px solid var(--profile-line)}
+.profile-task-supervisors>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.profile-task-supervisor{display:inline-flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:11px;color:#9a89ac}
+.profile-task-supervisor svg{color:#a38abb}.profile-task-supervisor strong{font-weight:550;color:var(--profile-text)}
+.profile-task-progress{padding:17px 0}
+.profile-task-progress>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--profile-muted);margin-bottom:9px}
+.profile-task-progress strong{font-weight:600;color:#9780b4}.profile-task-muted{color:#a497b1}
+.profile-task-progress-track{height:5px;border-radius:8px;background:#eee9f5;overflow:hidden}
+.profile-task-progress-track>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b29acc,#9482ba)}
+.profile-task-list{max-height:330px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#ddd3e9 transparent}
+.profile-task-row{display:flex;align-items:flex-start;gap:12px;padding:16px 2px;border-top:1px solid var(--profile-line)}
+.profile-task-symbol{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;border-radius:10px;background:#f6f1fa;color:#a48abd}
+.profile-task-copy{min-width:0;flex:1}.profile-task-copy h3{font-size:13px;font-weight:550;color:var(--profile-text);overflow-wrap:anywhere;margin:0}
+.profile-task-copy p{font-size:11px;color:#a090ad;margin:4px 0 8px;overflow-wrap:anywhere}
+.profile-task-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px;font-size:10px;color:#a090ad}
+.profile-task-status{padding:4px 7px;border-radius:6px;background:#f1ebfa;color:#967ab5;text-transform:capitalize}
+.profile-task-status[data-status=done]{background:#edf7f2;color:#5c967e}
+.profile-task-status[data-status=in_progress]{background:#fff6e4;color:#ad8b4f}
+.profile-task-priority{text-transform:capitalize}
+.admin-dark .profile-task-total,.admin-dark .profile-task-symbol,.admin-dark .profile-task-status{background:#30283f;color:#c4addc}
+.admin-dark .profile-task-progress-track{background:#352c45}
+.admin-dark .profile-task-status[data-status=done]{background:#203c35;color:#91c9b2}
