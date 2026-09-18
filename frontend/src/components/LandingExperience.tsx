@@ -124,6 +124,10 @@ export function SupervisorTeam(){
  },[]);
  return <section ref={root} id="team" className="team-showcase" aria-labelledby="team-title">
   <header className="team-showcase-heading"><span className="landing-eyebrow">03 / THE PEOPLE BEHIND THE PROGRESS</span><h2 id="team-title">Big on ideas.<br/><em>Bigger on people.</em></h2><p>No one builds alone. Meet the supervisors and tech team helping the Reboot community find its next step.</p></header>
+  <div className="team-group-portraits" aria-label="Reboot team group portraits">
+   <figure><img src="/team/reboot-group-01.webp" alt="Ten Reboot team members posing together around a sofa" width={1600} height={1201} loading="lazy" decoding="async"/></figure>
+   <figure><img src="/team/reboot-group-02.webp" alt="Four Reboot team members standing together for a group portrait" width={1600} height={1201} loading="lazy" decoding="async"/></figure>
+  </div>
   <div className="team-stage">
    <div className="team-stage-type" aria-hidden="true">TOGETHER.</div>
    <div className="team-feature" aria-live="polite" aria-atomic="true">
