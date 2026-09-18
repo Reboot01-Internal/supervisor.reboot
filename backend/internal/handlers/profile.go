@@ -53,6 +53,7 @@ type profileSupervisorLite struct {
 }
 
 type profileStudentBoard struct {
+	AddedAt    string                `json:"added_at"`
 	ID         int64                 `json:"id"`
 	Name       string                `json:"name"`
 	Group      string                `json:"group"`
@@ -470,6 +471,7 @@ func (a *API) profileForStudent(studentID int64) (*profileStudentSection, error)
 		SELECT DISTINCT
 			b.id,
 			b.name,
+			IFNULL(bm.added_at,''),
 			IFNULL(NULLIF(TRIM(bm.role_in_board), ''), 'member'),
 			su.id,
 			su.full_name,
@@ -492,6 +494,7 @@ func (a *API) profileForStudent(studentID int64) (*profileStudentSection, error)
 		if err := boardRows.Scan(
 			&b.ID,
 			&b.Name,
+			&b.AddedAt,
 			&b.Group,
 			&b.Supervisor.ID,
 			&b.Supervisor.FullName,

@@ -1,3 +1,4 @@
+import ProgramJourney from "../components/ProgramJourney";
 import LatestProject, { useAssignedLatestProjects } from "../components/LatestProject";
 import PiscineStatusBadges, { useAssignedPiscineStatuses } from "../components/PiscineStatusBadges";
 import ProfileProjects, { type ProjectMembership } from "../components/ProfileProjects";
@@ -43,6 +44,7 @@ type LocalProfile = {
   student?: {
     supervisors: { id: number; full_name: string; nickname: string; email: string }[];
     boards: {
+      added_at?: string;
       id: number;
       name: string;
       group: string;
@@ -1090,6 +1092,8 @@ export default function ProfilePage() {
             </div>
 
           </section>
+
+          {canViewPiscineStatuses && localProfile.student && <ProgramJourney boards={localProfile.student.boards} projects={localProfile.user.reboot_details?.projects} loading={rebootLoading}/>}
 
           {<ProfileProjects loading={rebootLoading} projects={localProfile.user.reboot_details?.projects} />}
 

@@ -1,0 +1,22 @@
+.program-journey{padding:26px;border:1px solid #e6def1;border-radius:20px;background:linear-gradient(125deg,#fff,#faf7ff);color:#453953}
+.program-journey header>span{font-size:9px;font-weight:700;letter-spacing:1.8px;color:#a08abb}
+.program-journey h2{font-size:24px;letter-spacing:-.8px;font-weight:700;margin:8px 0}
+.program-journey header p,.program-journey-stop p{font-size:12px;line-height:1.6;color:#8a7c99}
+.program-journey-track{display:grid;grid-template-columns:1fr 80px 1fr;align-items:stretch;margin-top:24px}
+.program-journey-stop{position:relative;min-width:0;padding:20px;border:1px solid #e6def1;border-radius:16px;background:#fff}
+.program-journey-marker{display:grid;place-items:center;width:34px;height:34px;background:#f0e9fb;color:#9171b9;border-radius:11px;margin-bottom:14px}
+.program-journey-label{font-size:9px;letter-spacing:1.3px;color:#9c87b1;font-weight:700}
+.program-journey-stop h3{font-size:22px;font-weight:650;letter-spacing:-.5px;margin:8px 0;overflow-wrap:anywhere}
+.program-journey-date{font-size:11px;color:#867491}
+.program-journey-stop p{margin:8px 0}
+.program-journey-board{display:block;font-size:10px;color:#9787a6;overflow-wrap:anywhere}
+.program-journey-connector{display:flex;align-items:center;color:#b19acb;padding:0 10px}
+.program-journey-connector>span{height:1px;background:#d8c9e9;flex:1}
+.program-journey-now{background:#f7f3fd;border-color:#dacbee}
+.program-journey-now .talent-latest-project{border:0;background:transparent;padding:0;margin-top:8px}
+.program-journey-now .talent-latest-label{display:none}
+.program-journey-now .talent-latest-detail{display:flex;align-items:flex-start;flex-direction:column;gap:10px}
+.program-journey-now .talent-latest-detail strong{font-size:22px;letter-spacing:-.5px}
+.program-journey-now .talent-latest-detail>span{font-size:11px;background:#ffffffa6;padding:5px 8px;border-radius:6px}
+.program-journey footer{font-size:10px;color:#a497af;margin-top:15px;line-height:1.5}
+@media(max-width:600px){.program-journey{padding:20px}.program-journey-track{grid-template-columns:1fr}.program-journey-connector{height:34px;justify-content:center;transform:rotate(90deg)}.program-journey-connector>span{display:none}.program-journey h2{font-size:22px}}
