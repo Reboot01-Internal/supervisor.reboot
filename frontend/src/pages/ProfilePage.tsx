@@ -1,3 +1,4 @@
+import LatestProject, { useAssignedLatestProjects } from "../components/LatestProject";
 import PiscineStatusBadges, { useAssignedPiscineStatuses } from "../components/PiscineStatusBadges";
 import ProfileProjects, { type ProjectMembership } from "../components/ProfileProjects";
 import { Mail, Phone, TrendingUp, Layers, ListTodo, UsersRound, UserRound } from "lucide-react";
@@ -477,6 +478,7 @@ export default function ProfilePage() {
   const piscineStatuses = useAssignedPiscineStatuses(!!localProfile && canViewPiscineStatuses);
   const [assignedPiscineFilters, setAssignedPiscineFilters] = useState({ rust: 'all', js: 'all' });
   const assignedTalents = localProfile?.supervisor?.assigned_students || [];
+  const assignedLatestProjects = useAssignedLatestProjects(assignedTalents.map(student => student.id), canViewPiscineStatuses);
   const hasAssignedPiscineFilter = canViewPiscineStatuses && Object.values(assignedPiscineFilters).some(value => value !== 'all');
   const filteredAssignedTalents = assignedTalents.filter(student => !canViewPiscineStatuses || (['rust', 'js'] as const).every(track => {
     const selected = assignedPiscineFilters[track];
@@ -1073,6 +1075,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {canViewPiscineStatuses && localProfile.user.role === "student" && <LatestProject projects={localProfile.user.reboot_details?.projects ?? (rebootLoading ? undefined : null)}/>}
+
             <div className="profile-details">
               <Info label="Email" value={rebootProfile?.user?.email || localProfile.user.email} />
               {role === "admin" ? <Info label="Phone" value={phoneByLogin[loginKey(localProfile.user.nickname)] || rebootProfile?.user?.number || "-"} /> : null}
@@ -1362,6 +1366,7 @@ export default function ProfilePage() {
                               <div className="mt-0.5 truncate text-[12px] font-semibold text-slate-500">
                                 {withAt(s.nickname)} • {role === "admin" ? phoneByLogin[studentLogin] || "-" : s.email}
                               </div>
+                              {canViewPiscineStatuses && <LatestProject projects={assignedLatestProjects[s.id]}/>}
                               <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
                                 {(s.boards || []).length === 0 ? (
                                   <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-slate-700">

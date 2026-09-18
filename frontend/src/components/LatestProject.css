@@ -1,0 +1,9 @@
+.talent-latest-project{margin-top:9px;padding:8px 10px;border:1px solid #ebe5f3;border-radius:9px;background:#faf8fd;min-width:0}
+.talent-latest-label{display:flex;align-items:center;gap:5px;font-size:9px;color:#9382a8;font-weight:600;letter-spacing:.25px}
+.talent-latest-detail{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px 10px;margin-top:4px}
+.talent-latest-detail strong{font-size:11px;font-weight:600;color:#514260;overflow-wrap:anywhere}
+.talent-latest-detail>span{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#846ca5}
+.talent-latest-detail>span[data-status=passed]{color:#15805a}
+.talent-latest-detail>span[data-status=failed]{color:#c53b5c}
+.talent-latest-detail>span[data-status=audit]{color:#a56b08}
+.talent-latest-empty{display:block;margin-top:4px;font-size:10px;color:#938a9e}
