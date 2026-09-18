@@ -10,6 +10,14 @@ import (
 )
 
 func (a *API) RustPiscineStatuses(w http.ResponseWriter, r *http.Request) {
+	a.piscineStatuses(w, r, "rust")
+}
+
+func (a *API) JSPiscineStatuses(w http.ResponseWriter, r *http.Request) {
+	a.piscineStatuses(w, r, "js")
+}
+
+func (a *API) piscineStatuses(w http.ResponseWriter, r *http.Request, track string) {
 	actor := actorID(r, a.conn)
 	var login, role string
 	if a.conn.QueryRow("SELECT IFNULL(nickname,''),role FROM users WHERE id=?", actor).Scan(&login, &role) != nil {
@@ -60,7 +68,7 @@ func (a *API) RustPiscineStatuses(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 502, "Reboot status unavailable")
 		return
 	}
-	payload, _ := json.Marshal(map[string]any{"query": `query RustStatuses($logins:[String!]!) { user(where:{login:{_in:$logins}}){login} progress(where:{userLogin:{_in:$logins},path:{_like:"%/piscine-rust"}},order_by:{updatedAt:desc}) { userLogin grade isDone } }`, "variables": map[string]any{"logins": logins}})
+	payload, _ := json.Marshal(map[string]any{"query": `query PiscineStatuses($logins:[String!]!, $path:String!) { user(where:{login:{_in:$logins}}){login} progress(where:{userLogin:{_in:$logins},path:{_like:$path}},order_by:{updatedAt:desc}) { userLogin grade isDone } }`, "variables": map[string]any{"logins": logins, "path": "%/piscine-" + track}})
 	ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "POST", rebootSchoolURL()+"/api/graphql-engine/v1/graphql", bytes.NewReader(payload))

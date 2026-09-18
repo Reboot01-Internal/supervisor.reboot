@@ -188,6 +188,7 @@ func main() {
 		ar.Post("/settings/discord", api.UpdateDiscordSettings)
 		ar.Get("/profile/summary", api.ProfileSummary)
 		ar.Get("/users/rust-status", api.RustPiscineStatuses)
+		ar.Get("/users/js-status", api.JSPiscineStatuses)
 		ar.Get("/profile/notes", api.ListStudentPrivateNotes)
 		ar.Post("/profile/notes", api.AddStudentPrivateNote)
 

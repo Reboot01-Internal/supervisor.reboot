@@ -1,6 +1,11 @@
 package handlers
 
-import "testing"
+import (
+	"database/sql"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
 func TestRustPiscineAttemptHistory(t *testing.T) {
 	fail, pass := 0.5, 1.0
@@ -35,6 +40,27 @@ func TestRustPiscineAttemptHistory(t *testing.T) {
 			}
 			if got != tc.want {
 				t.Fatalf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPiscineStatusesRejectTalents(t *testing.T) {
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	if _, err := conn.Exec(`CREATE TABLE users (id INTEGER, nickname TEXT, role TEXT); INSERT INTO users VALUES (1, 'test-talent', 'student')`); err != nil {
+		t.Fatal(err)
+	}
+	api := &API{conn: conn}
+	for name, handler := range map[string]http.HandlerFunc{"rust": api.RustPiscineStatuses, "js": api.JSPiscineStatuses} {
+		t.Run(name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			handler(response, httptest.NewRequest("GET", "/admin/users/"+name+"-status", nil))
+			if response.Code != http.StatusForbidden {
+				t.Fatalf("got %d, want 403", response.Code)
 			}
 		})
 	}

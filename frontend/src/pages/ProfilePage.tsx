@@ -1,3 +1,4 @@
+import PiscineStatusBadges, { useAssignedPiscineStatuses } from "../components/PiscineStatusBadges";
 import ProfileProjects, { type ProjectMembership } from "../components/ProfileProjects";
 import { Mail, Phone, TrendingUp, Layers, ListTodo, UsersRound, UserRound } from "lucide-react";
 import "../components/ProfileOverview.css";
@@ -472,6 +473,8 @@ export default function ProfilePage() {
 
   const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
   const [rebootProfile, setRebootProfile] = useState<RebootProfile | null>(null);
+  const canViewPiscineStatuses = role === "admin" || role === "supervisor";
+  const piscineStatuses = useAssignedPiscineStatuses(!!localProfile && canViewPiscineStatuses);
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [rebootLoading, setRebootLoading] = useState(true);
@@ -1056,6 +1059,7 @@ export default function ProfilePage() {
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
                     {normalizeCohort(localProfile.user.cohort) || "No cohort"}
                   </span>
+                  {canViewPiscineStatuses && localProfile.user.role === "student" && <PiscineStatusBadges login={localProfile.user.nickname} statuses={piscineStatuses}/>}
                 </div>
               </div>
             </div>
@@ -1364,7 +1368,7 @@ export default function ProfilePage() {
                               previewable
                             />
                             <div className="min-w-0 flex-1">
-                              <div className="truncate text-[13px] font-black text-slate-900">{s.full_name}</div>
+                              <div className="profile-talent-name"><span className="truncate text-[13px] font-black text-slate-900">{s.full_name}</span>{canViewPiscineStatuses && <PiscineStatusBadges login={studentLogin} statuses={piscineStatuses}/>}</div>
                               <div className="mt-0.5 truncate text-[12px] font-semibold text-slate-500">
                                 {withAt(s.nickname)} • {role === "admin" ? phoneByLogin[studentLogin] || "-" : s.email}
                               </div>
