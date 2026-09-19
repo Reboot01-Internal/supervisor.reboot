@@ -247,6 +247,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/015_user_roles.sql",
 		"migrations/016_student_private_notes.sql",
 		"migrations/017_board_status.sql",
+		"migrations/018_list_colors.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 

@@ -91,8 +91,9 @@ type createListReq struct {
 }
 
 type updateListReq struct {
-	ListID int64  `json:"list_id"`
-	Title  string `json:"title"`
+	Color  *string `json:"color"`
+	ListID int64   `json:"list_id"`
+	Title  string  `json:"title"`
 }
 
 type deleteListReq struct {
@@ -136,9 +137,23 @@ func (a *API) AdminUpdateList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Title = strings.TrimSpace(req.Title)
-	if req.ListID == 0 || req.Title == "" {
+	if req.ListID == 0 || (req.Title == "" && req.Color == nil) {
 		writeErr(w, http.StatusBadRequest, "list_id and title required")
 		return
+	}
+
+	if req.Color != nil && *req.Color != "" {
+		value := *req.Color
+		valid := len(value) == 7 && value[0] == '#'
+		for _, ch := range value[1:] {
+			if !strings.ContainsRune("0123456789abcdefABCDEF", ch) {
+				valid = false
+			}
+		}
+		if !valid {
+			writeErr(w, 400, "color must be a hex color or empty to reset")
+			return
+		}
 	}
 
 	role := strings.TrimSpace(strings.ToLower(r.Header.Get("X-User-Role")))
@@ -169,7 +184,7 @@ func (a *API) AdminUpdateList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := db.UpdateListTitle(a.conn, req.ListID, req.Title); err != nil {
+	if err := db.UpdateListAppearance(a.conn, req.ListID, req.Title, req.Color); err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to update list")
 		return
 	}

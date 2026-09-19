@@ -26,8 +26,8 @@ func CreateList(conn *sql.DB, boardID int64, title string) (int64, error) {
 
 func ListLists(conn *sql.DB, boardID int64) ([]models.List, error) {
 	rows, err := conn.Query(`
-		SELECT id, board_id, title, position, created_at
-		FROM lists
+		SELECT l.id, l.board_id, l.title, l.position, l.created_at, COALESCE(lc.color,'')
+		FROM lists l LEFT JOIN list_colors lc ON lc.list_id = l.id
 		WHERE board_id = ?
 		ORDER BY position ASC
 	`, boardID)
@@ -39,7 +39,7 @@ func ListLists(conn *sql.DB, boardID int64) ([]models.List, error) {
 	out := []models.List{}
 	for rows.Next() {
 		var l models.List
-		if err := rows.Scan(&l.ID, &l.BoardID, &l.Title, &l.Position, &l.CreatedAt); err != nil {
+		if err := rows.Scan(&l.ID, &l.BoardID, &l.Title, &l.Position, &l.CreatedAt, &l.Color); err != nil {
 			return nil, err
 		}
 		out = append(out, l)
@@ -62,4 +62,23 @@ func UpdateListTitle(conn *sql.DB, listID int64, title string) error {
 	title = strings.TrimSpace(title)
 	_, err := conn.Exec(`UPDATE lists SET title = ? WHERE id = ?`, title, listID)
 	return err
+}
+
+func UpdateListAppearance(conn *sql.DB, listID int64, title string, color *string) error {
+	tx, err := conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if title != "" {
+		if _, err = tx.Exec("UPDATE lists SET title = ? WHERE id = ?", title, listID); err != nil {
+			return err
+		}
+	}
+	if color != nil {
+		if _, err = tx.Exec("INSERT INTO list_colors(list_id, color) VALUES (?, ?) ON CONFLICT(list_id) DO UPDATE SET color=excluded.color", listID, *color); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

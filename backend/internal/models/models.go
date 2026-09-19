@@ -58,6 +58,7 @@ type BoardDiscordMember struct {
 }
 
 type List struct {
+	Color     string `json:"color"`
 	ID        int64  `json:"id"`
 	BoardID   int64  `json:"board_id"`
 	Title     string `json:"title"`

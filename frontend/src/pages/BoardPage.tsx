@@ -1,7 +1,8 @@
+import { readSavedColors, saveListColor } from "../lib/savedListColors";
 import "./BoardWorkspace.css";
 import "../components/ViewNavigation.css";
-import { Columns3, CalendarDays, Plus, X, ArrowUpRight } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Columns3, CalendarDays, Plus, X, ArrowUpRight, Check, Palette, RotateCcw, Pencil } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import { useEscClose } from "../components/Modal";
@@ -35,7 +36,7 @@ import { CSS } from "@dnd-kit/utilities";
 import BoardCalendar from "../components/BoardCalendar";
 import CardModal from "../components/CardModal";
 
-type List = { id: number; board_id: number; title: string; position: number };
+type List = { id: number; board_id: number; title: string; position: number; color?: string };
 type Label = { id: number; board_id: number; name: string; color: string };
 type CardLabel = { label_id: number; name: string; color: string };
 
@@ -537,6 +538,7 @@ function ListColumn({
   avatarByUserID,
   onAddCard,
   onRenameList,
+  onColorList,
   onDeleteList,
   onOpenCard,
   onToggleDone,
@@ -548,6 +550,7 @@ function ListColumn({
   previews: Record<number, CardPreview | undefined>;
   avatarByUserID: Record<number, string>;
   onAddCard: (listId: number) => void;
+  onColorList: (listId: number, color: string) => Promise<boolean>;
   onRenameList: (listId: number, title: string) => Promise<boolean>;
   onDeleteList: (listId: number, listTitle: string) => void;
   onOpenCard: (cardId: number) => void;
@@ -562,6 +565,69 @@ function ListColumn({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(list.title);
   const [renaming, setRenaming] = useState(false);
+  const paletteAccount = useAuth();
+  const paletteStorageKey = `taskflow:list-colors:${(paletteAccount.login || paletteAccount.email || 'local').toLowerCase()}`;
+  const [savedColors, setSavedColors] = useState<string[]>([]);
+  const [paletteNotice, setPaletteNotice] = useState('');
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const paletteRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [palettePosition, setPalettePosition] = useState({ left: 0, top: 0 });
+  useLayoutEffect(() => {
+    if (!paletteOpen || !paletteRef.current) return;
+    const palette = paletteRef.current;
+    palette.showPopover();
+    const reposition = () => {
+      const header = headerRef.current?.getBoundingClientRect();
+      if (!header) return;
+      const { width, height } = palette.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const leftEdge = (viewport?.offsetLeft || 0) + 12;
+      const topEdge = (viewport?.offsetTop || 0) + 12;
+      const rightEdge = leftEdge + (viewport?.width || window.innerWidth) - 24;
+      const bottomEdge = topEdge + (viewport?.height || window.innerHeight) - 24;
+      const preferredLeft = header.right + width + 10 <= rightEdge
+        ? header.right + 10
+        : header.left - width - 10 >= leftEdge ? header.left - width - 10 : header.left;
+      setPalettePosition({
+        left: Math.max(leftEdge, Math.min(preferredLeft, rightEdge - width)),
+        top: Math.max(topEdge, Math.min(header.top, bottomEdge - height)),
+      });
+    };
+    reposition();
+    const observer = new ResizeObserver(reposition);
+    observer.observe(palette);
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    window.visualViewport?.addEventListener('resize', reposition);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+      window.visualViewport?.removeEventListener('resize', reposition);
+    };
+  }, [paletteOpen]);
+
+  const [colorDraft, setColorDraft] = useState(list.color || '#b49ad3');
+  const [savingColor, setSavingColor] = useState(false);
+  const openPalette = () => { if (canManage) {
+    setColorDraft(list.color || '#b49ad3');
+    setPaletteNotice('');
+    try { setSavedColors(list.color ? saveListColor(paletteStorageKey, list.color) : readSavedColors(paletteStorageKey)); }
+    catch { setSavedColors(readSavedColors(paletteStorageKey)); }
+    setPaletteOpen(true);
+  } };
+  async function saveColor(color: string) {
+    setSavingColor(true);
+    const ok = await onColorList(list.id, color);
+    setSavingColor(false);
+    if (ok) {
+      try { if (color) setSavedColors(saveListColor(paletteStorageKey, color)); }
+      catch { setPaletteNotice('List color saved. Browser storage is unavailable, so it could not be added to your palette.'); return; }
+      setPaletteOpen(false);
+    }
+  }
+
 
   useEffect(() => {
     if (!isEditingTitle) setTitleDraft(list.title);
@@ -592,14 +658,15 @@ function ListColumn({
 
   return (
     <div
-      style={{ animationDelay: `${Math.min(columnIndex, 8) * 45}ms` }}
+      style={{ animationDelay: `${Math.min(columnIndex, 8) * 45}ms`, "--list-color": (paletteOpen ? colorDraft : list.color) || undefined } as React.CSSProperties}
+      data-custom-color={paletteOpen || list.color ? "true" : undefined}
       className={[
         "boardColumnIn board-list-panel w-[332px] shrink-0 rounded-xl border bg-slate-100/90 shadow-sm overflow-hidden",
         "border-slate-200 transition hover:-translate-y-0.5 hover:shadow-md",
         drop.isOver ? "border-[#6d5efc]/45 ring-2 ring-[#6d5efc]/15" : "",
       ].join(" ")}
     >
-      <div className="board-list-header px-3 py-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-200 bg-slate-100">
+      <div ref={headerRef} onDoubleClick={event => { if (!(event.target as HTMLElement).closest("input, .board-list-add-card, .board-list-delete")) openPalette(); }} className="board-list-header px-3 py-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-200 bg-slate-100">
         <div className="min-w-0 flex items-center gap-2 pr-1">
           {isEditingTitle ? (
             <input
@@ -622,9 +689,9 @@ function ListColumn({
           ) : (
             <button
               type="button"
-              onDoubleClick={() => canManage && setIsEditingTitle(true)}
+              onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openPalette(); } }}
               className="min-w-0 flex-1 whitespace-normal break-words font-extrabold text-slate-900 text-left"
-              title={canManage ? "Double click to rename list" : list.title}
+              title={canManage ? "Double click to change list color; Enter to open palette" : list.title}
             >
               {list.title}
             </button>
@@ -672,6 +739,17 @@ function ListColumn({
           )}
         </div>
       </div>
+
+      {paletteOpen && <div ref={paletteRef} popover="auto" style={palettePosition} className="list-appearance-popover" role="dialog" aria-label={`Appearance of ${list.title}`} onToggle={event => { if (event.newState === 'closed') setPaletteOpen(false); }}>
+        <header><span className="list-appearance-icon"><Palette size={18}/></span><div><strong>Make it yours</strong><p>{list.title}</p></div><button type="button" disabled={savingColor} onClick={() => setPaletteOpen(false)} aria-label="Close palette"><X size={16}/></button></header>
+        <div className="list-appearance-preview" style={{background: `color-mix(in srgb, ${colorDraft} 24%, white)`}} aria-hidden="true"><span style={{background:colorDraft}}/><strong>{list.title}</strong><div><i/><i/></div></div>
+        <span className="list-appearance-label">CHOOSE A COLOR</span>
+        <div className="list-appearance-swatches">{[['Lavender','#b49ad3'],['Rose','#e3a2b4'],['Peach','#e8b184'],['Gold','#d8c16f'],['Mint','#8ac5ac'],['Sky','#8fbddd'],['Blue','#91a1d5'],['Slate','#a4acbc']].map(([name,color]) => <button type="button" key={color} aria-label={name} title={name} aria-pressed={colorDraft === color} style={{background:color}} disabled={savingColor} onClick={() => setColorDraft(color)}>{colorDraft === color && <Check size={18}/>}</button>)}</div>
+        {savedColors.length > 0 && <><span className="list-appearance-label">YOUR COLORS</span><div className="list-appearance-swatches list-saved-colors">{savedColors.map(color => <button type="button" key={color} aria-label={`Saved color ${color}`} title={color.toUpperCase()} aria-pressed={colorDraft.toLowerCase() === color} style={{background:color}} disabled={savingColor} onClick={() => setColorDraft(color)}>{colorDraft.toLowerCase() === color && <Check size={18}/>}</button>)}</div></>}
+        {paletteNotice && <p className="list-palette-notice" role="status">{paletteNotice}</p>}
+        <label className="list-appearance-custom"><span className="list-appearance-custom-icon" style={{background:colorDraft}}/><span>Custom color<small>{colorDraft.toUpperCase()}</small></span><Plus size={15}/><input aria-label="Choose custom list color" type="color" value={colorDraft} disabled={savingColor} onChange={event => setColorDraft(event.target.value)}/></label>
+        <footer><button type="button" title="Restore default color" disabled={savingColor} onClick={() => void saveColor('')}><RotateCcw size={13}/> Reset</button><button type="button" disabled={savingColor} onClick={() => { setPaletteOpen(false); setIsEditingTitle(true); }}><Pencil size={13}/> Rename</button><button type="button" className="list-appearance-save" disabled={savingColor} onClick={() => void saveColor(colorDraft)}>{savingColor ? 'Saving…' : 'Save color'}</button></footer>
+      </div>}
 
       <div ref={drop.setNodeRef} className="board-list-body p-3 grid gap-2 min-h-[120px] bg-slate-100/80">
         <SortableContext items={cards.map((c) => `card:${c.id}`)} strategy={verticalListSortingStrategy}>
@@ -1031,6 +1109,15 @@ export default function BoardPage() {
       setErr(e?.message || "Failed to reassign board ownership");
       setReassigning(false);
     }
+  }
+
+  async function colorList(listId: number, color: string): Promise<boolean> {
+    if (!canManage) return false;
+    try {
+      await apiFetch('/admin/lists/update', { method: 'POST', body: JSON.stringify({ list_id: listId, color }) });
+      setData(previous => previous ? { ...previous, lists: previous.lists.map(list => list.id === listId ? { ...list, color } : list) } : previous);
+      return true;
+    } catch (error: any) { setErr(error?.message || 'Failed to save list color'); return false; }
   }
 
   async function renameList(listId: number, title: string): Promise<boolean> {
@@ -1701,6 +1788,7 @@ export default function BoardPage() {
                     avatarByUserID={avatarByUserID}
                     onAddCard={createCard}
                     onRenameList={renameList}
+                    onColorList={colorList}
                     onDeleteList={deleteList}
                     onOpenCard={onOpenCard}
                     onToggleDone={toggleCardDone}
