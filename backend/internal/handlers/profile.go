@@ -11,6 +11,7 @@ import (
 )
 
 type profileUser struct {
+	IsActive      bool           `json:"is_active"`
 	ID            int64          `json:"id"`
 	FullName      string         `json:"full_name"`
 	Email         string         `json:"email"`
@@ -181,7 +182,7 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 
 	var out profileSummaryResp
 	err := a.conn.QueryRow(`
-		SELECT id, full_name, email, IFNULL(nickname,''), IFNULL(cohort,''), role
+		SELECT id, full_name, email, IFNULL(nickname,''), IFNULL(cohort,''), role, is_active
 		FROM users
 		WHERE id = ?
 		LIMIT 1
@@ -192,6 +193,7 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 		&out.User.Nickname,
 		&out.User.Cohort,
 		&out.User.Role,
+		&out.User.IsActive,
 	)
 	if err != nil {
 		writeErr(w, http.StatusNotFound, "user not found")

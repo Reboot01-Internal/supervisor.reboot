@@ -1,3 +1,4 @@
+import AccountStatusBadge from "../components/AccountStatusBadge";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -121,6 +122,7 @@ export default function SupervisorUsersPage() {
               const avatarUrl = avatarByLogin[String(u.nickname || u.email.split("@")[0]).toLowerCase()] || "";
               return (
                 <DirectoryCard key={u.id} name={u.full_name} username={u.nickname} avatar={avatarUrl} contact={u.email}
+                  actions={<AccountStatusBadge active={u.is_active}/>}
                   onOpen={()=>nav(`/profile/${u.id}`,{state:{backTo:"/users"}})}
                   badges={<><span className="inline-flex h-7 items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-extrabold text-emerald-700">Talent</span><span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">{u.boards?.length||0} boards</span></>}
                 />

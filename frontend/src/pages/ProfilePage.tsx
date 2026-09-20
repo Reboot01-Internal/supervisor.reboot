@@ -1,3 +1,4 @@
+import AccountStatusBadge from "../components/AccountStatusBadge";
 import ProgramJourney from "../components/ProgramJourney";
 import LatestProject, { useAssignedLatestProjects } from "../components/LatestProject";
 import PiscineStatusBadges, { useAssignedPiscineStatuses } from "../components/PiscineStatusBadges";
@@ -22,6 +23,7 @@ const BAHRAIN_TIMEZONE = "Asia/Bahrain";
 
 type LocalProfile = {
   user: {
+    is_active?: boolean;
     reboot_details?: { projects?: ProjectMembership[] };
     id: number;
     full_name: string;
@@ -1072,6 +1074,7 @@ export default function ProfilePage() {
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
                     {normalizeCohort(localProfile.user.cohort) || "No cohort"}
                   </span>
+                  {(role === "admin" || role === "supervisor") && <AccountStatusBadge active={localProfile.user.is_active}/>}
                   {canViewPiscineStatuses && localProfile.user.role === "student" && <PiscineStatusBadges login={localProfile.user.nickname} statuses={piscineStatuses}/>}
                 </div>
               </div>

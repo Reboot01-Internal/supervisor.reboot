@@ -18,3 +18,8 @@
 .admin-dark .account-status-toggle[data-active=false] .account-status-caption strong{color:#aeb6c2}
 .admin-dark .directory-user-card:has(.account-status-toggle[data-active=false]){background:#252b35;border-color:#454d59}
 @media(prefers-reduced-motion:reduce){.account-status-track,.account-status-thumb{transition:none}}
+.account-status-badge{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;align-self:flex-start;white-space:nowrap;padding:6px 8px;border:1px solid #e1e5e9;border-radius:7px;background:#f5f6f8;color:#818b98;font-size:10px;font-weight:550;line-height:1.2;cursor:default}
+.account-status-badge[data-active=true]{background:#f0f8f3;border-color:#d9ebdf;color:#498166}
+.account-status-badge[data-active=false]{background:#f4f5f7;border-color:#e1e4e8;color:#828b97}
+.admin-dark .account-status-badge{background:#30343b;border-color:#454d58;color:#b5bdc8}
+.admin-dark .account-status-badge[data-active=true]{background:#253a30;border-color:#395447;color:#a2cfb6}
