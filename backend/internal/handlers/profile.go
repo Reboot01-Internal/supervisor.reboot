@@ -26,6 +26,7 @@ type profileBoardLite struct {
 }
 
 type profileSupervisorStudent struct {
+	IsActive bool               `json:"is_active"`
 	ID       int64              `json:"id"`
 	FullName string             `json:"full_name"`
 	Nickname string             `json:"nickname"`
@@ -369,7 +370,7 @@ func (a *API) profileForSupervisor(supervisorID int64) (*profileSupervisorSectio
 	}
 
 	rows, err := a.conn.Query(`
-		SELECT u.id, u.full_name, IFNULL(u.nickname,''), u.email
+		SELECT u.id, u.full_name, IFNULL(u.nickname,''), u.email, u.is_active
 		FROM supervisor_students ss
 		JOIN users u ON u.id = ss.student_user_id
 		WHERE ss.supervisor_user_id = ?
@@ -382,7 +383,7 @@ func (a *API) profileForSupervisor(supervisorID int64) (*profileSupervisorSectio
 
 	for rows.Next() {
 		var s profileSupervisorStudent
-		if err := rows.Scan(&s.ID, &s.FullName, &s.Nickname, &s.Email); err != nil {
+		if err := rows.Scan(&s.ID, &s.FullName, &s.Nickname, &s.Email, &s.IsActive); err != nil {
 			return nil, err
 		}
 		s.Boards = []profileBoardLite{}

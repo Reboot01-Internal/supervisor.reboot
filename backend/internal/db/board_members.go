@@ -26,7 +26,7 @@ func ListBoardMembers(conn *sql.DB, boardID int64) ([]models.BoardMember, error)
 			IFNULL(u.cohort,''),
 			IFNULL(u.discord_user_id,''),
 			bm.role_in_board,
-			bm.added_at
+			bm.added_at, u.is_active
 		FROM board_members bm
 		JOIN users u ON u.id = bm.user_id
 		WHERE bm.board_id = ?
@@ -50,6 +50,7 @@ func ListBoardMembers(conn *sql.DB, boardID int64) ([]models.BoardMember, error)
 			&m.DiscordUserID,
 			&m.RoleInBoard,
 			&m.AddedAt,
+			&m.IsActive,
 		); err != nil {
 			return nil, err
 		}

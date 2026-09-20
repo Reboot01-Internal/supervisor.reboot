@@ -39,6 +39,7 @@ type BoardDiscordInfo struct {
 }
 
 type BoardMember struct {
+	IsActive      bool   `json:"is_active"`
 	UserID        int64  `json:"user_id"`
 	FullName      string `json:"full_name"`
 	Email         string `json:"email"`

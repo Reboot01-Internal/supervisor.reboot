@@ -1198,7 +1198,7 @@ func (a *API) AdminSearchUsers(w http.ResponseWriter, r *http.Request) {
 
 	// default: all (students + supervisors)
 	if role == "" || role == "all" {
-		users, err := db.SearchUsersStudentsAndSupervisors(a.conn, q)
+		users, err := db.SearchUsersStudentsAndSupervisors(a.conn, q, r.URL.Query().Get("include_inactive") == "1")
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, "db error")
 			return
@@ -1212,7 +1212,7 @@ func (a *API) AdminSearchUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := db.SearchUsersByRole(a.conn, role, q)
+	users, err := db.SearchUsersByRole(a.conn, role, q, r.URL.Query().Get("include_inactive") == "1")
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "db error")
 		return

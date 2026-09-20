@@ -43,7 +43,7 @@ func actorID(r *http.Request, conn *sql.DB) int64 {
 				}
 				return id
 			}
-			return DevActorID
+			return 0
 		}
 	}
 
@@ -54,7 +54,7 @@ func actorID(r *http.Request, conn *sql.DB) int64 {
 			if active {
 				return id
 			}
-			return DevActorID
+			return 0
 		}
 	}
 

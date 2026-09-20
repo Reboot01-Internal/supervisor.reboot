@@ -6,6 +6,7 @@ import { apiFetch } from "../lib/api";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type AssignedStudent = {
+ is_active: boolean;
   id: number;
   full_name: string;
   nickname: string;
@@ -23,7 +24,7 @@ type ProfileSummary = {
 export default function SupervisorUsersPage() {
   const nav = useNavigate();
   const [q, setQ] = useState("");
-  const [boardFilter, setBoardFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [rows, setRows] = useState<AssignedStudent[]>([]);
   const [totalAssigned, setTotalAssigned] = useState(0);
   const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
@@ -84,13 +85,13 @@ export default function SupervisorUsersPage() {
     const query = q.trim().toLowerCase();
 
     return rows.filter((s) => {
-      return (boardFilter === "all" || (boardFilter === "assigned" ? s.boards?.length > 0 : !s.boards?.length)) && (
+      return (statusFilter === "all" || (statusFilter === "active" ? s.is_active : !s.is_active)) && (
         (s.full_name || "").toLowerCase().includes(query) ||
         (s.email || "").toLowerCase().includes(query) ||
         (s.nickname || "").toLowerCase().includes(query)
       );
     });
-  }, [rows, q, boardFilter]);
+  }, [rows, q, statusFilter]);
 
   return (
     <AdminLayout active="users" title="Users" subtitle="Browse your assigned talents and open their profiles.">
@@ -102,7 +103,7 @@ export default function SupervisorUsersPage() {
 
       <section className="user-directory">
         <div className="directory-overview-row directory-supervisor-overview">
-          <div className="directory-toolbar"><DirectorySearch value={q} onChange={setQ}/><label className="directory-filter"><span>Board</span><select aria-label="Filter by board assignment" value={boardFilter} onChange={e=>setBoardFilter(e.target.value)}><option value="all">All board states</option><option value="assigned">Assigned</option><option value="unassigned">Not assigned</option></select></label></div>
+          <div className="directory-toolbar"><DirectorySearch value={q} onChange={setQ}/><label className="directory-filter"><span>Account status</span><select aria-label="Filter by account status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label></div>
           <div className="directory-counters"><DirectoryCounter label="Assigned talents" value={loading?"…":totalAssigned}/><DirectoryCounter label="Matching users" value={loading?"…":filtered.length}/></div>
         </div>
 

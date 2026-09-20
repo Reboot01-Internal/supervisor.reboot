@@ -68,7 +68,7 @@ func CreateUser(conn DBTX, fullName, email, passHash, role, nickname, cohort str
 	return res.LastInsertId()
 }
 
-func SearchUsersByRole(conn DBTX, role string, q string) ([]models.User, error) {
+func SearchUsersByRole(conn DBTX, role string, q string, includeInactive ...bool) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 
 	rows, err := conn.Query(`
@@ -78,7 +78,7 @@ func SearchUsersByRole(conn DBTX, role string, q string) ([]models.User, error) 
 		FROM users u
 		LEFT JOIN board_members bm ON bm.user_id = u.id
 		LEFT JOIN boards b ON b.id = bm.board_id
-		WHERE u.is_active = 1
+		WHERE (u.is_active = 1 OR ?)
 		  AND (
 		    u.role = ?
 		    OR EXISTS (
@@ -94,7 +94,7 @@ func SearchUsersByRole(conn DBTX, role string, q string) ([]models.User, error) 
 		  )
 		GROUP BY u.id, u.full_name, u.email, u.is_active, u.created_at, u.nickname, u.cohort
 		ORDER BY u.full_name ASC
-	`, role, role, role, q, q, q)
+	`, role, len(includeInactive) > 0 && includeInactive[0], role, role, q, q, q)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func SearchUsersByRole(conn DBTX, role string, q string) ([]models.User, error) 
 	return out, nil
 }
 
-func SearchUsersStudentsAndSupervisors(conn DBTX, q string) ([]models.User, error) {
+func SearchUsersStudentsAndSupervisors(conn DBTX, q string, includeInactive ...bool) ([]models.User, error) {
 	q = strings.TrimSpace(q)
 
 	rows, err := conn.Query(`
@@ -145,7 +145,7 @@ func SearchUsersStudentsAndSupervisors(conn DBTX, q string) ([]models.User, erro
 		FROM users u
 		LEFT JOIN board_members bm ON bm.user_id = u.id
 		LEFT JOIN boards b ON b.id = bm.board_id
-		WHERE u.is_active = 1
+		WHERE (u.is_active = 1 OR ?)
 		  AND (
 		    u.role IN ('student','supervisor')
 		    OR EXISTS (
@@ -161,7 +161,7 @@ func SearchUsersStudentsAndSupervisors(conn DBTX, q string) ([]models.User, erro
 		  )
 		GROUP BY u.id, u.full_name, u.email, u.role, u.is_active, u.created_at, u.nickname, u.cohort
 		ORDER BY u.full_name ASC
-	`, q, q, q)
+	`, len(includeInactive) > 0 && includeInactive[0], q, q, q)
 	if err != nil {
 		return nil, err
 	}

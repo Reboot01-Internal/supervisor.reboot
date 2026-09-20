@@ -38,6 +38,7 @@ type Assignee = {
 };
 
 type BoardMember = {
+ is_active?: boolean;
   user_id: number;
   full_name: string;
   email: string;
@@ -476,7 +477,7 @@ export default function CardModal({
   const availableMembers = useMemo(() => {
     const q = assigneeQuery.trim().toLowerCase();
     return assignableMembers
-      .filter((m) => !assigneeIds.has(m.user_id))
+      .filter((m) => m.is_active !== false && !assigneeIds.has(m.user_id))
       .filter((m) => {
         if (!q) return true;
         return (

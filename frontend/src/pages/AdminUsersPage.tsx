@@ -1,3 +1,4 @@
+import AccountStatusAction from "../components/AccountStatusAction";
 import { DirectoryCard, DirectoryCounter as Counter, DirectorySearch } from "../components/UserDirectory";
 import "../components/UserDirectory.css";
 import { fetchRebootDirectory } from "../lib/rebootDirectory";
@@ -44,7 +45,7 @@ type AdminUsersPageState = {
   q: string;
   role: "all" | "supervisor" | "student";
   cohort: string;
-  boardFilter: "all" | "unassigned" | "assigned";
+  statusFilter: "all" | "inactive" | "active";
   scrollY: number;
 };
 
@@ -61,7 +62,7 @@ function readAdminUsersPageState(): AdminUsersPageState | null {
           ? parsed.role
           : "all",
       cohort: String(parsed?.cohort || "all"),
-      boardFilter: parsed?.boardFilter === "unassigned" || parsed?.boardFilter === "assigned" ? parsed.boardFilter : "all",
+      statusFilter: parsed?.statusFilter === "inactive" || parsed?.statusFilter === "active" ? parsed.statusFilter : "all",
       scrollY: Number.isFinite(Number(parsed?.scrollY)) ? Number(parsed.scrollY) : 0,
     };
   } catch {
@@ -379,7 +380,7 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState(initialPageState.current?.q || "");
   const [role, setRole] = useState<"all" | "supervisor" | "student">(initialPageState.current?.role || "all");
   const [cohort, setCohort] = useState(initialPageState.current?.cohort || "all");
-  const [boardFilter, setBoardFilter] = useState<"all" | "unassigned" | "assigned">(initialPageState.current?.boardFilter || "all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "inactive" | "active">(initialPageState.current?.statusFilter || "all");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [avatarByLogin, setAvatarByLogin] = useState<Record<string, string>>({});
   const [phoneByLogin, setPhoneByLogin] = useState<Record<string, string>>({});
@@ -405,7 +406,7 @@ export default function AdminUsersPage() {
     setErr("");
     try {
       const res = await apiFetch(
-        `/admin/users?q=${encodeURIComponent(nextQ.trim())}&role=${encodeURIComponent(nextRole)}`
+        `/admin/users?include_inactive=1&q=${encodeURIComponent(nextQ.trim())}&role=${encodeURIComponent(nextRole)}`
       );
       setRows(Array.isArray(res) ? res : []);
     } catch (e: any) {
@@ -428,10 +429,10 @@ export default function AdminUsersPage() {
       q,
       role,
       cohort,
-      boardFilter,
+      statusFilter,
       scrollY: typeof window !== "undefined" ? window.scrollY : 0,
     });
-  }, [q, role, cohort, boardFilter]);
+  }, [q, role, cohort, statusFilter]);
 
   useEffect(() => {
     function handleScroll() {
@@ -439,14 +440,14 @@ export default function AdminUsersPage() {
         q,
         role,
         cohort,
-        boardFilter,
+        statusFilter,
         scrollY: window.scrollY,
       });
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [q, role, cohort, boardFilter]);
+  }, [q, role, cohort, statusFilter]);
 
   const cohortOptions = useMemo(
     () =>
@@ -460,11 +461,11 @@ export default function AdminUsersPage() {
     () =>
       rows.filter((row) => {
         if (cohort !== "all" && normalizeCohort(row.cohort) !== cohort) return false;
-        if (boardFilter === "unassigned" && (row.assigned_boards || []).length > 0) return false;
-        if (boardFilter === "assigned" && (!row.assigned_boards || row.assigned_boards.length === 0)) return false;
+        if (statusFilter === "inactive" && row.is_active) return false;
+        if (statusFilter === "active" && !row.is_active) return false;
         return true;
       }),
-    [rows, cohort, boardFilter]
+    [rows, cohort, statusFilter]
   );
 
   useEffect(() => {
@@ -1052,15 +1053,15 @@ export default function AdminUsersPage() {
             ))}
           </select></label>
 
-          <label className="directory-filter"><span>Board</span><select
+          <label className="directory-filter"><span>Account status</span><select
             className="h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-            aria-label="Filter by board assignment"
-            value={boardFilter}
-            onChange={(e) => setBoardFilter(e.target.value as "all" | "unassigned")}
+            aria-label="Filter by account status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "inactive")}
           >
-            <option value="all">All board states</option>
-            <option value="unassigned">Not assigned</option>
-            <option value="assigned">Assigned</option>
+            <option value="all">All statuses</option>
+            <option value="inactive">Inactive</option>
+            <option value="active">Active</option>
           </select></label>
         </div>
 
@@ -1098,6 +1099,7 @@ export default function AdminUsersPage() {
               return (
                 <DirectoryCard key={u.id} name={u.full_name} username={u.nickname} avatar={avatarUrl} contact={phoneByLogin[userLogin] || "No phone available"} contactType="phone"
                   onOpen={()=>nav(`/admin/users/${u.id}/profile`, {state:{backTo:"/admin/users",preserveListState:true}})}
+                  actions={!deleteMode && <AccountStatusAction id={u.id} name={u.full_name} active={u.is_active} onChange={active=>setRows(previous=>previous.map(row=>row.id===u.id?{...row,is_active:active}:row))}/>}
                   selection={deleteMode?{selected:selectedUserIds.has(u.id),disabled:deletingUsers,onToggle:()=>toggleUserSelection(u.id)}:undefined}
                   badges={<><span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-extrabold ${roleTone(u.role)}`}>{roleDisplay(u.role)}</span><span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700">{normalizeCohort(u.cohort)||"No cohort"}</span></>}
                 />

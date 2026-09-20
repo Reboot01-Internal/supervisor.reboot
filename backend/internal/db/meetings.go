@@ -105,7 +105,7 @@ func SyncMeetingParticipants(conn *sql.DB, meetingID, boardID int64) error {
 		INSERT INTO meeting_participants (meeting_id, user_id)
 		SELECT ?, bm.user_id
 		FROM board_members bm
-		WHERE bm.board_id = ?
+		WHERE bm.board_id = ? AND EXISTS(SELECT 1 FROM users u WHERE u.id=bm.user_id AND u.is_active=1)
 		ON CONFLICT(meeting_id, user_id) DO NOTHING
 	`, meetingID, boardID)
 	if err != nil {

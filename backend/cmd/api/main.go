@@ -103,6 +103,8 @@ func main() {
 
 	// admin
 	r.Route("/admin", func(ar chi.Router) {
+		ar.Use(api.RequireActiveAccount)
+		ar.Post("/users/status", api.UpdateUserStatus)
 		ar.Post("/users", api.AdminCreateUser)
 		ar.Post("/users/delete", api.AdminDeleteUser)
 		ar.Post("/users/discord", api.AdminUpdateUserDiscord)
@@ -205,6 +207,7 @@ func main() {
 
 	// supervisor
 	r.Route("/supervisor", func(sr chi.Router) {
+		sr.Use(api.RequireActiveAccount)
 		sr.Get("/board-members", api.AdminListBoardMembers)
 		sr.Post("/board-members", api.SupervisorAddBoardMember)
 		sr.Get("/eligible-students", api.SupervisorEligibleStudents)
@@ -248,6 +251,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/016_student_private_notes.sql",
 		"migrations/017_board_status.sql",
 		"migrations/018_list_colors.sql",
+		"migrations/019_inactive_assignments.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 

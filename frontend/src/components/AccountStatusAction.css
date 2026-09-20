@@ -1,0 +1,20 @@
+.account-status-control{position:relative;flex-shrink:0;align-self:flex-start;cursor:default}
+.account-status-toggle{display:inline-flex;align-items:center;gap:9px;padding:5px 0 5px 7px;border:0;background:transparent;white-space:nowrap;text-align:left}
+.account-status-caption{display:flex;flex-direction:column;gap:3px}
+.account-status-caption small{font-size:7px;letter-spacing:1px;font-weight:600;color:#a0a6ad}
+.account-status-caption strong{font-size:11px;font-weight:600;color:#3b8468;line-height:1.2}
+.account-status-toggle[data-active=false] .account-status-caption strong{color:#858c98}
+.account-status-track{position:relative;width:32px;height:19px;flex-shrink:0;background:#6da78d;border:1px solid #639c83;border-radius:20px;box-shadow:inset 0 1px 2px #25503b12;transition:background .2s,border-color .2s}
+.account-status-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#579375;box-shadow:0 1px 3px #24402e24;transform:translateX(13px);transition:transform .2s}
+.account-status-toggle[data-active=false] .account-status-track{background:#e4e7eb;border-color:#d6dbe1}
+.account-status-toggle[data-active=false] .account-status-thumb{transform:translateX(0);color:#9aa2ad}
+.account-status-toggle:hover .account-status-track{outline:3px solid #77978a15}
+.account-status-toggle:focus-visible{outline:2px solid #88968f;outline-offset:4px;border-radius:5px}
+.account-status-toggle:disabled{opacity:.6;cursor:wait}
+.account-status-control>p{position:absolute;right:0;top:38px;z-index:5;width:210px;background:white;border:1px solid #efdce1;padding:9px;border-radius:8px;color:#b34d62;font-size:11px;box-shadow:0 4px 15px #0000000c}
+.directory-user-card:has(.account-status-toggle[data-active=false]){background:linear-gradient(120deg,#f7f8fa,#fff);border-color:#dfe3e8}
+.directory-user-card:has(.account-status-toggle[data-active=false]) .directory-card-footer{color:#8992a0}
+.admin-dark .account-status-caption strong{color:#98cdb5}
+.admin-dark .account-status-toggle[data-active=false] .account-status-caption strong{color:#aeb6c2}
+.admin-dark .directory-user-card:has(.account-status-toggle[data-active=false]){background:#252b35;border-color:#454d59}
+@media(prefers-reduced-motion:reduce){.account-status-track,.account-status-thumb{transition:none}}
