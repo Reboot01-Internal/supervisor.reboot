@@ -510,13 +510,13 @@ func (a *API) AdminDeleteCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		supID, err := db.GetBoardSupervisorUserID(a.conn, boardID)
-		if err != nil || supID == 0 {
-			writeErr(w, http.StatusBadRequest, "board has no supervisor")
+		allowed, err := db.CanViewBoard(a.conn, boardID, actor)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "could not check board access")
 			return
 		}
-		if actor != supID {
-			writeErr(w, http.StatusForbidden, "not your board")
+		if !allowed {
+			writeErr(w, http.StatusForbidden, "you must own or belong to this board to delete cards")
 			return
 		}
 	}
