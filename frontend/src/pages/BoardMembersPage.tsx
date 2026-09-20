@@ -1,3 +1,5 @@
+import "./BoardMembersPage.css";
+import { Phone, UserPlus, UsersRound, ShieldCheck, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -210,7 +212,7 @@ function RowCard({
           : "border-slate-200 bg-white hover:-translate-y-[1px] hover:border-[#6d5efc]/18 hover:bg-[#faf8ff] hover:shadow-[0_16px_32px_rgba(109,94,252,0.10)]"
       } ${onClick ? "cursor-pointer" : ""}`}
     >
-      <div className="min-w-0">{left}</div>
+      <div className="min-w-0 flex-1">{left}</div>
       {right ? <div className="flex flex-none items-center gap-2">{right}</div> : null}
     </div>
   );
@@ -477,7 +479,7 @@ export default function BoardMembersPage() {
 
   const subtitle = useMemo(() => {
     if (loading) return "Loading…";
-    return `${boardName || `Board #${boardID}`} • ${members.length} member(s)`;
+    return `${boardName || `Board #${boardID}`} · ${members.length} ${members.length === 1 ? "member" : "members"}`;
   }, [loading, boardID, boardName, members.length]);
   const backTo =
     typeof location.state === "object" && location.state && "backTo" in location.state
@@ -492,7 +494,7 @@ export default function BoardMembersPage() {
 
   return (
     <AdminLayout
-      active="supervisors"
+      active="boards"
       title="Board Members"
       subtitle={subtitle}
       right={
@@ -510,14 +512,14 @@ export default function BoardMembersPage() {
       }
     >
       <div className="board-members-page w-full max-w-full overflow-x-hidden">
-        <section className="grid min-w-0 h-auto grid-cols-1 gap-4 lg:h-[calc(100vh-220px)] lg:grid-cols-[1.2fr_1fr]">
+        <section className="members-workspace">
           <div className="grid min-h-0 gap-4">
             <section className="board-members-panel flex min-h-0 flex-col rounded-[18px] border border-slate-200 bg-white px-4 pb-4 pt-5 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-base font-black text-slate-900">Add members</div>
+                <span className="members-eyebrow">GROW YOUR TEAM</span><div className="members-panel-title"><UserPlus size={19}/> Add members</div>
                 <div className="mt-1 text-sm font-semibold text-slate-500">
-                  Select multiple users, then add all at once.
+                  Choose people to bring into this board.
                 </div>
               </div>
               <Pill>{results.length}</Pill>
@@ -526,7 +528,7 @@ export default function BoardMembersPage() {
             <div className="h-3" />
 
             <form
-              className="flex flex-wrap items-center gap-2"
+              className="members-search-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!searching) {
@@ -540,7 +542,8 @@ export default function BoardMembersPage() {
                 </span>
                 <input
                   className="w-full bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
-                  placeholder="Search users"
+                  aria-label="Search available members"
+                  placeholder="Search by name or username…"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                 />
@@ -548,6 +551,7 @@ export default function BoardMembersPage() {
 
               <select
                 className="h-11 w-full rounded-2xl border border-slate-200 bg-white/90 px-3 text-[14px] font-bold text-slate-900 outline-none shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition focus:border-[#6d5efc]/24 focus:ring-4 focus:ring-[#6d5efc]/10 sm:w-[170px]"
+                aria-label="Filter available members by role"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as any)}
                 disabled={isSupervisor}
@@ -566,7 +570,7 @@ export default function BoardMembersPage() {
               </button>
             </form>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="members-selection-bar">
               <button
                 type="button"
                 className={softButtonClass}
@@ -585,11 +589,11 @@ export default function BoardMembersPage() {
               </button>
               <button
                 type="button"
-                className={neutralPrimaryButtonClass}
+                className={`${neutralPrimaryButtonClass} members-add-action`}
                 onClick={addSelected}
                 disabled={selectedResultIds.size === 0 || adding}
               >
-                {adding ? "Adding..." : `Add selected ${selectedResultIds.size}`}
+                <Plus size={14}/>{adding ? "Adding…" : selectedResultIds.size ? `Add ${selectedResultIds.size} selected` : "Add selected"}
               </button>
             </div>
 
@@ -605,10 +609,10 @@ export default function BoardMembersPage() {
               </div>
             ) : null}
 
-            <div className="h-6" />
+            <div className="h-3" />
 
-            <div className="min-h-0 flex-1 overflow-y-auto pt-1 pr-1 [scrollbar-width:thin]">
-              {results.length === 0 ? (
+            <div className="members-scroll" aria-busy={searching}>
+              {searching ? <SkeletonBlock lines={3}/> : results.length === 0 ? (
                 <div className="text-sm font-semibold text-slate-500">No matching users found.</div>
               ) : (
                 <div className="grid gap-2.5">
@@ -624,6 +628,7 @@ export default function BoardMembersPage() {
                           <div className="flex min-w-0 items-center gap-3">
                             <input
                               type="checkbox"
+                              aria-label={`Select ${u.full_name} to add`}
                               checked={checked}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => {
@@ -637,11 +642,11 @@ export default function BoardMembersPage() {
                             <div className="min-w-0">
                               <div className="truncate text-sm font-black text-slate-900">{u.full_name}</div>
                               <div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
-                                {displayNick(u.nickname, u.email)}
+                                @{displayNick(u.nickname, u.email)}
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
-                                  <MailIcon /> <span className="truncate">{contactValue(isAdmin, phoneByLogin, u)}</span>
+                                  {isAdmin ? <Phone size={13}/> : <MailIcon size={13}/>} <span className="truncate">{contactValue(isAdmin, phoneByLogin, u)}</span>
                                 </span>
                                 <RolePill role={u.role} />
                               </div>
@@ -661,20 +666,20 @@ export default function BoardMembersPage() {
           <section className="board-members-panel flex min-h-0 flex-col rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-base font-black text-slate-900">Current members</div>
-                <div className="mt-1 text-sm font-semibold text-slate-500">Manage who can access this board.</div>
+                <span className="members-eyebrow">ON THIS BOARD</span><div className="members-panel-title"><UsersRound size={19}/> Current members</div>
+                <div className="mt-1 text-sm font-semibold text-slate-500">Your team, all in one place.</div>
               </div>
               <Pill>{loading ? "..." : members.length}</Pill>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="members-selection-bar">
               <button
                 type="button"
                 className={softButtonClass}
                 onClick={selectAllMembers}
                 disabled={removableMembers.length === 0}
               >
-                Select removable
+                Select members
               </button>
               <button
                 type="button"
@@ -691,13 +696,13 @@ export default function BoardMembersPage() {
                 disabled={selectedMemberIds.size === 0 || removing}
               >
                 <BinIcon size={14} />
-                {removing ? "Removing..." : `${selectedMemberIds.size}`}
+                {removing ? "Removing…" : selectedMemberIds.size ? `Remove ${selectedMemberIds.size}` : "Remove selected"}
               </button>
             </div>
 
             <div className="h-3" />
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+            <div className="members-scroll">
               {loading ? (
                 <div className="grid gap-2">
                   <SkeletonBlock lines={2} />
@@ -725,6 +730,7 @@ export default function BoardMembersPage() {
                       >
                         <input
                           type="checkbox"
+                          aria-label={isOwner ? `${m.full_name}, protected board owner` : `Select ${m.full_name} to remove`}
                           checked={checked}
                           disabled={isOwner}
                           onClick={(e) => e.stopPropagation()}
@@ -739,14 +745,14 @@ export default function BoardMembersPage() {
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-black text-slate-900">{m.full_name}</div>
                           <div className="mt-0.5 truncate text-xs font-extrabold text-slate-500">
-                            {displayNick(m.nickname, m.email)}
+                            @{displayNick(m.nickname, m.email)}
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-2">
                             <span className="inline-flex min-w-0 items-center gap-2 truncate text-xs font-bold text-slate-500">
-                              <MailIcon /> <span className="truncate">{contactValue(isAdmin, phoneByLogin, m)}</span>
+                              {isAdmin ? <Phone size={13}/> : <MailIcon size={13}/>} <span className="truncate">{contactValue(isAdmin, phoneByLogin, m)}</span>
                             </span>
                             <RolePill role={m.role} />
-                            <BoardRolePill roleInBoard={m.role_in_board} />
+                            {isOwner && <BoardRolePill roleInBoard={m.role_in_board} />}
                             {isOwner ? (
                               <span
                                 className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500"
@@ -764,6 +770,7 @@ export default function BoardMembersPage() {
                 </div>
               )}
             </div>
+            <div className="members-owner-note"><ShieldCheck size={14}/> Board owners stay protected and cannot be removed.</div>
           </section>
         </div>
       </section>
