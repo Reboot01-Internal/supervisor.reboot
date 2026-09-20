@@ -59,7 +59,11 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   }
 
   if (!res.ok) {
-    const msg = data?.error || "Request failed";
+    const msg = data?.error || (res.status === 413
+      ? "This image exceeds the server upload limit. Try a smaller image."
+      : res.status === 502 || res.status === 503 || res.status === 504
+      ? "The server is temporarily unavailable. Please try again shortly."
+      : `Request failed (HTTP ${res.status}). Please try again.`);
     throw new Error(msg);
   }
 

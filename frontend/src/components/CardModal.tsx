@@ -1005,6 +1005,11 @@ export default function CardModal({
       return;
     }
 
+    if (file.size > 20 * 1024 * 1024) {
+      setErr("Choose an image smaller than 20 MB.");
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+      return;
+    }
     const form = new FormData();
     form.append("card_id", String(card.id));
     form.append("file", file);
@@ -1023,6 +1028,18 @@ export default function CardModal({
       setUploadingAttachment(false);
       if (attachmentInputRef.current) attachmentInputRef.current.value = "";
     }
+  }
+
+  async function deleteImage(attachment: CardAttachment) {
+    if (!card) return;
+    setPreviewAttachment(null);
+    if (!await confirm({ title: "Delete image", message: "Remove this image from the card? This cannot be undone." })) return;
+    setErr("");
+    try {
+      await apiFetch("/admin/card/attachments/delete", { method: "POST", body: JSON.stringify({ card_id: card.id, attachment_id: attachment.id }) });
+      setAttachments(previous => previous.filter(item => item.id !== attachment.id));
+      setMsg("Image deleted");
+    } catch (error: any) { setErr(error.message || "Unable to delete image"); }
   }
 
   async function deleteCard() {
@@ -1929,7 +1946,11 @@ export default function CardModal({
         </div>
       )}
     </Modal>
-    {previewAttachment ? <ImagePreview wide src={attachmentURL(previewAttachment.id)} title={previewAttachment.original_name} description={`Uploaded by ${previewAttachment.uploader_name} · ${formatAttachmentDate(previewAttachment.created_at)} · ${formatBytes(previewAttachment.size_bytes)}`} onClose={() => setPreviewAttachment(null)} /> : null}
+    {previewAttachment ? <ImagePreview wide counter={`${imageAttachments.findIndex(item => item.id === previewAttachment.id) + 1} / ${imageAttachments.length}`}
+          onPrevious={imageAttachments.length > 1 ? () => setPreviewAttachment(imageAttachments[(imageAttachments.findIndex(item => item.id === previewAttachment.id) - 1 + imageAttachments.length) % imageAttachments.length]) : undefined}
+          onNext={imageAttachments.length > 1 ? () => setPreviewAttachment(imageAttachments[(imageAttachments.findIndex(item => item.id === previewAttachment.id) + 1) % imageAttachments.length]) : undefined}
+          onDelete={canManageCard ? () => void deleteImage(previewAttachment) : undefined}
+          src={attachmentURL(previewAttachment.id)} title={previewAttachment.original_name} description={`Uploaded by ${previewAttachment.uploader_name} · ${formatAttachmentDate(previewAttachment.created_at)} · ${formatBytes(previewAttachment.size_bytes)}`} onClose={() => setPreviewAttachment(null)} /> : null}
     </>
   );
 }

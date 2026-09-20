@@ -444,12 +444,14 @@ func (a *API) AdminDeleteComment(w http.ResponseWriter, r *http.Request) {
 //
 
 func (a *API) AdminUploadAttachment(w http.ResponseWriter, r *http.Request) {
-	// multipart/form-data: card_id, file
+	// Bound the request and clean up multipart temporary files.
+	r.Body = http.MaxBytesReader(w, r.Body, 21<<20)
 	if err := r.ParseMultipartForm(20 << 20); err != nil {
-		writeErr(w, http.StatusBadRequest, "bad multipart form")
+		writeErr(w, http.StatusBadRequest, "Unable to read upload. Choose an image smaller than 20 MB.")
 		return
 	}
 
+	defer r.MultipartForm.RemoveAll()
 	cardIDStr := r.FormValue("card_id")
 	cardID, err := strconv.ParseInt(cardIDStr, 10, 64)
 	if err != nil || cardID <= 0 {
@@ -463,6 +465,10 @@ func (a *API) AdminUploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
+	if hdr.Size > 20<<20 {
+		writeErr(w, http.StatusRequestEntityTooLarge, "Choose an image smaller than 20 MB.")
+		return
+	}
 
 	_ = os.MkdirAll("./uploads", 0755)
 
@@ -552,8 +558,26 @@ func (a *API) AdminDeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	att, err := db.GetAttachment(a.conn, req.AttachmentID)
-	if err == nil {
-		_ = os.Remove(filepath.Join("./uploads", att.StoredName))
+	if err != nil || att.CardID != req.CardID {
+		writeErr(w, http.StatusNotFound, "image not found on this card")
+		return
+	}
+	role := strings.ToLower(strings.TrimSpace(r.Header.Get("X-User-Role")))
+	if role != "admin" {
+		if role != "supervisor" {
+			writeErr(w, http.StatusForbidden, "only admin or supervisor can delete images")
+			return
+		}
+		boardID, err := db.GetBoardIDByCardID(a.conn, att.CardID)
+		if err != nil {
+			writeErr(w, http.StatusNotFound, "card not found")
+			return
+		}
+		allowed, err := db.CanViewBoard(a.conn, boardID, actorID(r, a.conn))
+		if err != nil || !allowed {
+			writeErr(w, http.StatusForbidden, "board access required")
+			return
+		}
 	}
 
 	if err := db.DeleteAttachment(a.conn, req.AttachmentID); err != nil {
@@ -561,6 +585,7 @@ func (a *API) AdminDeleteAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = os.Remove(filepath.Join("./uploads", att.StoredName))
 	actor := actorID(r, a.conn)
 	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "attachment_deleted", "attachment_id="+strconv.FormatInt(req.AttachmentID, 10))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
