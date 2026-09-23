@@ -37,3 +37,41 @@
 .list-appearance-popover{max-height:calc(100vh - 24px);overflow-y:auto}
 .list-saved-colors{max-height:90px;overflow-y:auto;padding:4px;margin-left:-4px;margin-right:-4px;scrollbar-width:thin}
 .list-palette-notice{font-size:11px;line-height:1.5;color:#a56b08;margin:8px 0}
+
+/* Language identity follows the directory into the workspace. */
+:where(.board-detail-page, .workspace-heading) { --workspace-accent:#7958c5; --workspace-soft:#f5f1fb; --workspace-border:#e6e0ed; }
+:is(.board-detail-page, .workspace-heading)[data-language="go"] { --workspace-accent:#237abb; --workspace-soft:#edf6ff; --workspace-border:#d7e8f8; }
+:is(.board-detail-page, .workspace-heading)[data-language="js"] { --workspace-accent:#8a6b0b; --workspace-soft:#fff9dc; --workspace-border:#eee4b9; }
+:is(.board-detail-page, .workspace-heading)[data-language="rust"] { --workspace-accent:#c3474b; --workspace-soft:#fff0f0; --workspace-border:#f2d9da; }
+.workspace-heading { display:inline-flex; align-items:center; gap:14px; max-width:100%; vertical-align:middle; }
+.workspace-heading-name { overflow:hidden; text-overflow:ellipsis; }
+.workspace-language-icon { width:44px; height:44px; flex:none; display:grid; place-items:center; border:1px solid var(--workspace-border); border-radius:13px; background:var(--workspace-soft); overflow:hidden; }
+.workspace-language-icon > span { width:32px; height:29px; background:var(--workspace-accent); mask:center/contain no-repeat; }
+.workspace-heading[data-language="go"] .workspace-language-icon > span { mask-image:url('/languages/go.svg'); }
+.workspace-heading[data-language="rust"] .workspace-language-icon > span { mask-image:url('/languages/rust.svg'); }
+.workspace-heading[data-language="js"] .workspace-language-icon { background:#262626; border:0; }
+.workspace-heading[data-language="js"] .workspace-language-icon > span { width:100%; height:100%; background:#f7df65; mask-image:url('/languages/js.svg'); }
+.board-detail-page .board-view-navigation button.is-active { color:var(--workspace-accent); border-bottom-color:var(--workspace-accent); }
+.board-detail-page .board-new-list, .board-detail-page .board-list-composer > button[type="submit"] { background:var(--workspace-soft); color:var(--workspace-accent); border:1px solid var(--workspace-border); }
+.board-detail-page .board-detail-toolbar { border-color:#e6e0ed; border-radius:18px; padding:12px 16px; }
+.board-detail-page .board-list-panel:not([data-custom-color=true]) { background:#f8f7fa; border-color:#e6e0ed; border-top:3px solid var(--workspace-border); }
+.board-detail-page .board-list-header { padding:12px 14px; border-bottom-color:#e6e0ed; }
+.board-detail-page .board-list-add-card { color:var(--workspace-accent); }
+.board-detail-page .board-list-add-card:hover { background:var(--workspace-soft); }
+.board-detail-page .boardCardIn { border-color:#e6e0ed; border-radius:12px!important; }
+.board-detail-page .board-card-open { color:var(--workspace-accent); }
+.board-detail-page .board-list-composer input:focus { border-color:var(--workspace-accent); box-shadow:0 0 0 3px var(--workspace-soft); }
+.admin-dark .board-detail-page .board-list-panel:not([data-custom-color=true]) { background:#302a3d; border-color:#50445f; }
+@media(max-width:600px) { .workspace-heading { gap:9px; }.workspace-language-icon { width:34px; height:34px; }.workspace-heading-name { font-size:22px; } }
+
+/* Quiet, consistent header actions, aligned with directory controls. */
+.workspace-header-actions { gap:6px; }
+.workspace-header-actions > button { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; border:1px solid #e6e0ed; background:#fff; color:#8c789e; box-shadow:none; }
+.workspace-header-actions > button:hover { background:#f5f1fb; border-color:#cdbbdf; color:#7958c5; }
+.workspace-header-actions > button svg { width:16px; height:16px; }
+.workspace-header-actions > .board-detail-icon-button-danger { color:#c3474b; }
+.workspace-header-actions > .board-detail-icon-button-danger:hover { background:#fff0f0; border-color:#f2d9da; color:#c3474b; }
+.workspace-header-actions > .board-detail-back-button { width:auto; gap:6px; padding:0 12px; margin-left:4px; font-size:12px; font-weight:500; color:#746482; }
+.workspace-header-actions > button:focus-visible { outline:2px solid #9e82bd; outline-offset:3px; }
+.admin-dark .workspace-header-actions > button { background:#2d263a; color:#c1aed3; border-color:#51465d; }
+.admin-dark .workspace-header-actions > button:hover { background:#392e49; }

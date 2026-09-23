@@ -1,7 +1,8 @@
+import { projectForBoard } from "../lib/boardProjects";
 import { readSavedColors, saveListColor } from "../lib/savedListColors";
 import "./BoardWorkspace.css";
 import "../components/ViewNavigation.css";
-import { Columns3, CalendarDays, Plus, X, ArrowUpRight, Check, Palette, RotateCcw, Pencil } from "lucide-react";
+import { Columns3, CalendarDays, ArrowLeft, Plus, X, ArrowUpRight, Check, Palette, RotateCcw, Pencil } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -1440,6 +1441,8 @@ export default function BoardPage() {
   const layoutActive = isAdmin ? (from === "boards" ? "boards" : "supervisors") : "boards";
   const canManage = isAdmin || isSupervisor;
   const currentBoardStatus = boardStatus(data);
+  const projectSlug = projectForBoard(data?.name || "")?.slug;
+  const boardLanguage = !projectSlug ? "custom" : ["smart-road", "filler", "rt", "localhost", "multiplayer-fps", "0-shell"].includes(projectSlug) ? "rust" : ["make-your-game", "real-time-forum", "graphql", "social-network", "mini-framework", "bomberman-dom"].includes(projectSlug) ? "js" : "go";
 
   return (
     <>
@@ -1474,13 +1477,16 @@ export default function BoardPage() {
             className="max-w-full truncate text-left text-[28px] font-black tracking-[-0.6px] text-slate-900"
             title={canManage ? "Double click to edit board name" : pageTitle}
           >
-            {pageTitle}
+            <span className="workspace-heading" data-language={boardLanguage}>
+              {boardLanguage !== "custom" && <span className="workspace-language-icon" aria-label={`${boardLanguage === "js" ? "JavaScript" : boardLanguage === "go" ? "Go" : "Rust"} module`}><span /></span>}
+              <span className="workspace-heading-name">{pageTitle}</span>
+            </span>
           </button>
         )
       }
       subtitle="Drag cards across lists. Double click a card to open."
       right={
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="workspace-header-actions flex flex-wrap items-center justify-end gap-2">
           {canManage ? (
             <BoardStatusIconButton
               status={currentBoardStatus}
@@ -1534,7 +1540,7 @@ export default function BoardPage() {
             className="board-detail-back-button h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 font-extrabold hover:bg-slate-100 transition"
             onClick={() => nav("/admin/boards")}
           >
-            Boards
+            <ArrowLeft size={15} aria-hidden="true" /> Boards
           </button>
         </div>
       }
@@ -1737,7 +1743,7 @@ export default function BoardPage() {
       {loading && <div className="text-slate-500 font-semibold">Loading board...</div>}
 
       {!loading && data && (
-        <div className="board-detail-page grid gap-4">
+        <div className="board-detail-page grid gap-4" data-language={boardLanguage}>
           <nav className="board-view-navigation" aria-label="Board view">
             {(["board", "calendar"] as const).map(option => {
               const Icon = option === "board" ? Columns3 : CalendarDays;
