@@ -1,3 +1,5 @@
+/* Low-specificity defaults let each language override all shared surfaces. */
+:where(.language-board, .workspace-board-row, .board-members-popup) { --language:#7958c5; --language-soft:#f2edf9; --language-border:#e4d9f2; --language-glow:#a78ada20; }
 /* Keep the original directory layout; match workspace typography and lavender. */
 .boards-page { --boards-purple: #6d5efc; --boards-border: #e4dcef; --boards-tint: #f2edf8; font-family: var(--font-sans); }
 .boards-page :where(button, input, select) { font-family: inherit; }
@@ -55,7 +57,7 @@
 .admin-dark .board-members-popup .board-member-row { background: #30293f; border-color: #50445f; }
 
 /* Original board layout, with language identity and a restrained accent glow. */
-.boards-page .language-board { --language:#7958c5; --language-soft:#f2edf9; --language-border:#e4d9f2; --language-glow:#a78ada20; border-color:var(--language-border); box-shadow:0 8px 24px #30264106; background:linear-gradient(135deg,var(--language-soft),#fff 25%); }
+.boards-page .language-board { border-color:var(--language-border); box-shadow:0 8px 24px #30264106; background:linear-gradient(135deg,var(--language-soft),#fff 25%); }
 :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="go"] { --language:#237abb; --language-soft:#edf6ff; --language-border:#d7e8f8; --language-glow:#4fa8ed28; }
 :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="js"] { --language:#8a6b0b; --language-soft:#fff9dc; --language-border:#eee4b9; --language-glow:#e8c84830; }
 :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="rust"] { --language:#c3474b; --language-soft:#fff0f0; --language-border:#f2d9da; --language-glow:#e4717625; }
@@ -94,7 +96,7 @@
 
 /* List presentation uses the same language badges and quiet details as cards. */
 .boards-page .workspace-board-list { border-color:#e6e0ed; box-shadow:0 5px 18px #30264105; }
-.boards-page .workspace-board-row { --language:#7958c5; --language-soft:#f2edf9; --language-border:#e4d9f2; cursor:pointer; align-items:center; padding-top:16px; padding-bottom:16px; }
+.boards-page .workspace-board-row { cursor:pointer; align-items:center; padding-top:16px; padding-bottom:16px; }
 .boards-page .workspace-board-row:hover { background:var(--language-soft); }
 .workspace-board-row .board-action-members { width:fit-content; min-width:0; padding:0; border:0; background:transparent; box-shadow:none; }
 .boards-page .language-list-actions button { background:transparent; border-color:transparent; }
@@ -104,7 +106,7 @@
 .admin-dark .boards-page .workspace-board-row:hover { background:var(--language-soft); }
 
 /* Member details inherit the selected board's language identity. */
-.board-members-popup { --language:#7958c5; --language-soft:#f2edf9; --language-border:#e4d9f2; border-radius:18px; padding:22px; }
+.board-members-popup { border-radius:18px; padding:22px; }
 .board-members-header { padding-bottom:18px; margin-bottom:6px; border-bottom:1px solid #eee8f3; }
 .board-members-header .text-slate-500 { font-size:12px; font-weight:400; margin-top:3px; color:#8c8198; }
 .board-members-popup .board-popup-edit, .board-members-popup .board-popup-close { width:32px; height:32px; border:0; background:transparent; color:#8c8198; }
