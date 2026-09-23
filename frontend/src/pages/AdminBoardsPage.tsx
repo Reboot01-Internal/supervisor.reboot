@@ -1159,6 +1159,9 @@ export default function AdminBoardsPage() {
     }
   }
 
+  const membersProject = projectForBoard(membersBoard?.name || "");
+  const membersTrack = membersProject ? TRACK_OPTIONS.find((option) => PROJECTS_BY_TRACK[option.value].includes(membersProject.slug)) : undefined;
+
   return (
     <>
     {confirmDialog}
@@ -1695,12 +1698,19 @@ export default function AdminBoardsPage() {
           onClick={closeMembersModal}
         >
           <div
+            data-language={membersTrack?.value || "custom"}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="board-members-title"
             className="board-members-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[18px] font-black text-slate-900">Board Members</div>
+            <div className="board-members-header mb-3 flex items-center justify-between gap-3">
+              <span className="language-board-icon" aria-label={membersTrack ? `${membersTrack.label} module` : "Custom workspace"}>
+                {membersTrack ? <span className={`language-logo language-logo-${membersTrack.value}`} aria-hidden="true" /> : <BoardIcon />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div id="board-members-title" className="text-[18px] font-black text-slate-900">Board Members</div>
                 <div className="text-[12px] font-semibold text-slate-500 truncate">
                   {membersBoard?.name || "Board"}
                 </div>
@@ -1789,7 +1799,7 @@ export default function AdminBoardsPage() {
                       </div>
                     </div>
                     </div>
-                    <div className="flex flex-none items-center gap-2">
+                    <div className="board-member-roles flex flex-none items-center gap-2">
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
                         {roleDisplay(m.role)}
                       </span>
