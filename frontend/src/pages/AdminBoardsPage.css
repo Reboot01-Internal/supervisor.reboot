@@ -1,5 +1,5 @@
 /* Low-specificity defaults let each language override all shared surfaces. */
-:where(.language-board, .workspace-board-row, .board-members-popup) { --language:#7958c5; --language-soft:#f2edf9; --language-border:#e4d9f2; --language-glow:#a78ada20; }
+:where(.language-board, .workspace-board-row, .board-members-popup, .create-module-option) { --language:#7958c5; --language-soft:#f2edf9; --language-border:#e4d9f2; --language-glow:#a78ada20; }
 /* Keep the original directory layout; match workspace typography and lavender. */
 .boards-page { --boards-purple: #6d5efc; --boards-border: #e4dcef; --boards-tint: #f2edf8; font-family: var(--font-sans); }
 .boards-page :where(button, input, select) { font-family: inherit; }
@@ -58,18 +58,18 @@
 
 /* Original board layout, with language identity and a restrained accent glow. */
 .boards-page .language-board { border-color:var(--language-border); box-shadow:0 8px 24px #30264106; background:linear-gradient(135deg,var(--language-soft),#fff 25%); }
-:is(.language-board, .workspace-board-row, .board-members-popup)[data-language="go"] { --language:#237abb; --language-soft:#edf6ff; --language-border:#d7e8f8; --language-glow:#4fa8ed28; }
-:is(.language-board, .workspace-board-row, .board-members-popup)[data-language="js"] { --language:#8a6b0b; --language-soft:#fff9dc; --language-border:#eee4b9; --language-glow:#e8c84830; }
-:is(.language-board, .workspace-board-row, .board-members-popup)[data-language="rust"] { --language:#c3474b; --language-soft:#fff0f0; --language-border:#f2d9da; --language-glow:#e4717625; }
+:is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="go"] { --language:#237abb; --language-soft:#edf6ff; --language-border:#d7e8f8; --language-glow:#4fa8ed28; }
+:is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="js"] { --language:#8a6b0b; --language-soft:#fff9dc; --language-border:#eee4b9; --language-glow:#e8c84830; }
+:is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="rust"] { --language:#c3474b; --language-soft:#fff0f0; --language-border:#f2d9da; --language-glow:#e4717625; }
 .boards-page .language-board:hover { border-color:var(--language); box-shadow:0 10px 30px var(--language-glow); }
 .language-board-icon { display:grid; place-items:center; flex:none; width:40px; height:40px; border-radius:12px; background:var(--language-soft); border:1px solid var(--language-border); color:var(--language); box-shadow:0 0 18px var(--language-glow); }
 .boards-page .language-board-meta > span:first-child { color:var(--language); background:var(--language-soft); border-color:var(--language-border); }
 .boards-page .language-board-footer > span { color:var(--language); }
 .admin-dark .boards-page .language-board { background:linear-gradient(135deg,var(--language-soft),#2d263a 50%); }
-.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="go"] { --language:#89c9f2; --language-soft:#29394b; --language-border:#40556d; }
-.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="js"] { --language:#e8d278; --language-soft:#403a2a; --language-border:#5d5237; }
-.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="rust"] { --language:#f29da0; --language-soft:#462c37; --language-border:#67404c; }
-.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup)[data-language="custom"] { --language:#c1a5e9; --language-soft:#392e49; --language-border:#564466; }
+.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="go"] { --language:#89c9f2; --language-soft:#29394b; --language-border:#40556d; }
+.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="js"] { --language:#e8d278; --language-soft:#403a2a; --language-border:#5d5237; }
+.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="rust"] { --language:#f29da0; --language-soft:#462c37; --language-border:#67404c; }
+.admin-dark :is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="custom"] { --language:#c1a5e9; --language-soft:#392e49; --language-border:#564466; }
 @media(prefers-reduced-motion:reduce) { .boards-page .language-board { transition:none; }.boards-page .language-board:hover { transform:none; } }
 
 /* Consistent, local SVG marks and quieter card details. */
@@ -79,7 +79,7 @@
 .language-logo-rust { mask-image:url('/languages/rust.svg'); }
 .boards-page .language-board { background:#fff; border-color:#e6e0ed; padding:18px; border-radius:18px; box-shadow:0 5px 18px #30264105; }
 .language-board-icon { width:44px; height:44px; border-radius:13px; box-shadow:none; }
-:is(.language-board, .workspace-board-row, .board-members-popup)[data-language="js"] .language-board-icon { background:#f7df65; border-color:#eed44e; }
+:is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="js"] .language-board-icon { background:#f7df65; border-color:#eed44e; }
 .language-board-name { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; line-height:1.35; font-size:15px; letter-spacing:-.3px; }
 .language-board-actions { gap:4px; }.language-board-actions button { width:27px; height:27px; background:transparent; border-color:transparent; }.language-board-actions button:hover { background:var(--language-soft); border-color:var(--language-border); }
 .boards-page .language-board-meta > span { height:auto; padding:4px 0; border:0; background:transparent; font-size:11px; font-weight:400; color:#877b94; }
@@ -91,7 +91,7 @@
 .language-board .board-action-members { border-color:transparent; background:transparent; box-shadow:none; padding-left:0; }
 .admin-dark .boards-page .language-board { background:#2d263a; border-color:#51465d; }.admin-dark .boards-page .language-board-meta > span { color:#bfb0cd; }.admin-dark .language-board-footer { border-color:#51465d; }
 /* The JS source is a square with letter cutouts: yellow mark over black letters. */
-:is(.language-board, .workspace-board-row, .board-members-popup)[data-language="js"] .language-board-icon { background:#262626; border:0; overflow:hidden; }
+:is(.language-board, .workspace-board-row, .board-members-popup, .create-module-option)[data-language="js"] .language-board-icon { background:#262626; border:0; overflow:hidden; }
 .language-board-icon .language-logo-js { width:100%; height:100%; background:#f7df65; }
 
 /* List presentation uses the same language badges and quiet details as cards. */
@@ -122,3 +122,32 @@
 .admin-dark .board-members-popup { background:#2d263a; }
 .admin-dark .board-members-header, .admin-dark .board-members-popup .board-member-row { border-color:#51465d; }
 @media(max-width:480px) { .board-members-popup { padding:16px; }.board-member-roles { max-width:85px; } }
+
+/* Compact create flow with the same surfaces and language marks as boards. */
+.board-create-dialog > div > div { max-width:820px; border-color:#e6e0ed; border-radius:18px; }
+.board-create-dialog > div > div > div:first-child { padding:18px 22px; border-color:#eee8f3; }
+.board-create-dialog > div > div > div:first-child > div { font-size:18px; font-weight:600; }
+.board-create-dialog > div > div > div:nth-child(2) { background:white; padding:20px 22px; }
+.board-create-dialog > div > div > div:last-child { padding:14px 22px; border-color:#eee8f3; }
+.board-create-dialog .create-board-panel { padding:0; border:0; background:transparent; border-radius:0; }
+.board-create-dialog .create-board-panel + .create-board-panel { border-left:1px solid #eee8f3; padding-left:22px; }
+.board-create-dialog .create-board-panel label > span, .create-module-label { font-size:12px; font-weight:500; text-transform:none; letter-spacing:0; color:#746482; }
+.create-module-label small { color:#a297ac; font-weight:400; margin-left:5px; }
+.board-create-dialog .create-board-field { border-radius:10px; background:#fcfbfd; border-color:#e6e0ed; font-size:13px; }
+.board-create-dialog textarea { resize:vertical; min-height:76px; }
+.board-create-dialog .create-board-hint { color:#8c8198; font-size:11px; }
+.board-create-dialog .create-board-panel > .text-slate-500 { font-weight:400; font-size:12px; }
+.create-module-options { display:flex; gap:8px; }
+.create-module-option { display:flex; flex:1; align-items:center; gap:8px; padding:8px; border:1px solid #e6e0ed; border-radius:10px; font-size:12px; color:#746482; background:white; }
+.create-module-option .language-board-icon { width:28px; height:28px; border-radius:8px; }
+.create-module-option .language-logo { width:22px; height:22px; }
+.create-module-option .language-logo-js { width:100%; height:100%; }
+.create-module-option[aria-pressed="true"] { border-color:var(--language); background:var(--language-soft); color:var(--language); }
+.create-module-option:disabled { opacity:.45; cursor:not-allowed; }
+.create-module-option:focus-visible { outline:2px solid var(--language); outline-offset:2px; }
+.board-create-dialog .create-board-member { border-radius:10px; box-shadow:none; }
+.board-create-dialog .create-board-member:has(input:checked) { background:#f5f1fb; border-color:#bba7dd; }
+.board-create-dialog input[type="checkbox"] { accent-color:#7958c5; }
+.board-create-dialog > div > div > div:last-child button { border-radius:10px; font-size:13px; }
+.board-create-dialog > div > div > div:last-child button:last-child:not(:disabled) { background:#7958c5; color:white; border-color:#7958c5; }
+@media(max-width:1023px) { .board-create-dialog .create-board-panel + .create-board-panel { border-left:0; border-top:1px solid #eee8f3; padding-left:0; padding-top:18px; } }

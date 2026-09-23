@@ -1882,23 +1882,22 @@ export default function AdminBoardsPage() {
                   )}
                 </label>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="grid gap-1.5">
-                    <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Model</span>
-                    <select
-                      value={selectedTrack}
-                      onChange={(e) => setSelectedTrack((e.target.value as ProjectTrack) || "")}
-                      disabled={!selectedSupervisor}
-                      className="create-board-field h-11 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12 disabled:opacity-60"
-                    >
-                      <option value="">Optional model</option>
+                <div className="grid gap-3">
+                  <div className="grid gap-1.5">
+                    <span className="create-module-label">Module <small>Optional</small></span>
+                    <div className="create-module-options" role="group" aria-label="Module">
                       {TRACK_OPTIONS.map((track) => (
-                        <option key={track.value} value={track.value}>
+                        <button key={track.value} type="button" data-language={track.value}
+                          className="create-module-option"
+                          aria-pressed={selectedTrack === track.value}
+                          disabled={!selectedSupervisor}
+                          onClick={() => setSelectedTrack(selectedTrack === track.value ? "" : track.value)}>
+                          <span className="language-board-icon"><span className={`language-logo language-logo-${track.value}`} aria-hidden="true" /></span>
                           {track.label}
-                        </option>
+                        </button>
                       ))}
-                    </select>
-                  </label>
+                    </div>
+                  </div>
 
                   <label className="grid gap-1.5">
                     <span className="text-[12px] font-black uppercase tracking-[0.08em] text-slate-500">Project</span>
@@ -1923,8 +1922,8 @@ export default function AdminBoardsPage() {
                     Suggested name: <span className="font-black">{boardName || "-"}</span>
                   </div>
                 ) : (
-                  <div className="rounded-[14px] border border-slate-200 bg-slate-50/80 px-3 py-2 text-[12px] font-semibold text-slate-500">
-                    Project selection is optional. Leave it empty if this board is for another purpose.
+                  <div className="create-board-hint text-[12px] text-slate-500">
+                    Leave the project empty for a general workspace.
                   </div>
                 )}
 
@@ -1943,7 +1942,7 @@ export default function AdminBoardsPage() {
                   <textarea
                     value={boardDescription}
                     onChange={(e) => setBoardDescription(e.target.value)}
-                    rows={4}
+                    rows={2}
                     className="create-board-field rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-semibold text-slate-900 outline-none focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
                     placeholder="Optional board description"
                   />
