@@ -1,3 +1,4 @@
+import { projectForBoard } from "../lib/boardProjects";
 import ImagePreview from "../components/ImagePreview";
 import WorkspaceCalendar from "../components/WorkspaceCalendar";
 import { CalendarDays, X } from "lucide-react";
@@ -19,6 +20,8 @@ type BoardRow = {
   id: number;
   name: string;
   description: string;
+  cover_version?: string;
+  can_edit_cover?: boolean;
   status?: "active" | "inactive";
   inactive_at?: string;
   supervisor_name: string;
@@ -1359,12 +1362,15 @@ export default function AdminBoardsPage() {
           <div className="grid grid-cols-3 gap-3 max-[1200px]:grid-cols-2 max-[780px]:grid-cols-1">
             {filtered.map((b) => {
               const desc = clampText(b.description, "No description provided.");
+              const project = projectForBoard(b.name);
+              const track = project ? TRACK_OPTIONS.find((option) => PROJECTS_BY_TRACK[option.value].includes(project.slug)) : undefined;
               const sup = clampText(b.supervisor_name, "Unknown supervisor");
               const status = boardStatus(b);
 
               return (
                 <div
                   key={b.id}
+                  data-language={track?.value || "custom"}
                   role="button"
                   tabIndex={0}
                   onClick={() => openBoard(b.id)}
@@ -1375,7 +1381,7 @@ export default function AdminBoardsPage() {
                     }
                   }}
                   className="
-                    group relative cursor-pointer
+                    language-board group relative cursor-pointer
                     rounded-[18px] border border-slate-900/10
                     bg-white/95 shadow-[0_14px_34px_rgba(15,23,42,0.07)]
                     p-4 pt-5
@@ -1391,22 +1397,14 @@ export default function AdminBoardsPage() {
                   <div className="flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-2.5 min-w-0">
                       <div className="flex min-w-0 items-center gap-2.5">
-                        <span
-                          className="
-                            grid place-items-center
-                            h-10 w-10 rounded-2xl
-                            border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc]
-                            flex-none
-                          "
-                          aria-hidden="true"
-                        >
-                          <BoardIcon />
+                        <span className="language-board-icon" title={track ? `${track.label} module` : "Custom workspace"} aria-label={track ? `${track.label} module` : "Custom workspace"}>
+                          {track ? <span className={`language-logo language-logo-${track.value}`} aria-hidden="true" /> : <BoardIcon />}
                         </span>
 
                         <div className="min-w-0">
                           <div
                             className={[
-                              "truncate text-[16px] font-black text-slate-900/92",
+                              "language-board-name text-[16px] font-black text-slate-900/92",
                               status === "inactive" ? "decoration-slate-900/70 decoration-2 line-through" : "",
                             ].join(" ")}
                             title={b.name}
@@ -1416,7 +1414,7 @@ export default function AdminBoardsPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-none items-center gap-2">
+                      <div className="language-board-actions flex flex-none items-center gap-2">
                         {canManageMembers ? (
                           <BoardStatusIconButton
                             status={status}
@@ -1457,7 +1455,7 @@ export default function AdminBoardsPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="language-board-meta flex flex-wrap gap-2">
                       <span
                         className="
                           inline-flex items-center gap-2
@@ -1504,7 +1502,7 @@ export default function AdminBoardsPage() {
                   {/* Desc */}
                   <div
                     className="
-                      mt-3 text-[13px] font-extrabold text-slate-900/60 leading-[1.45]
+                      language-board-description mt-3 text-[13px] font-extrabold text-slate-900/60 leading-[1.45]
                       overflow-hidden
                     "
                     style={{
@@ -1518,7 +1516,7 @@ export default function AdminBoardsPage() {
                   </div>
 
                   {/* Bottom */}
-                  <div className="mt-4 flex items-end justify-between gap-3">
+                  <div className="language-board-footer mt-4 flex items-end justify-between gap-3">
                     <div className="flex flex-wrap gap-2">
                       <span
                         className="
@@ -1574,12 +1572,15 @@ export default function AdminBoardsPage() {
             <div className="divide-y divide-slate-200/90">
               {filtered.map((b) => {
                 const desc = b.description?.trim();
+                const project = projectForBoard(b.name);
+                const track = project ? TRACK_OPTIONS.find((option) => PROJECTS_BY_TRACK[option.value].includes(project.slug)) : undefined;
                 const sup = clampText(b.supervisor_name, "Unknown supervisor");
                 const status = boardStatus(b);
 
                 return (
                   <div
                     key={b.id}
+                    data-language={track?.value || "custom"}
                     role="button"
                     tabIndex={0}
                     onClick={() => openBoard(b.id)}
@@ -1594,13 +1595,13 @@ export default function AdminBoardsPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
-                        <span className="grid h-11 w-11 flex-none place-items-center rounded-2xl border border-[#6d5efc]/20 bg-[#6d5efc]/10 text-[#6d5efc] shadow-[0_8px_18px_rgba(109,94,252,0.08)]">
-                          <BoardIcon />
+                        <span className="language-board-icon" title={track ? `${track.label} module` : "Custom workspace"} aria-label={track ? `${track.label} module` : "Custom workspace"}>
+                          {track ? <span className={`language-logo language-logo-${track.value}`} aria-hidden="true" /> : <BoardIcon />}
                         </span>
                         <div className="min-w-0">
                           <div
                             className={[
-                              "truncate text-[15px] font-black text-slate-900",
+                              "language-board-name text-[15px] font-black text-slate-900",
                               status === "inactive" ? "decoration-slate-900/70 decoration-2 line-through" : "",
                             ].join(" ")}
                             title={b.name}
@@ -1637,7 +1638,7 @@ export default function AdminBoardsPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 max-[920px]:justify-start">
+                    <div className="language-list-actions flex items-center justify-end gap-2 max-[920px]:justify-start">
                       {canManageMembers ? (
                         <BoardStatusIconButton
                           status={status}

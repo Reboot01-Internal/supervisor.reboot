@@ -17,6 +17,7 @@ func TestSupervisorBoardVisibility(t *testing.T) {
 	defer conn.Close()
 	conn.SetMaxOpenConns(1)
 	_, err = conn.Exec(`
+ CREATE TABLE board_covers (board_id INTEGER, version TEXT);
  CREATE TABLE users (id INTEGER, full_name TEXT);
  CREATE TABLE supervisor_files (id INTEGER, supervisor_user_id INTEGER);
  CREATE TABLE boards (id INTEGER, supervisor_file_id INTEGER, name TEXT, description TEXT, status TEXT, inactive_at TEXT, created_at TEXT);

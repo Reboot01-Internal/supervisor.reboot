@@ -117,6 +117,8 @@ func main() {
 		ar.Get("/boards", api.AdminListBoardsByFile)
 		ar.Post("/boards/update", api.AdminUpdateBoard)
 		ar.Post("/boards/status", api.AdminUpdateBoardStatus)
+		ar.Get("/boards/cover", api.BoardCover)
+		ar.Post("/boards/cover", api.BoardCover)
 		ar.Post("/boards/reassign", api.AdminReassignBoard)
 		ar.Post("/boards/delete", api.AdminDeleteBoard)
 
@@ -252,6 +254,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/017_board_status.sql",
 		"migrations/018_list_colors.sql",
 		"migrations/019_inactive_assignments.sql",
+		"migrations/020_board_covers.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 

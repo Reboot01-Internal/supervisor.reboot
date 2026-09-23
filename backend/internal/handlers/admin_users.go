@@ -1092,8 +1092,10 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			sf.id,
 			b.created_at,
 			COUNT(DISTINCT l.id) as lists_count,
-			COUNT(DISTINCT c.id) as cards_count
+			COUNT(DISTINCT c.id) as cards_count,
+            IFNULL(bc.version, '')
 		FROM boards b
+        LEFT JOIN board_covers bc ON bc.board_id = b.id
 		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
 		JOIN users u ON u.id = sf.supervisor_user_id
 		LEFT JOIN lists l ON l.board_id = b.id
@@ -1114,8 +1116,10 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			sf.id,
 			b.created_at,
 			COUNT(DISTINCT l.id) as lists_count,
-			COUNT(DISTINCT c.id) as cards_count
+			COUNT(DISTINCT c.id) as cards_count,
+            IFNULL(bc.version, '')
 		FROM boards b
+        LEFT JOIN board_covers bc ON bc.board_id = b.id
 		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
 		JOIN users u ON u.id = sf.supervisor_user_id
 		LEFT JOIN lists l ON l.board_id = b.id
@@ -1140,8 +1144,10 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 			sf.id,
 			b.created_at,
 			COUNT(DISTINCT l.id) as lists_count,
-			COUNT(DISTINCT c.id) as cards_count
+			COUNT(DISTINCT c.id) as cards_count,
+            IFNULL(bc.version, '')
 		FROM boards b
+        LEFT JOIN board_covers bc ON bc.board_id = b.id
 		JOIN board_members bm ON bm.board_id = b.id
 		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
 		JOIN users u ON u.id = sf.supervisor_user_id
@@ -1162,6 +1168,8 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type Row struct {
+		CoverVersion     string `json:"cover_version"`
+		CanEditCover     bool   `json:"can_edit_cover"`
 		ID               int64  `json:"id"`
 		Name             string `json:"name"`
 		Description      string `json:"description"`
@@ -1181,11 +1189,12 @@ func (a *API) AdminAllBoards(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(
 			&rr.ID, &rr.Name, &rr.Description, &rr.Status, &rr.InactiveAt, &rr.Supervisor,
 			&rr.SupervisorUserID, &rr.SupervisorFileID,
-			&rr.CreatedAt, &rr.ListsCount, &rr.CardsCount,
+			&rr.CreatedAt, &rr.ListsCount, &rr.CardsCount, &rr.CoverVersion,
 		); err != nil {
 			writeErr(w, 500, "scan error")
 			return
 		}
+		rr.CanEditCover = (role == "admin" || rr.SupervisorUserID == actor) && !projectBoardPattern.MatchString(strings.TrimSpace(rr.Name))
 		out = append(out, rr)
 	}
 
