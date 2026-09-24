@@ -109,7 +109,7 @@ func getRebootAdminToken() (string, error) {
 		req.Header.Set("Authorization", "Basic "+encoded)
 		req.Header.Set("Content-Type", "application/json")
 	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
 	if err != nil {
 		log.Printf("avatar: admin token request failed: %v", err)
 		return "", err
@@ -185,7 +185,7 @@ func fetchRebootAvatarRefByLogin(adminToken, login string) (rebootAvatarRef, err
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
 	if err != nil {
 		log.Printf("avatar: graphql request failed for login=%s: %v", login, err)
 		return rebootAvatarRef{}, err
@@ -262,7 +262,7 @@ func fetchRebootAvatarRefByID(adminToken string, rebootUserID int64) (rebootAvat
 	req.Header.Set("Authorization", "Bearer "+adminToken)
 	req.Header.Set("Content-Type", "application/json")
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
 	if err != nil {
 		log.Printf("avatar: graphql request failed for reboot_user_id=%d: %v", rebootUserID, err)
 		return rebootAvatarRef{}, err

@@ -1,3 +1,4 @@
+import TalentJourneyMap from "../components/TalentJourneyMap";
 import ReportInsights from "./ReportInsights";
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -45,6 +46,7 @@ export default function AdminReportsPage(){
  return <AdminLayout active="reports" title="Reports" subtitle="Supervisor activity, project progress, and the work still ahead." right={<button className="report-refresh" onClick={()=>setRevision(v=>v+1)} disabled={loading}><RefreshCw size={15}/> Refresh</button>}>
  <div className="reports-hub">
   {error && <p role="alert">{error}</p>}
+  <TalentJourneyMap revision={revision}/>
   <ReportInsights boards={boards} people={people} avatars={avatars} done={totals.done} cards={totals.cards} complete={!loading&&complete} revision={revision}/>
   <section className="reports-overview">
    <div className="reports-activity"><div className="reports-activity-head"><span>SUPERVISOR ACTIVITY</span><div><button aria-label="Previous week" onClick={()=>setWeek(w=>w+1)}><ChevronLeft size={16}/></button><span>{week===0?'This week':`${week} week${week===1?'':'s'} ago`}</span><button aria-label="Next week" disabled={!week} onClick={()=>setWeek(w=>w-1)}><ChevronRight size={16}/></button></div></div>
