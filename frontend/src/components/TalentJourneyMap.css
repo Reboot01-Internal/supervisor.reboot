@@ -28,3 +28,7 @@
 .admin-dark .talent-map .talent-map-detail { background:#30283f; border-color:#51465d; }
 .admin-dark .talent-map-detail>.talent-detail-field>strong { color:#eee7f7; }
 @media(max-width:600px){.talent-map .talent-map-detail>.talent-detail-field:nth-child(n+3){border-left:0;border-top:1px solid #e8e1f3;padding:12px 0 0}}
+.talent-load-progress{display:block;width:100%;height:5px;margin:-8px 0 22px;border:0;border-radius:8px;overflow:hidden;accent-color:#6d5efc;background:#eee9fa}
+.talent-load-progress::-webkit-progress-bar{background:#eee9fa;border-radius:8px}
+.talent-load-progress::-webkit-progress-value{background:#6d5efc;border-radius:8px;transition:width .2s}
+.talent-load-progress::-moz-progress-bar{background:#6d5efc;border-radius:8px}
