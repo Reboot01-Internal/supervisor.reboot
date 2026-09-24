@@ -1,4 +1,4 @@
-import { Search, LayoutDashboard, CircleCheck, CircleDashed } from "lucide-react";
+import { X, Search, LayoutDashboard, CircleCheck, CircleDashed } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 import BoardCalendar from "./BoardCalendar";
@@ -25,7 +25,7 @@ export default function WorkspaceCalendar({ boards }: { boards: { id: number; na
  return <div className="workspace-calendar-view">
   <div className="calendar-overview-toolbar">
   <div className="calendar-filterbar">
-    <label className="calendar-filter-search"><Search size={18} aria-hidden="true"/><input aria-label="Search tasks, boards, supervisors, supervisees, usernames, emails and labels" placeholder="Search tasks, boards, supervisors, supervisees, usernames or emails…" value={query} onChange={e=>setQuery(e.target.value)}/></label>
+    <div className="calendar-filter-search"><Search size={18} aria-hidden="true"/><input aria-label="Search tasks, boards, supervisors, supervisees, usernames, emails and labels" placeholder="Search tasks, boards or people…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setQuery("")}}/>{query&&<button className="search-reset" type="button" aria-label="Clear task search" title="Clear search" onClick={()=>setQuery("")}><X size={15}/></button>}</div>
     <label><span>Status</span><select value={taskStatus} onChange={e=>setTaskStatus(e.target.value)}><option value="all">All tasks</option><option value="open">Uncompleted tasks</option><option value="done">Completed tasks</option></select></label>
     {(query||taskStatus!=="all")&&<button type="button" onClick={()=>{setQuery("");setTaskStatus("all")}}>Clear</button>}
   </div>

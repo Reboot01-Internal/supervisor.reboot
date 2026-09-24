@@ -75,3 +75,32 @@
 .workspace-header-actions > button:focus-visible { outline:2px solid #9e82bd; outline-offset:3px; }
 .admin-dark .workspace-header-actions > button { background:#2d263a; color:#c1aed3; border-color:#51465d; }
 .admin-dark .workspace-header-actions > button:hover { background:#392e49; }
+
+/* Match the unboxed, semantic actions on directory cards. */
+.workspace-header-actions > .board-detail-icon-button { width:27px; height:27px; border-radius:50%; border-color:transparent; background:transparent; }
+.workspace-header-actions > .board-detail-icon-button-status[data-status="active"],
+.workspace-header-actions > .board-detail-icon-button-success { color:#008f68; }
+.workspace-header-actions > .board-detail-icon-button-status[data-status="inactive"] { color:#8c8198; }
+.workspace-header-actions > .board-detail-icon-button-warning { color:#bd5900; }
+.workspace-header-actions > .board-detail-icon-button-danger { color:#e31c35; }
+.workspace-header-actions > .board-detail-icon-button:hover { background:#f2edf9; border-color:#e4d9f2; }
+.admin-dark .workspace-header-actions > .board-detail-icon-button { background:transparent; border-color:transparent; }
+.admin-dark .workspace-header-actions > .board-detail-icon-button:hover { background:#392e49; border-color:#564466; }
+.admin-dark .workspace-header-actions > .board-detail-icon-button-warning { color:#f5b45c; }
+.admin-dark .workspace-header-actions > .board-detail-icon-button-success,
+.admin-dark .workspace-header-actions > .board-detail-icon-button-status[data-status="active"] { color:#69d4ae; }
+.admin-dark .workspace-header-actions > .board-detail-icon-button-danger { color:#ff8998; }
+
+/* Navigation and primary actions retain the app purple; language marks stay distinct. */
+.board-detail-page .board-view-navigation button.is-active { color:#6d5efc; border-bottom-color:#6d5efc; }
+.board-detail-page .board-new-list,
+.board-detail-page .board-list-composer > button[type="submit"] { color:#6d5efc; background:#fff; border-color:#6d5efc30; }
+.board-detail-page .board-new-list:hover,
+.board-detail-page .board-list-composer > button[type="submit"]:hover { background:#6d5efc0d; }
+.board-detail-page .board-list-add-card,
+.board-detail-page .board-card-open,
+.workspace-header-actions > .board-detail-back-button { color:#6d5efc; }
+.board-detail-page .board-list-composer input:focus { border-color:#6d5efc80; box-shadow:0 0 0 3px #6d5efc12; }
+.workspace-header-actions > button:focus-visible { outline-color:#6d5efc; }
+.admin-dark .board-detail-page .board-new-list,
+.admin-dark .board-detail-page .board-list-composer > button[type="submit"] { background:#2d263a; color:#b6adff; border-color:#6d5efc60; }

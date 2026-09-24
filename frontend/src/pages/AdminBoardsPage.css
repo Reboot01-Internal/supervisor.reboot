@@ -151,3 +151,82 @@
 .board-create-dialog > div > div > div:last-child button { border-radius:10px; font-size:13px; }
 .board-create-dialog > div > div > div:last-child button:last-child:not(:disabled) { background:#7958c5; color:white; border-color:#7958c5; }
 @media(max-width:1023px) { .board-create-dialog .create-board-panel + .create-board-panel { border-left:0; border-top:1px solid #eee8f3; padding-left:0; padding-top:18px; } }
+
+/* One compact search treatment across the three directory views. */
+.boards-page .boards-search, .boards-page .calendar-filter-search { display:flex; align-items:center; gap:10px; min-width:0; height:44px; padding:0 13px; border:1px solid #e6e0ed; border-radius:12px; background:#fff; box-shadow:0 2px 8px #30264103; }
+.boards-page .calendar-filter-search { flex:1; }
+.boards-page .boards-search input, .boards-page .calendar-filter-search input { flex:1; min-width:0; width:100%; padding:0; border:0; outline:0; background:transparent; font-size:13px; font-weight:400; color:#302a4d; }
+.boards-page .boards-search > span, .boards-page .calendar-filter-search > svg { color:#9884b2; flex:none; }
+.boards-page .boards-search:focus-within, .boards-page .calendar-filter-search:focus-within { border-color:#ac94c6; outline:none; box-shadow:0 0 0 3px #ac94c615; }
+.boards-page .boards-search button, .boards-page .calendar-filter-search .search-reset { display:grid; place-items:center; width:26px; height:26px; padding:0; flex:none; border:0; border-radius:7px; background:#f5f2f9; color:#8c789e; }
+.boards-page .boards-search button:hover, .boards-page .calendar-filter-search .search-reset:hover { background:#ece5f5; color:#7958c5; }
+.boards-page .boards-status, .boards-page .calendar-filterbar > label { height:44px; padding:0 10px; border:1px solid #e6e0ed; border-radius:12px; background:white; box-shadow:none; gap:8px; }
+.boards-page .boards-status > span, .boards-page .calendar-filterbar label > span { text-transform:none; letter-spacing:0; font-size:11px; color:#988ba4; font-weight:500; }
+.boards-page .boards-status select, .boards-page .calendar-filterbar select { height:30px; border:0; border-radius:7px; background:#f7f4fa; color:#746482; font-size:12px; }
+.boards-page .boards-totals > span, .boards-page .calendar-summary-pill { height:44px; border:0; background:transparent; padding:0 8px; gap:8px; box-shadow:none; }
+.boards-page .boards-totals > span > span:first-child, .boards-page .calendar-summary-icon { width:26px; height:26px; border:0; background:transparent; color:#a292b4; }
+.boards-page .boards-totals > span > span:last-child, .boards-page .calendar-summary-pill > span:last-child { display:flex; flex-direction:row; align-items:baseline; gap:5px; font-size:12px; }
+.boards-page .calendar-summary-pill small { font-size:11px; }
+.admin-dark .boards-page .boards-search, .admin-dark .boards-page .calendar-filter-search, .admin-dark .boards-page .boards-status, .admin-dark .boards-page .calendar-filterbar > label { background:#2d263a; border-color:#51465d; }
+.admin-dark .boards-page .calendar-filter-search input { color:#e8e0f1; }
+@media(max-width:640px) { .boards-page .calendar-filter-search { flex-basis:100%; }.boards-page .boards-totals { gap:8px; } }
+
+/* Consistent compact search, filters, and summaries in all directory views. */
+.boards-page .boards-search,
+.boards-page .calendar-filterbar .calendar-filter-search,
+.boards-page .boards-status,
+.boards-page .calendar-filterbar label { display:flex; align-items:center; gap:10px; height:44px; min-height:44px; padding:0 13px; border:1px solid #e6e0ed; border-radius:12px; background:#fff; box-shadow:0 3px 12px #30264103; }
+.boards-page .boards-search input,
+.boards-page .calendar-filterbar input { height:42px; font-size:13px; font-weight:400; color:#51435e; }
+.boards-page .boards-search > span,
+.boards-page .calendar-filter-search > svg { color:#9a87ac; flex-shrink:0; }
+.boards-page .boards-search svg { width:17px; height:17px; }
+.boards-page .boards-search:focus-within,
+.boards-page .calendar-filterbar .calendar-filter-search:focus-within { border-color:#b59bd2; box-shadow:0 0 0 3px #ac94c615; }
+.boards-page .boards-status > span,
+.boards-page .calendar-filterbar label > span { font-size:11px; font-weight:500; text-transform:none; letter-spacing:0; color:#8c8198; }
+.boards-page .boards-status select,
+.boards-page .calendar-filterbar select { height:30px; border:0; border-radius:7px; background:#faf8fc; color:#746482; font-size:12px; font-weight:500; }
+.boards-page .boards-search button,
+.boards-page .calendar-filter-search .search-reset { display:grid; place-items:center; width:26px; height:26px; flex:none; padding:0; border:0; border-radius:7px; color:#8c8198; background:transparent; }
+.boards-page .boards-search button:hover,
+.boards-page .calendar-filter-search .search-reset:hover { background:#f2edf9; color:#7958c5; }
+.boards-page .boards-totals > span,
+.boards-page .calendar-summary-pill { height:44px; padding:0 12px; gap:8px; border-radius:12px; border-color:#e6e0ed; box-shadow:none; }
+.boards-page .boards-totals > span > span:first-child,
+.boards-page .calendar-summary-icon { width:22px; height:22px; border:0; background:transparent; color:#9a87ac; }
+.boards-page .boards-totals > span > span:last-child { flex-direction:row; align-items:baseline; gap:5px; }
+.boards-page .boards-totals .text-\[14px\],
+.boards-page .calendar-summary-pill strong { font-size:13px; font-weight:600; }
+.boards-page .boards-totals .text-\[12px\],
+.boards-page .calendar-summary-pill small { font-size:11px; font-weight:400; }
+.boards-page .calendar-summary-pill strong,
+.boards-page .calendar-summary-pill small { display:inline; }
+.boards-page .calendar-summary-pill small { margin-left:5px; }
+.admin-dark .boards-page :is(.boards-search,.boards-status,.calendar-filterbar .calendar-filter-search,.calendar-filterbar label,.boards-totals > span,.calendar-summary-pill) { background:#2d263a; border-color:#51465d; }
+.admin-dark .boards-page :is(.boards-search input,.calendar-filterbar input) { color:#e8e0f1; }
+.admin-dark .boards-page :is(.boards-status select,.calendar-filterbar select) { background:#392e49; color:#d0bbe7; }
+
+/* Keep TaskFlow's original vivid purple as the primary interface accent. */
+.boards-page .boards-search > span,
+.boards-page .calendar-filter-search > svg,
+.boards-page .boards-status > span,
+.boards-page .calendar-filterbar label > span,
+.boards-page .boards-totals > span > span:first-child,
+.boards-page .calendar-summary-icon { color:#6d5efc; }
+.boards-page .boards-status select,
+.boards-page .calendar-filterbar select { color:#6d5efc; background:#6d5efc0a; }
+.boards-page .boards-search:focus-within,
+.boards-page .calendar-filterbar .calendar-filter-search:focus-within { border-color:#6d5efc80; box-shadow:0 0 0 3px #6d5efc12; }
+.boards-page .boards-search button:hover,
+.boards-page .calendar-filter-search .search-reset:hover { color:#6d5efc; background:#6d5efc0d; }
+.boards-page select:focus-visible,
+.board-create-dialog :where(input,select,textarea):focus,
+.board-members-popup button:focus-visible { outline-color:#6d5efc; }
+.board-create-dialog .create-board-panel label > span,
+.board-create-dialog .create-module-label,
+.board-members-popup .board-popup-edit,
+.board-members-popup .board-popup-close { color:#6d5efc; }
+.board-create-dialog > div > div > div:last-child button:last-child:not(:disabled) { background:#6d5efc; border-color:#6d5efc; }
+.board-create-dialog input[type="checkbox"] { accent-color:#6d5efc; }
+.board-create-dialog .create-board-member:has(input:checked) { background:#6d5efc08; border-color:#6d5efc60; }

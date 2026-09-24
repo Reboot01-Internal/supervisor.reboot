@@ -109,6 +109,7 @@ function BoardStatusIconButton({
   return (
     <button
       type="button"
+      data-status={status}
       className={[
         "board-detail-icon-button board-detail-icon-button-status grid h-10 w-10 place-items-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-60",
         isActive
@@ -1197,6 +1198,12 @@ export default function BoardPage() {
     if (!canManage || !data || statusUpdating) return;
     const current = boardStatus(data);
     const next = current === "active" ? "inactive" : "active";
+    const confirmed = await confirm({
+      title: next === "inactive" ? "Mark board inactive?" : "Activate board?",
+      message: `Are you sure you want to mark “${data.name}” as ${next}? You can change this again later.`,
+      confirmLabel: next === "inactive" ? "Mark inactive" : "Activate board",
+    });
+    if (!confirmed) return;
     setStatusUpdating(true);
     setErr("");
     setData((prev) => (prev ? { ...prev, status: next } : prev));
@@ -1645,17 +1652,20 @@ export default function BoardPage() {
           onClick={() => setMembersOpen(false)}
         >
           <div
+            data-language={boardLanguage}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="workspace-members-title"
             className="board-members-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[18px] font-black text-slate-900">Board Members</div>
-                {/* <div className="text-[12px] font-semibold text-slate-500">
-                  Read-only view for board participants
-                </div> */}
+            <div className="board-members-header mb-3 flex items-center justify-between gap-3">
+              {boardLanguage !== "custom" && <span className="language-board-icon" aria-label={`${boardLanguage === "js" ? "JavaScript" : boardLanguage === "go" ? "Go" : "Rust"} module`}><span className={`language-logo language-logo-${boardLanguage}`} aria-hidden="true" /></span>}
+              <div className="min-w-0 flex-1">
+                <div id="workspace-members-title" className="text-[18px] font-black text-slate-900">Board Members</div>
+                <div className="truncate text-[12px] text-slate-500" title={pageTitle}>{pageTitle}</div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 {canManage ? (
                   <button
                     className="board-popup-edit h-9 w-9 grid place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
@@ -1670,10 +1680,13 @@ export default function BoardPage() {
                   </button>
                 ) : null}
                 <button
-                  className="board-popup-close h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+                  type="button"
+                  aria-label="Close members"
+                  title="Close members"
+                  className="board-popup-close grid h-8 w-8 shrink-0 place-items-center rounded-lg"
                   onClick={() => setMembersOpen(false)}
                 >
-                  Close
+                  <X size={18} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -1717,7 +1730,7 @@ export default function BoardPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-none items-center gap-2">
+                      <div className="board-member-roles flex flex-none items-center gap-2">
                         <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-700">
                           {roleDisplay(m.role)}
                         </span>

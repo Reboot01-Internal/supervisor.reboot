@@ -1050,6 +1050,12 @@ export default function AdminBoardsPage() {
     if (statusUpdatingBoardID === board.id) return;
     const current = boardStatus(board);
     const next = current === "active" ? "inactive" : "active";
+    const confirmed = await confirm({
+      title: next === "inactive" ? "Mark board inactive?" : "Activate board?",
+      message: `Are you sure you want to mark “${board.name}” as ${next}? You can change this again later.`,
+      confirmLabel: next === "inactive" ? "Mark inactive" : "Activate board",
+    });
+    if (!confirmed) return;
     const optimisticInactiveAt = next === "inactive" ? new Date().toISOString() : "";
     setStatusUpdatingBoardID(board.id);
     setErr("");
@@ -1278,18 +1284,21 @@ export default function AdminBoardsPage() {
               <input
                 className="min-w-0 flex-1 bg-transparent text-[14px] font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
                 aria-label="Search boards, supervisors, cohorts, or descriptions"
-                placeholder="Search boards, supervisors, cohorts, or descriptions..."
+                placeholder="Search boards, people or cohorts…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setSearch(""); }}
               />
 
-              {search.trim() && (
+              {search && (
                 <button
                   className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-[11px] font-black text-slate-500 transition hover:border-slate-300 hover:bg-white hover:text-slate-700"
                   type="button"
+                  aria-label="Clear board search"
+                  title="Clear search"
                   onClick={() => setSearch("")}
                 >
-                  Clear
+                  <X size={15} aria-hidden="true" />
                 </button>
               )}
             </div>
