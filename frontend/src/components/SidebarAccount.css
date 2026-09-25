@@ -18,3 +18,25 @@
 .admin-dark .sa-options button:last-child{border-color:#584167}
 @keyframes sa-reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.sa-profile,.sa-profile img,.sa-profile-arrow,.sa-toggle{transition:none}.sa-profile:hover img,.sa-profile:hover .sa-profile-arrow{transform:none}.sa-options{animation:none}}
+
+/* Compact account popover, using the workspace accent. */
+.sidebar-account .sa-options {
+  bottom: calc(100% + 4px); padding: 8px; border-radius: 16px;
+  background: #fff; border-color: #e6e0f2;
+  box-shadow: 0 12px 32px #302a4d18;
+}
+.sidebar-account .sa-options-label { padding: 8px 10px 9px; color: #9187a5; font-size: 9px; font-weight: 600; letter-spacing: .1em; }
+.app-frame aside .sidebar-account .sa-options button {
+  min-height: 38px; padding: 9px 10px; gap: 10px;
+  border-radius: 9px; font-size: 12px; font-weight: 500; color: #465169;
+  line-height: 1.4; text-align: left;
+}
+.sidebar-account .sa-options button svg { color: #6d5efc; flex-shrink: 0; width: 16px; height: 16px; }
+.sidebar-account .sa-options button:hover { background: #f4f1ff; color: #6d5efc; }
+.app-frame aside .sidebar-account .sa-options button:last-child { margin-top: 6px; border-top: 1px solid #eee9f5; border-radius: 0 0 9px 9px; color: #c34c60; }
+.sidebar-account .sa-options button:last-child svg { color: inherit; }
+.sidebar-account .sa-options button:focus-visible { outline-color: #6d5efc; outline-offset: -2px; }
+.admin-dark .sidebar-account .sa-options { background: #171e30; border-color: #30394f; }
+.admin-dark.app-frame aside .sidebar-account .sa-options button,
+.admin-dark .app-frame aside .sidebar-account .sa-options button { color: #d7dceb; }
+.admin-dark .sidebar-account .sa-options button:hover { background: #292640; }

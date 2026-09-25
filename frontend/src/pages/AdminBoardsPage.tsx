@@ -1,3 +1,4 @@
+import "../components/ReassignDialog.css";
 import { projectForBoard } from "../lib/boardProjects";
 import ImagePreview from "../components/ImagePreview";
 import WorkspaceCalendar from "../components/WorkspaceCalendar";
@@ -1177,7 +1178,7 @@ export default function AdminBoardsPage() {
         onClick={closeReassignModal}
       >
         <div
-          className="workspace-reassign-popup w-full max-w-[560px] rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_22px_60px_rgba(15,23,42,0.28)]"
+          className="workspace-reassign-popup" role="dialog" aria-modal="true" aria-label="Reassign board ownership"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between gap-3">
@@ -1188,11 +1189,11 @@ export default function AdminBoardsPage() {
               </div>
             </div>
             <button
-              className="h-9 rounded-lg border border-slate-200 bg-slate-50 text-sm font-extrabold text-slate-700 hover:bg-slate-100"
+              className="reassign-close" aria-label="Close reassign dialog"
               onClick={closeReassignModal}
               disabled={reassigning}
             >
-              Close
+              <X size={18} aria-hidden="true" />
             </button>
           </div>
 
@@ -1231,16 +1232,16 @@ export default function AdminBoardsPage() {
             )}
           </div>
 
-          <div className="mt-4 flex items-center gap-2">
+          <div className="reassign-actions">
             <button
-              className="h-11 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 px-4 text-sm font-black text-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="reassign-submit"
               onClick={submitReassign}
               disabled={reassigning || !nextSupervisorID}
             >
               {reassigning ? "Moving..." : "Move board"}
             </button>
             <button
-              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-50"
+              className="reassign-cancel"
               onClick={closeReassignModal}
               disabled={reassigning}
             >
