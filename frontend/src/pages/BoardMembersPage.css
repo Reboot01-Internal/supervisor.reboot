@@ -39,3 +39,33 @@
 .admin-dark .board-members-page .board-member-row-selected-remove{background:#482c3b}
 @media(max-width:1050px){.members-workspace{grid-template-columns:1fr}.members-scroll{max-height:380px}}
 @media(max-width:600px){.board-members-page .board-members-panel{padding:18px}.members-search-form .board-members-search{flex-basis:100%}.members-search-form select{flex:1}.members-selection-bar{gap:5px}.members-selection-bar button{font-size:10px}}
+
+/* Align membership management with the Boards interface. */
+.board-members-page{--members-muted:#82768f;--members-ink:#302a49;--members-line:#e6e0ed;--members-soft:#faf8ff}
+.members-workspace{grid-template-columns:1fr 1fr;gap:18px}
+.board-members-page .board-members-panel{padding:22px;border-radius:18px;box-shadow:0 4px 16px #30264104}
+.members-eyebrow,.members-panel-title svg,.board-members-search svg{color:#6d5efc}
+.members-panel-title{font-size:18px;letter-spacing:-.3px}
+.board-members-panel>div:first-child>span{background:#6d5efc0c;color:#6d5efc}
+.board-members-page .board-members-search{background:#fff;height:42px;border-radius:10px}
+.board-members-search:focus-within{border-color:#6d5efc80;box-shadow:0 0 0 3px #6d5efc12}
+.members-search-form select{height:42px;background:#6d5efc08;color:#6d5efc}
+.board-members-page .members-search-form button{height:42px;color:#6d5efc;background:#fff;border:1px solid #6d5efc30}
+.board-members-page .members-search-form button:hover{background:#6d5efc0a}
+.members-selection-bar{padding:10px 0;margin-top:14px;gap:6px}
+.board-members-page .members-selection-bar button{color:#6d5efc;font-size:12px}
+.board-members-page .members-selection-bar button:disabled{opacity:1;color:#a69aaf;background:#f6f4f8;cursor:not-allowed}
+.board-members-page .members-selection-bar .members-add-action{background:#6d5efc;border-color:#6d5efc;color:white}
+.board-members-page .members-selection-bar .members-add-action:disabled{background:#efebf7;border-color:#efebf7;color:#a397b0}
+.board-members-page .members-selection-bar button:last-child:not(.members-add-action){color:#c3474b}
+.board-members-page .members-selection-bar button:last-child:disabled:not(.members-add-action){color:#ac939a;background:#faf5f6}
+.board-members-page .board-member-row-card{padding:14px 8px;border-bottom-color:#eee8f3}
+.board-members-page .board-member-row-card .text-xs{font-size:11px}
+.board-member-row-card input[type=checkbox]{accent-color:#6d5efc}
+.board-members-page .board-member-row-selected-add{border-color:#6d5efc60;background:#6d5efc07}
+.members-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:30px 16px;text-align:center;background:#faf9fd;border-radius:12px;margin-top:4px}
+.members-empty svg{color:#6d5efc}.members-empty strong{font-size:13px;font-weight:500;color:#51435e}.members-empty span{font-size:12px;color:#8c8198}
+.members-owner-note{font-size:11px;margin-top:14px;color:#8c8198}
+.board-members-page :is(button,input,select):focus-visible{outline-color:#6d5efc}
+.admin-dark .members-empty{background:#30283b}.admin-dark .members-empty strong{color:#e6dced}
+@media(max-width:1050px){.members-workspace{grid-template-columns:1fr}}

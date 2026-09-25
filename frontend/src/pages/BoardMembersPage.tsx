@@ -613,7 +613,7 @@ export default function BoardMembersPage() {
 
             <div className="members-scroll" aria-busy={searching}>
               {searching ? <SkeletonBlock lines={3}/> : results.length === 0 ? (
-                <div className="text-sm font-semibold text-slate-500">No matching users found.</div>
+                <div className="members-empty" role="status"><UserPlus size={24} aria-hidden="true"/><strong>No matching people</strong><span>Try another name or change the role filter.</span></div>
               ) : (
                 <div className="grid gap-2.5">
                   {results.map((u) => {
