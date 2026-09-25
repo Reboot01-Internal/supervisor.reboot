@@ -234,6 +234,8 @@ export default function AdminLayout({
               </svg>
             }
           />
+
+          {isSupervisor && <NavItem activeItem={active === "reports"} label="Reports" ariaLabel="Open reports" onClick={() => { nav("/admin/reports"); setAdminSidebarOpen(false); }} icon={<svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true"><path d="M5 20V10m7 10V4m7 16v-7" stroke="#6d5efc" strokeWidth="2" strokeLinecap="round"/></svg>} />}
         </div>
       </div>
 
@@ -402,6 +404,8 @@ export default function AdminLayout({
                       </svg>
                     }
                   />
+
+          {isSupervisor && <NavItem activeItem={active === "reports"} label="Reports" ariaLabel="Open reports" onClick={() => { nav("/admin/reports"); setAdminSidebarOpen(false); }} icon={<svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true"><path d="M5 20V10m7 10V4m7 16v-7" stroke="#6d5efc" strokeWidth="2" strokeLinecap="round"/></svg>} />}
                 </div>
               </div>
 

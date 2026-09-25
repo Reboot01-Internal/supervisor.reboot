@@ -139,7 +139,7 @@ export default function App() {
 
       <Route
         path="/admin/reports"
-        element={<RequireAdmin><AdminReportsPage /></RequireAdmin>}
+        element={<RequireManageBoards><AdminReportsPage /></RequireManageBoards>}
       />
 
       <Route
