@@ -38,7 +38,7 @@ export default function SupervisorUsersPage() {
       setLoading(true);
       setErr("");
       try {
-        const res: ProfileSummary = await apiFetch("/admin/profile/summary");
+        const res: ProfileSummary = await apiFetch("/admin/profile/summary?include_inactive=1");
         if (!alive) return;
         setRows(res?.supervisor?.assigned_students || []);
         setTotalAssigned(res?.supervisor?.assigned_students_overall || 0);

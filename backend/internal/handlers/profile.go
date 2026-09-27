@@ -217,7 +217,7 @@ func (a *API) ProfileSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hasSupervisorRole {
-		section, err := a.profileForSupervisor(uid)
+		section, err := a.profileForSupervisor(uid, r.URL.Query().Get("include_inactive") == "1")
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, "failed to load supervisor profile")
 			return
@@ -365,7 +365,7 @@ func (a *API) profileTasks(userID int64) (profileTaskSection, error) {
 	return out, nil
 }
 
-func (a *API) profileForSupervisor(supervisorID int64) (*profileSupervisorSection, error) {
+func (a *API) profileForSupervisor(supervisorID int64, includeInactive bool) (*profileSupervisorSection, error) {
 	section := &profileSupervisorSection{
 		AssignedStudents: []profileSupervisorStudent{},
 		Boards:           []profileSupervisorBoard{},
@@ -375,9 +375,9 @@ func (a *API) profileForSupervisor(supervisorID int64) (*profileSupervisorSectio
 		SELECT u.id, u.full_name, IFNULL(u.nickname,''), u.email, u.is_active
 		FROM supervisor_students ss
 		JOIN users u ON u.id = ss.student_user_id
-		WHERE ss.supervisor_user_id = ?
+		WHERE ss.supervisor_user_id = ? AND (u.is_active = 1 OR ?)
 		ORDER BY u.full_name ASC
-	`, supervisorID)
+	`, supervisorID, includeInactive)
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +420,7 @@ func (a *API) profileForSupervisor(supervisorID int64) (*profileSupervisorSectio
 		SELECT
 			b.id,
 			b.name,
-			COALESCE(SUM(CASE WHEN u.role = 'student' THEN 1 ELSE 0 END), 0) AS students_count
+			COALESCE(SUM(CASE WHEN u.role = 'student' AND u.is_active = 1 THEN 1 ELSE 0 END), 0) AS students_count
 		FROM boards b
 		JOIN supervisor_files sf ON sf.id = b.supervisor_file_id
 		LEFT JOIN board_members bm ON bm.board_id = b.id

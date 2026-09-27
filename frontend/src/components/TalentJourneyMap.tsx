@@ -41,7 +41,7 @@ function loadJourney(force:boolean) {
  const entry: NonNullable<typeof journeyCache>={key};
  journeyCache=entry;
  entry.pending=(async()=>{
-  const talents:Talent[]=localStorage.getItem('role')==='supervisor' ? (await apiFetch('/admin/profile/summary')).supervisor?.assigned_students || [] : await apiFetch('/admin/users?include_inactive=1&role=student');
+  const talents:Talent[]=localStorage.getItem('role')==='supervisor' ? (await apiFetch('/admin/profile/summary')).supervisor?.assigned_students || [] : await apiFetch('/admin/users?role=student');
   const profiles:Record<number,Profile|null>={};
   let avatars:Record<string,string>={};
   const publish=()=>{entry.value={talents,profiles:{...profiles},avatars};if(journeyCache===entry)journeyListeners.forEach(listener=>listener(entry.value!));};

@@ -146,7 +146,7 @@ func (api *API) AdminAssignList(w http.ResponseWriter, r *http.Request) {
 SELECT u.id, u.full_name, u.nickname, u.email, IFNULL(u.cohort,'')
 		FROM supervisor_students ss
 		JOIN users u ON u.id = ss.student_user_id
-		WHERE ss.supervisor_user_id = ?
+		WHERE ss.supervisor_user_id = ? AND u.is_active = 1
 		ORDER BY u.full_name ASC
 	`, sid)
 	if err != nil {
