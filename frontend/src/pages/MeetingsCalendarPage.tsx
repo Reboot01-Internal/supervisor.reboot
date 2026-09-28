@@ -40,6 +40,7 @@ type MeetingParticipant = {
 };
 
 type BoardRow = {
+  status?: "active" | "inactive";
   id: number;
   name: string;
   description: string;
@@ -368,10 +369,19 @@ export default function MeetingsCalendarPage() {
   }, [boards, meetings]);
 
   const composerBoardOptions = useMemo(() => {
-    if (isEffectiveSupervisor) return boardOptions;
+    // Historical meeting boards remain in calendar filters, not booking options.
+    const activeBoards = boards.filter((board) => board.status !== "inactive")
+      .sort((a, b) => a.name.localeCompare(b.name));
+    if (isEffectiveSupervisor) return activeBoards;
     if (!composerSupervisorID) return [];
-    return boardOptions.filter((board) => String(board.supervisor_user_id) === composerSupervisorID);
-  }, [boardOptions, composerSupervisorID, isEffectiveSupervisor]);
+    return activeBoards.filter((board) => String(board.supervisor_user_id) === composerSupervisorID);
+  }, [boards, composerSupervisorID, isEffectiveSupervisor]);
+
+  useEffect(() => {
+    if (showComposer && form.board_id && !composerBoardOptions.some((board) => String(board.id) === form.board_id)) {
+      setForm((prev) => ({ ...prev, board_id: "" }));
+    }
+  }, [composerBoardOptions, form.board_id, showComposer]);
 
   const selectedBoardMembers = useMemo(() => {
     const boardID = Number(form.board_id);
