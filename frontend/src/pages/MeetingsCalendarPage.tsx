@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+import "./MeetingComposer.css";
 import "./MeetingsToolbar.css";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -1205,16 +1207,16 @@ export default function MeetingsCalendarPage() {
 
         {showComposer ? (
           <div className="fixed inset-0 z-[110] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={closeComposer}>
-            <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-labelledby="meeting-composer-title" className="meeting-composer flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">{editingMeetingID ? "Reschedule meeting" : "Book a meeting"}</div>
+                  <div id="meeting-composer-title" className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">{editingMeetingID ? "Reschedule meeting" : "Book a meeting"}</div>
                   <div className="mt-1 max-w-[360px] text-[13px] font-semibold text-slate-500 max-[520px]:text-[12px]">Room conflicts are blocked automatically and participants will sync from the board.</div>
                 </div>
-                <button type="button" onClick={closeComposer} className="h-10 shrink-0 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
+                <button type="button" onClick={closeComposer} className="meeting-composer-close" aria-label="Close meeting dialog"><X size={18}/></button>
               </div>
 
-              <form className="grid min-h-0 gap-4 overflow-y-auto pr-1" onSubmit={submitMeeting}>
+              <form id="meeting-composer-form" className="meeting-composer-form grid min-h-0 gap-4 overflow-y-auto" onSubmit={submitMeeting}>
                 <div className="grid gap-4 md:grid-cols-2">
                   {isEffectiveAdmin ? (
                     <Field label="Supervisor">
@@ -1247,13 +1249,15 @@ export default function MeetingsCalendarPage() {
                   <Field label="Meeting title">
                     <input required value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" placeholder="Weekly check-in" />
                   </Field>
-                  <Field label="Date">
-                    <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
-                  </Field>
                   <Field label="Location">
                     <select value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300">
                       {MEETING_LOCATIONS.map((location) => <option key={location} value={location}>{location}</option>)}
                     </select>
+                  </Field>
+                </div>
+                <div className="meeting-composer-times">
+                  <Field label="Date">
+                    <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
                   </Field>
                   <Field label="Start time">
                     <input required type="time" value={form.start_time} onChange={(e) => setForm((prev) => ({ ...prev, start_time: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
@@ -1297,10 +1301,11 @@ export default function MeetingsCalendarPage() {
                     )}
                   </div>
                 ) : null}
-                <div className="flex justify-end max-[520px]:sticky max-[520px]:bottom-0 max-[520px]:bg-white max-[520px]:py-2">
-                  <button type="submit" disabled={saving} className="h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70 max-[520px]:w-full">{saving ? "Saving..." : editingMeetingID ? "Save reschedule" : "Create meeting"}</button>
-                </div>
               </form>
+              <div className="meeting-composer-actions">
+                <button type="button" onClick={closeComposer} disabled={saving} className="meeting-composer-cancel">Cancel</button>
+                <button type="submit" form="meeting-composer-form" disabled={saving} className="meeting-composer-submit">{saving ? "Saving..." : editingMeetingID ? "Save reschedule" : "Create meeting"}</button>
+              </div>
             </div>
           </div>
         ) : null}
