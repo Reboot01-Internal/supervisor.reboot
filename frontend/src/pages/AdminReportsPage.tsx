@@ -1,6 +1,7 @@
 import { useAuth } from "../lib/auth";
 import RustPiscineReport from "./RustPiscineReport";
 import TalentJourneyMap from "../components/TalentJourneyMap";
+import MyMonthlyReport from "../components/MyMonthlyReport";
 import SupervisorMonthlyMatrix from "../components/SupervisorMonthlyMatrix";
 import ReportInsights from "./ReportInsights";
 import { useEffect, useMemo, useState } from 'react';
@@ -53,7 +54,8 @@ export default function AdminReportsPage(){
  <div className="reports-hub">
   {error && <p role="alert">{error}</p>}
   {isAdmin && <SupervisorMonthlyMatrix people={people} boards={boards} avatars={avatars} loading={loading} sourceError={error} revision={revision}/>}
-  <details className="reports-supporting" open={!isAdmin}><summary>Workspace insights & talent overview</summary>
+  {!isAdmin && <MyMonthlyReport revision={revision}/>}
+  <details className="reports-supporting" ><summary>Workspace insights & talent overview</summary>
   <TalentJourneyMap revision={revision}/>
   {isAdmin ? <ReportInsights boards={boards} people={people} avatars={avatars} done={totals.done} cards={totals.cards} complete={!loading&&complete} revision={revision}/> : <RustPiscineReport key={revision} users={assigned} loading={loading} error={error}/>}
   {isAdmin && <section className="reports-overview">

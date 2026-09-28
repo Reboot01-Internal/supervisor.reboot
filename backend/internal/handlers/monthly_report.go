@@ -8,10 +8,21 @@ import (
 
 // AdminMonthlyReport returns dated evidence, not inferred historical task states.
 func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
-	allowed, err := db.UserHasRole(a.conn, actorID(r, a.conn), "admin")
-	if err != nil || !allowed {
-		writeErr(w, 403, "admin access required")
+	actor := actorID(r, a.conn)
+	admin, err := db.UserHasRole(a.conn, actor, "admin")
+	if err != nil {
+		writeErr(w, 403, "report access required")
 		return
+	}
+	supervisor, err := db.UserHasRole(a.conn, actor, "supervisor")
+	if err != nil || (!admin && !supervisor) {
+		writeErr(w, 403, "report access required")
+		return
+	}
+	// Administrators review everyone; supervisors can only review their own evidence.
+	scope := actor
+	if admin {
+		scope = 0
 	}
 	zone := time.FixedZone("Asia/Bahrain", 3*60*60)
 	start, err := time.ParseInLocation("2006-01", r.URL.Query().Get("month"), zone)
@@ -31,7 +42,7 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.conn.Query(`SELECT sf.supervisor_user_id,b.id,
  (SELECT COUNT(*) FROM cards c JOIN lists l ON l.id=c.list_id WHERE l.board_id=b.id AND datetime(c.created_at)>=datetime(?) AND datetime(c.created_at)<datetime(?)),
  (SELECT COUNT(DISTINCT ca.card_id) FROM card_activity ca JOIN cards c ON c.id=ca.card_id JOIN lists l ON l.id=c.list_id WHERE l.board_id=b.id AND ca.action='status_done' AND datetime(ca.created_at)>=datetime(?) AND datetime(ca.created_at)<datetime(?))
- FROM boards b JOIN supervisor_files sf ON sf.id=b.supervisor_file_id`, from, to, from, to)
+ FROM boards b JOIN supervisor_files sf ON sf.id=b.supervisor_file_id WHERE (?=0 OR sf.supervisor_user_id=?)`, from, to, from, to, scope, scope)
 	if err != nil {
 		writeErr(w, 500, "could not load task evidence")
 		return
@@ -57,7 +68,7 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 		Attendance string `json:"attendance"`
 	}
 	participants := []Participant{}
-	rows, err = a.conn.Query(`SELECT mp.meeting_id,u.full_name,mp.attendance_status FROM meeting_participants mp JOIN users u ON u.id=mp.user_id JOIN meetings m ON m.id=mp.meeting_id WHERE datetime(m.starts_at)>=datetime(?) AND datetime(m.starts_at)<datetime(?) ORDER BY u.full_name`, from, to)
+	rows, err = a.conn.Query(`SELECT mp.meeting_id,u.full_name,mp.attendance_status FROM meeting_participants mp JOIN users u ON u.id=mp.user_id JOIN meetings m ON m.id=mp.meeting_id JOIN boards b ON b.id=m.board_id JOIN supervisor_files sf ON sf.id=b.supervisor_file_id WHERE (?=0 OR sf.supervisor_user_id=?) AND datetime(m.starts_at)>=datetime(?) AND datetime(m.starts_at)<datetime(?) ORDER BY u.full_name`, scope, scope, from, to)
 	if err != nil {
 		writeErr(w, 500, "could not load participants")
 		return
@@ -88,7 +99,7 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 	rows, err = a.conn.Query(`SELECT ss.supervisor_user_id,u.id,u.full_name,
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),''),
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),'')
- FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id ORDER BY u.full_name`, from, to)
+ FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id WHERE (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, scope, scope)
 	if err != nil {
 		writeErr(w, 500, "could not load talent journey")
 		return

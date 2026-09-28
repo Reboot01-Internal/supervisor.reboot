@@ -23,7 +23,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  CREATE TABLE lists(id INTEGER,board_id INTEGER);
  CREATE TABLE cards(id INTEGER,list_id INTEGER,created_at TEXT);
  CREATE TABLE card_activity(card_id INTEGER,action TEXT,created_at TEXT);
- CREATE TABLE meetings(id INTEGER,starts_at TEXT);
+ CREATE TABLE meetings(id INTEGER,starts_at TEXT,board_id INTEGER);
  CREATE TABLE meeting_participants(meeting_id INTEGER,user_id INTEGER,attendance_status TEXT);
  CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER);
  CREATE TABLE board_members(board_id INTEGER,user_id INTEGER,added_at TEXT);
@@ -33,7 +33,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  INSERT INTO lists VALUES(20,10),(21,11);
  INSERT INTO cards VALUES(30,20,'2025-01-31 20:59:59'),(31,20,'2025-01-31 21:00:00'),(32,20,'2025-02-28 21:00:00');
  INSERT INTO card_activity VALUES(30,'status_done','2025-02-10 10:00:00'),(30,'status_done','2025-02-15 10:00:00'),(31,'card_updated','2025-02-10 10:00:00'),(32,'status_done','2025-02-28 21:00:00');
- INSERT INTO meetings VALUES(40,'2025-01-31T21:00:00Z'),(41,'2025-02-28T21:00:00Z');
+ INSERT INTO meetings VALUES(40,'2025-01-31T21:00:00Z',10),(41,'2025-02-28T21:00:00Z',11);
  INSERT INTO meeting_participants VALUES(40,3,'attended'),(41,3,'unknown');
  INSERT INTO supervisor_students VALUES(2,3);
  INSERT INTO board_members VALUES(10,3,'2025-01-20 10:00:00'),(11,3,'2025-02-15 10:00:00');
@@ -76,12 +76,39 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 			t.Fatalf("month %q: %d", month, w.Code)
 		}
 	}
-	if _, err = conn.Exec("UPDATE users SET role='supervisor' WHERE id=1"); err != nil {
+
+	// Supervisor 1 owns only board 10; attempts to select another supervisor are ignored.
+	if _, err = conn.Exec(`UPDATE users SET role='supervisor' WHERE id=1;
+ INSERT INTO supervisor_files VALUES(2,1);
+ UPDATE boards SET supervisor_file_id=2 WHERE id=10;
+ INSERT INTO supervisor_students VALUES(1,3);
+ INSERT INTO meetings VALUES(42,'2025-02-10T10:00:00Z',11);
+ INSERT INTO meeting_participants VALUES(42,2,'attended');`); err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	api.AdminMonthlyReport(w, httptest.NewRequest("GET", "/admin/reports/monthly?month=2025-02&supervisor_id=2", nil))
+	if w.Code != 200 {
+		t.Fatalf("supervisor report: %d %s", w.Code, w.Body.String())
+	}
+	if err = json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Tasks) != 1 || result.Tasks[0].BoardID != 10 {
+		t.Fatalf("leaked other boards: %+v", result.Tasks)
+	}
+	if len(result.Participants) != 1 || result.Participants[0].MeetingID != 40 {
+		t.Fatalf("leaked other meeting participants: %+v", result.Participants)
+	}
+	if len(result.Journeys) != 1 {
+		t.Fatalf("leaked other supervisor journeys: %+v", result.Journeys)
+	}
+	if _, err = conn.Exec("UPDATE users SET role='student' WHERE id=1"); err != nil {
 		t.Fatal(err)
 	}
 	w = httptest.NewRecorder()
 	api.AdminMonthlyReport(w, httptest.NewRequest("GET", "/admin/reports/monthly?month=2025-02", nil))
 	if w.Code != 403 {
-		t.Fatalf("non-admin: %d", w.Code)
+		t.Fatalf("student access: %d", w.Code)
 	}
 }

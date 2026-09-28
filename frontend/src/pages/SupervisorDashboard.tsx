@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ArrowRight, Code2, FolderOpen, CalendarDays } from "lucide-react";
+import MyMonthlyReport from "../components/MyMonthlyReport";
 import AdminLayout from "../components/AdminLayout";
 import UserAvatar from "../components/UserAvatar";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
@@ -28,6 +29,7 @@ export default function SupervisorDashboard({ data, loading, error, meetings, me
   return <AdminLayout active="dashboard" title="Supervisor workspace" hideHeader><div className="talent-home supervisor-home">
     {loading ? <div role="status" className="talent-loading">Loading your talents and projects…</div> : error ? <div role="alert">Couldn’t load your workspace. {error}</div> : <>
       <header className="talent-intro"><div><span className="talent-eyebrow">REBOOT / SUPERVISOR DESK</span><h1>Hey, {data?.user.full_name?.split(" ")[0] || "there"}<span>.</span></h1><p>Your Reboot workspace, ready when you are.</p></div><Code2 className="talent-intro-code" aria-hidden="true"/></header>
+      <MyMonthlyReport compact/>
       {completionError ? <p role="alert">Task status couldn’t load.</p> : overdue > 0 ? <Link className="supervisor-alert" to="/admin/boards">{overdue} overdue tasks or checklist items need follow-up <ArrowRight size={16}/></Link> : null}<div className="supervisor-desk">
         <section className="talent-work supervisor-roster"><div className="talent-section-top"><div><span className="talent-eyebrow">YOUR PEOPLE</span><h3>Your talents</h3></div><span className="talent-task-total">{talents.length} talents</span></div>
           {talents.length > 0 && <input className="supervisor-search" aria-label="Find a talent" placeholder="Find a talent by name or username…" value={query} onChange={e => setQuery(e.target.value)}/>}
