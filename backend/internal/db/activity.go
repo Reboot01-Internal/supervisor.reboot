@@ -6,7 +6,7 @@ import (
 	"taskflow/internal/models"
 )
 
-func InsertCardActivity(conn *sql.DB, cardID int64, actorUserID int64, action string, meta string) error {
+func InsertCardActivity(conn DBTX, cardID int64, actorUserID int64, action string, meta string) error {
 	var actor any = nil
 	if actorUserID > 0 {
 		actor = actorUserID

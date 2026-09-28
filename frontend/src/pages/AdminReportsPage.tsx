@@ -1,6 +1,7 @@
 import { useAuth } from "../lib/auth";
 import RustPiscineReport from "./RustPiscineReport";
 import TalentJourneyMap from "../components/TalentJourneyMap";
+import SupervisorMonthlyMatrix from "../components/SupervisorMonthlyMatrix";
 import ReportInsights from "./ReportInsights";
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -51,6 +52,8 @@ export default function AdminReportsPage(){
  return <AdminLayout active="reports" title="Reports" subtitle="Supervisor activity, project progress, and the work still ahead." right={<button className="report-refresh" onClick={()=>setRevision(v=>v+1)} disabled={loading}><RefreshCw size={15}/> Refresh</button>}>
  <div className="reports-hub">
   {error && <p role="alert">{error}</p>}
+  {isAdmin && <SupervisorMonthlyMatrix people={people} boards={boards} avatars={avatars} loading={loading} sourceError={error} revision={revision}/>}
+  <details className="reports-supporting" open={!isAdmin}><summary>Workspace insights & talent overview</summary>
   <TalentJourneyMap revision={revision}/>
   {isAdmin ? <ReportInsights boards={boards} people={people} avatars={avatars} done={totals.done} cards={totals.cards} complete={!loading&&complete} revision={revision}/> : <RustPiscineReport key={revision} users={assigned} loading={loading} error={error}/>}
   {isAdmin && <section className="reports-overview">
@@ -69,5 +72,6 @@ export default function AdminReportsPage(){
    {expanded===r.supervisor_user_id&&<div className="reports-boards">{activity?.supervisors?.filter(a=>a.user_id===r.supervisor_user_id).map(a=><p key={a.user_id}>Selected week: {a.boards_created} boards created · {a.meetings_created} meetings booked · {a.card_updates} card updates</p>)}{!r.owned.length?<p>No boards assigned yet.</p>:r.owned.map(b=>{const cards=details[b.id];const done=cards?.filter(c=>c.status.toLowerCase()==='done').length||0;return <Link key={b.id} to={`/admin/boards/${b.id}`}><span>{b.name}</span><small>{cards?cards.length?`${done} / ${cards.length} tasks done`:'No tasks yet':'Details unavailable'}</small><ArrowUpRight size={15}/></Link>;})}</div>}</div>)}
   </section>
  }
+ </details>
  </div></AdminLayout>;
 }

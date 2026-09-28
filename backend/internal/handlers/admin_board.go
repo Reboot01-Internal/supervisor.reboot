@@ -464,12 +464,34 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.UpdateCardAll(a.conn, req.CardID, req.Title, req.Description, req.DueDate, req.Status, req.Priority); err != nil {
-		writeErr(w, http.StatusInternalServerError, "failed to update card")
+	tx, err := a.conn.Begin()
+	if err != nil {
+		writeErr(w, 500, "failed to update card")
 		return
 	}
-
-	_ = db.InsertCardActivity(a.conn, req.CardID, actor, "card_updated", "Card updated")
+	defer tx.Rollback()
+	if err := db.UpdateCardAll(tx, req.CardID, req.Title, req.Description, req.DueDate, req.Status, req.Priority); err != nil {
+		writeErr(w, 500, "failed to update card")
+		return
+	}
+	if err := db.InsertCardActivity(tx, req.CardID, actor, "card_updated", "Card updated"); err != nil {
+		writeErr(w, 500, "failed to record card activity")
+		return
+	}
+	nextStatus := req.Status
+	if nextStatus == "" {
+		nextStatus = "todo"
+	}
+	if nextStatus != current.Status {
+		if err := db.InsertCardActivity(tx, req.CardID, actor, "status_"+nextStatus, "Previous status: "+current.Status); err != nil {
+			writeErr(w, 500, "failed to record status change")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		writeErr(w, 500, "failed to save card")
+		return
+	}
 
 	discordNotified := false
 	if strings.TrimSpace(strings.ToLower(current.Status)) != "done" && req.Status == "done" {

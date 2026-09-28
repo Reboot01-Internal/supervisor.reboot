@@ -7,7 +7,6 @@ import (
 	"taskflow/internal/models"
 )
 
-
 func GetBoardIDByCardID(conn *sql.DB, cardID int64) (int64, error) {
 	var boardID int64
 	err := conn.QueryRow(`
@@ -54,7 +53,7 @@ func GetCardWithDue(conn *sql.DB, cardID int64) (models.Card, error) {
 	return c, nil
 }
 
-func UpdateCardAll(conn *sql.DB, cardID int64, title, description, dueDate, status, priority string) error {
+func UpdateCardAll(conn DBTX, cardID int64, title, description, dueDate, status, priority string) error {
 	title = strings.TrimSpace(title)
 	description = strings.TrimSpace(description)
 
