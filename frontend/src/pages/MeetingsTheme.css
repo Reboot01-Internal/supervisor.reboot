@@ -1,0 +1,107 @@
+/* One palette shared by the calendar, filters and meeting dialogs. */
+.meetings-page {
+ --meeting-line:#e2e8f0;
+ --meeting-soft:#f8fafc;
+ --meeting-muted:#64748b;
+ --meeting-accent-ink:#b77908;
+ --meeting-ink:#0f172a;
+ --meeting-surface:#fff;
+}
+body.admin-dark-theme .meetings-page {
+ --meeting-line:#29364c;
+ --meeting-soft:#151f32;
+ --meeting-muted:#9aabc4;
+ --meeting-accent-ink:#fbbf24;
+ --meeting-ink:#edf2fa;
+ --meeting-surface:#0e1525;
+}
+.meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker) {
+ border-color:var(--meeting-line);border-radius:24px;background:var(--meeting-surface);
+ color:var(--meeting-ink);padding:24px;
+ box-shadow:0 24px 70px rgb(15 23 42 / .2);
+ animation:meeting-dialog-enter 180ms ease-out;
+}
+.meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker)>div:first-child {
+ border-color:var(--meeting-line);
+}
+.meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker) :is(input,select,textarea) {
+ background:var(--meeting-soft);border-color:var(--meeting-line);border-radius:14px;
+ color:var(--meeting-ink);font-weight:500;transition:border-color .15s,box-shadow .15s,background .15s;
+}
+.meetings-page :is(.meeting-composer,.meeting-calendar-linker) :is(input,select) {height:44px}
+.meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker) label>span {
+ color:var(--meeting-muted);font-size:12px;font-weight:600;
+}
+.meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker) :is(input,select,textarea):focus {
+ background:var(--meeting-surface);border-color:#fbbf24;box-shadow:0 0 0 3px #f59e0b1a;
+}
+.meetings-page :is(.meeting-composer-close,.meeting-detail-close,.calendar-link-close) {
+ width:36px;height:36px;border-radius:50%;background:var(--meeting-surface);
+ border-color:var(--meeting-line);color:var(--meeting-muted);
+}
+.meetings-page :is(.meeting-composer-close,.meeting-detail-close,.calendar-link-close):hover {
+ background:#fffbeb;border-color:#fbbf24;color:#b77908;
+}
+.meetings-page .meeting-detail-edit {border-radius:50%;background:#fffbeb;border-color:#fde68a;color:#b77908}
+.meetings-page :is(.meeting-composer-submit,.meeting-save-notes) {
+ background:linear-gradient(135deg,#ffbf00,#ff9800);border:1px solid #ffbf00;
+ border-radius:14px;color:#fff;font-weight:600;box-shadow:0 8px 20px #f59e0b1a;
+ transition:filter .15s,transform .15s;
+}
+.meetings-page :is(.meeting-composer-submit,.meeting-save-notes):hover:not(:disabled) {
+ background:linear-gradient(135deg,#f5b500,#f28c00);color:#fff;transform:translateY(-1px);
+}
+.meetings-page .meeting-composer-cancel {border-radius:14px;border-color:var(--meeting-line);background:var(--meeting-surface);color:var(--meeting-muted)}
+.meetings-page .meeting-detail-summary {border-radius:16px;background:var(--meeting-soft);border-color:var(--meeting-line)}
+.meetings-page .meeting-detail-section {padding:16px;border:1px solid var(--meeting-line);border-radius:18px;background:var(--meeting-soft)}
+.meetings-page .meeting-detail-section>div:first-child {color:var(--meeting-muted)}
+.meetings-page .meeting-status-action {border-radius:14px;background:var(--meeting-surface)}
+.meetings-page .meeting-participant-row {padding:12px;border:1px solid var(--meeting-line);border-radius:14px;background:var(--meeting-surface)}
+.meetings-page .meeting-participant-row:last-child {border-bottom:1px solid var(--meeting-line)}
+.meetings-page .meeting-board-talents {border:1px solid var(--meeting-line);border-radius:16px;padding:12px;background:var(--meeting-soft)}
+.meetings-page .meeting-board-talents-title {color:var(--meeting-muted)}
+.meetings-page .meeting-board-talent {background:var(--meeting-surface);border:1px solid var(--meeting-line);border-radius:12px}
+.meetings-page .meeting-board-talent:hover {background:var(--meeting-surface);border-color:#fbbf24}
+.meetings-page .calendar-provider-card {border-color:var(--meeting-line);border-radius:18px;background:var(--meeting-soft)}
+.meetings-page .calendar-provider-card:hover:not(:disabled) {background:#fffbeb;border-color:#fbbf24}
+.meetings-page .calendar-links-empty {background:var(--meeting-soft);border:1px dashed var(--meeting-line);border-radius:14px;color:var(--meeting-muted)}
+.meetings-page .meetings-toolbar .meetings-filter-label {border-color:var(--meeting-line);border-radius:14px;background:var(--meeting-surface)}
+.meetings-page .meetings-toolbar .meetings-filter-label>span {color:var(--meeting-muted);font-weight:600}
+.meetings-page .meetings-toolbar .meetings-filter {color:var(--meeting-ink);border-radius:10px}
+.meetings-page .meetings-toolbar .meetings-calendar-button {background:var(--meeting-surface);border-color:var(--meeting-line);color:var(--meeting-muted);border-radius:14px}
+.meetings-page .meetings-toolbar .meetings-calendar-button:hover {background:#fffbeb;border-color:#fbbf24;color:#b77908}
+.meetings-page .meetings-toolbar .meetings-stats {background:var(--meeting-surface);border:1px solid var(--meeting-line);border-radius:14px;padding:4px 0;height:44px}
+.meetings-page .meetings-toolbar .meetings-mini-stat {height:34px}
+@keyframes meeting-dialog-enter {from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
+@media(max-width:520px) {
+ .meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker){padding:16px;border-radius:18px}
+}
+@container(max-width:650px) {
+ .meetings-page .meetings-toolbar .meetings-stats{height:auto;padding:8px 0}
+}
+@media(prefers-reduced-motion:reduce) {
+ .meetings-page :is(.meeting-composer,.meeting-details,.meeting-calendar-linker){animation:none}
+ .meetings-page :is(button,input,select,textarea){transition:none}
+ .meetings-page :is(.meeting-composer-submit,.meeting-save-notes):hover:not(:disabled){transform:none}
+}
+
+/* The wrapper owns the status border and tint; the native select is transparent. */
+.meetings-page .meeting-status-field > span {
+ font-size:11px;font-weight:500;color:var(--meeting-muted);letter-spacing:0;text-transform:none;
+}
+.meetings-page .meeting-status-field .meeting-status-select {
+ border-radius:10px;box-shadow:none;min-width:0;
+}
+.meetings-page .meeting-status-field .meeting-status-select select,
+.meetings-page .meeting-status-field .meeting-status-select select:focus {
+ display:block;width:100%;height:36px;min-height:36px;
+ border:0;border-radius:9px;background:transparent;color:inherit;
+ box-shadow:none;outline:none;font-size:12px;font-weight:500;
+ padding:0 30px 0 11px;appearance:none;
+}
+.meetings-page .meeting-status-select:focus-within {
+ outline:2px solid #f59e0b;outline-offset:2px;
+}
+.meetings-page .meeting-status-select select option {background:var(--meeting-surface);color:var(--meeting-ink)}
+.meetings-page .meeting-status-select > span {right:10px}
+.meetings-page .meeting-status-select > span svg {width:14px;height:14px}

@@ -26,7 +26,7 @@
 .admin-dark .meetings-toolbar .meetings-mini-stat[data-stat="this-month"]{--stat-color:#58c8b1}
 .admin-dark .meetings-toolbar .meetings-mini-stat[data-stat="canceled"]{--stat-color:#f18598}
 /* Meeting controls share the calendar's orange accent in every role. */
-.meetings-toolbar{--meeting-filter-ink:#b66b08;--meeting-filter-line:#f0d9b8;--meeting-filter-fill:#fff6e8}
+.meetings-toolbar{--meeting-filter-ink:var(--meeting-accent-ink);--meeting-filter-line:#f0d9b8;--meeting-filter-fill:#fff6e8}
 .meetings-toolbar .meetings-filter-label{border-color:var(--meeting-filter-line)}
 .meetings-toolbar .meetings-filter-label>span,.meetings-toolbar .meetings-calendar-button{color:var(--meeting-filter-ink)}
 .meetings-toolbar .meetings-filter-label .meetings-filter{color:var(--meeting-filter-ink);border-color:var(--meeting-filter-line);background:var(--meeting-filter-fill)}
@@ -56,3 +56,46 @@
 .meetings-toolbar[data-admin="false"]{grid-template-columns:minmax(0,1fr) auto}
 @container(min-width:1200px){.meetings-toolbar[data-admin="false"]{grid-template-columns:minmax(170px,1fr) auto minmax(360px,1.4fr)}}
 @container(max-width:650px){.meetings-toolbar[data-admin="false"]{grid-template-columns:minmax(0,1fr)}}
+
+/* Quiet filters and a single summary strip instead of nested pills. */
+.meetings-toolbar .meetings-filter-label {
+ height:44px;padding:0 12px;gap:12px;border:1px solid var(--meeting-line);
+ border-radius:11px;background:#fff;box-shadow:none;
+}
+.meetings-toolbar .meetings-filter-label>span {
+ text-transform:none;letter-spacing:0;color:var(--meeting-muted);font-size:12px;font-weight:500;
+}
+.meetings-toolbar .meetings-filter-label .meetings-filter {
+ height:40px;padding:0 4px;border:0;border-radius:6px;background:transparent;
+ color:#344155;font-size:13px;font-weight:500;box-shadow:none;
+}
+.meetings-toolbar .meetings-filter-label:focus-within {border-color:#e9a23b;box-shadow:0 0 0 3px #f59e0b14}
+.meetings-toolbar .meetings-filter:focus-visible {outline:0;box-shadow:none}
+.meetings-toolbar .meetings-calendar-button {
+ height:44px;padding:0 14px;gap:8px;border:1px solid var(--meeting-line);border-radius:11px;
+ background:var(--meeting-soft);color:var(--meeting-accent-ink);font-size:12px;font-weight:600;box-shadow:none;backdrop-filter:none;
+}
+.meetings-toolbar .meetings-stats {
+ height:44px;gap:0;border:0;border-radius:0;background:transparent;backdrop-filter:none;
+}
+.meetings-toolbar .meetings-mini-stat {
+ height:44px;border:0;border-left:1px solid var(--meeting-line);border-radius:0;
+ padding:0 12px;background:transparent;box-shadow:none;justify-content:center;
+ --stat-color:#b77717;
+}
+.meetings-toolbar .meetings-mini-stat:first-child {border-left:0}
+.meetings-toolbar .meetings-mini-stat>span:last-child {gap:2px}
+.meetings-toolbar .meetings-mini-stat>span:last-child>span:first-child {font-size:15px;font-weight:650;color:#263247}
+.meetings-toolbar .meetings-mini-stat>span:last-child>span:last-child {font-size:10px;color:var(--meeting-muted);white-space:nowrap}
+.admin-dark .meetings-toolbar .meetings-filter-label {background:#151f32;border-color:#30394c}
+.admin-dark .meetings-toolbar .meetings-filter-label .meetings-filter {background:transparent;color:#dce7ff}
+.admin-dark .meetings-toolbar .meetings-mini-stat {background:transparent;border-color:#30394c}
+.admin-dark .meetings-toolbar .meetings-mini-stat>span:last-child>span:first-child {color:#dce7ff}
+.admin-dark .meetings-toolbar .meetings-calendar-button {background:#30291f;border-color:#665039;color:#f3b65f}
+@container(min-width:1200px){.meetings-toolbar .meetings-stats{gap:0}}
+@container(max-width:650px){
+ .meetings-toolbar .meetings-filter-label{height:auto;padding:9px 12px;gap:2px}
+ .meetings-toolbar .meetings-filter-label .meetings-filter{height:32px}
+ .meetings-toolbar .meetings-stats{height:auto;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:8px}
+ .meetings-toolbar .meetings-mini-stat:nth-child(3){border-left:0}
+}

@@ -1,6 +1,7 @@
-import { X } from "lucide-react";
+import { X, CalendarPlus } from "lucide-react";
 import "./MeetingComposer.css";
 import "./MeetingsToolbar.css";
+import "./MeetingsTheme.css";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
@@ -816,7 +817,7 @@ export default function MeetingsCalendarPage() {
             }}
             className="meetings-calendar-button inline-flex h-12 items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 text-[14px] font-black text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.05)] backdrop-blur transition hover:border-slate-300 hover:bg-white max-[520px]:w-full max-[520px]:justify-center"
           >
-            <span>{calendarConnections.length ? "Manage Calendar Links" : "Connect Calendar"}</span>
+            <CalendarPlus size={16} aria-hidden="true" /><span>{calendarConnections.length ? "Calendar links" : "Connect calendar"}</span>
             {calendarConnections.length ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
@@ -973,17 +974,17 @@ export default function MeetingsCalendarPage() {
 
         {showCalendarLinker ? (
           <div className="fixed inset-0 z-[94] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={() => setShowCalendarLinker(false)}>
-            <div className="w-full max-w-[640px] rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-labelledby="calendar-link-title" className="meeting-calendar-linker w-full max-w-[640px] rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900">Connect Calendar</div>
-                  <div className="mt-1 text-[13px] font-semibold text-slate-500">Link Google or Outlook so TaskFlow can block busy slots and push booked meetings into that calendar.</div>
+                  <div id="calendar-link-title" className="text-[24px] font-black tracking-[-0.03em] text-slate-900">Connect Calendar</div>
+                  <div className="mt-1 text-[13px] font-semibold text-slate-500">Connect your calendar to check availability and sync booked meetings.</div>
                 </div>
-                <button type="button" onClick={() => setShowCalendarLinker(false)} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
+                <button type="button" onClick={() => setShowCalendarLinker(false)} className="calendar-link-close" aria-label="Close calendar connections"><X size={18}/></button>
               </div>
 
               <label className="mt-4 grid gap-1.5">
-                <span className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-500">Email for the calendar account</span>
+                <span className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-500">Calendar account email</span>
                 <input
                   type="email"
                   value={calendarEmail}
@@ -998,29 +999,29 @@ export default function MeetingsCalendarPage() {
                   type="button"
                   onClick={() => startCalendarLink("google")}
                   disabled={connectingProvider !== ""}
-                  className="rounded-[20px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fafc)] p-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-slate-300 disabled:opacity-60"
+                  className="calendar-provider-card"
                 >
                   <div className="text-[16px] font-black text-slate-900">Google Calendar</div>
-                  <div className="mt-1 text-[12px] font-semibold text-slate-500">Use Google sign-in, check availability, and add the event automatically.</div>
+                  <div className="mt-1 text-[12px] font-semibold text-slate-500">Sync meetings with your Google calendar.</div>
                   <div className="mt-4 text-[12px] font-black text-amber-600">{connectingProvider === "google" ? "Opening Google..." : "Connect Google"}</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => startCalendarLink("microsoft")}
                   disabled={connectingProvider !== ""}
-                  className="rounded-[20px] border border-slate-200 bg-[linear-gradient(135deg,#ffffff,#f8fafc)] p-4 text-left shadow-[0_10px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-slate-300 disabled:opacity-60"
+                  className="calendar-provider-card"
                 >
                   <div className="text-[16px] font-black text-slate-900">Outlook Calendar</div>
-                  <div className="mt-1 text-[12px] font-semibold text-slate-500">Use Microsoft sign-in, check availability, and mirror the meeting in Outlook.</div>
+                  <div className="mt-1 text-[12px] font-semibold text-slate-500">Sync meetings with your Outlook calendar.</div>
                   <div className="mt-4 text-[12px] font-black text-amber-600">{connectingProvider === "microsoft" ? "Opening Outlook..." : "Connect Outlook"}</div>
                 </button>
               </div>
 
-              <div className="mt-5 rounded-[20px] border border-slate-200 bg-slate-50 p-4">
-                <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Current links</div>
+              <div className="calendar-current-links">
+                <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Connected calendars</div>
                 <div className="mt-3 space-y-3">
                   {calendarConnections.length === 0 ? (
-                    <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-4 py-5 text-[13px] font-semibold text-slate-500">No calendar linked yet. Once you connect one, TaskFlow will check busy times before saving a meeting.</div>
+                    <div className="calendar-links-empty">No calendar connected yet. Choose a provider above to get started.</div>
                   ) : (
                     calendarConnections.map((connection) => (
                       <div key={connection.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-slate-200 bg-white px-4 py-3">
@@ -1048,7 +1049,7 @@ export default function MeetingsCalendarPage() {
 
         {selectedMeeting ? (
           <div className="fixed inset-0 z-[95] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={() => setSelectedMeetingID(null)}>
-            <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[920px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label="Meeting details" className="meeting-details flex max-h-[calc(100dvh-32px)] w-full max-w-[920px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
               <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -1061,16 +1062,16 @@ export default function MeetingsCalendarPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   {canManage ? (
                     <>
-                      <button type="button" onClick={() => startEditMeeting(selectedMeeting)} title="Reschedule meeting" className="grid h-10 w-10 place-items-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 transition hover:bg-blue-100"><PencilIcon /></button>
+                      <button type="button" onClick={() => startEditMeeting(selectedMeeting)} title="Reschedule meeting" className="meeting-detail-edit grid h-10 w-10 place-items-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 transition hover:bg-blue-100"><PencilIcon /></button>
                       <button type="button" onClick={() => deleteMeeting(selectedMeeting)} disabled={deletingMeetingID === selectedMeeting.id} title="Delete meeting" className="grid h-10 w-10 place-items-center rounded-full border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"><BinIcon /></button>
                     </>
                   ) : null}
-                  <button type="button" onClick={() => setSelectedMeetingID(null)} className="h-10 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700">Close</button>
+                  <button type="button" onClick={() => setSelectedMeetingID(null)} className="meeting-detail-close" aria-label="Close meeting details"><X size={18}/></button>
                 </div>
               </div>
 
               <div className="min-h-0 overflow-y-auto pr-1">
-                <div className="grid overflow-hidden rounded-[16px] border border-slate-200 bg-white sm:grid-cols-4">
+                <div className="meeting-detail-summary grid overflow-hidden rounded-[16px] border border-slate-200 bg-white sm:grid-cols-4">
                   <SummaryCell label="Date" value={new Date(selectedMeeting.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} />
                   <SummaryCell label="Time" value={formatTimeRange(selectedMeeting.starts_at, selectedMeeting.ends_at)} />
                   <SummaryCell label="Booked by" value={selectedMeeting.created_by_name} />
@@ -1085,13 +1086,13 @@ export default function MeetingsCalendarPage() {
                 ) : null}
 
                 {canManage ? (
-                  <div className="mt-4 rounded-[18px] border border-slate-200 bg-slate-50 p-3">
+                  <div className="meeting-detail-section mt-4 rounded-[18px] border border-slate-200 bg-slate-50 p-3">
                     <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Meeting controls</div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => updateMeetingStatus(selectedMeeting, "completed")}
-                        className="group flex min-h-[52px] items-center gap-3 rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100"
+                        className="meeting-status-action group flex min-h-[52px] items-center gap-3 rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100"
                       >
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-emerald-200 bg-white/90 text-emerald-700 transition group-hover:bg-white">
                           <CircleCheckIcon />
@@ -1104,7 +1105,7 @@ export default function MeetingsCalendarPage() {
                       <button
                         type="button"
                         onClick={() => updateMeetingStatus(selectedMeeting, "canceled")}
-                        className="group flex min-h-[52px] items-center gap-3 rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-left text-rose-700 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100"
+                        className="meeting-status-action group flex min-h-[52px] items-center gap-3 rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-left text-rose-700 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100"
                       >
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-rose-200 bg-white/90 text-rose-700 transition group-hover:bg-white">
                           <SlashCircleIcon />
@@ -1120,14 +1121,14 @@ export default function MeetingsCalendarPage() {
                       <textarea value={outcomeDraft} onChange={(e) => setOutcomeDraft(e.target.value)} className="min-h-[92px] rounded-[14px] border border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-amber-300" placeholder="Summary, action items, and follow-up decisions." />
                     </label>
                     <div className="mt-3 flex justify-end">
-                      <button type="button" onClick={() => updateMeetingStatus(selectedMeeting, selectedMeeting.status)} disabled={savingOutcome} className="h-10 rounded-[12px] border border-amber-300 bg-amber-400 px-4 text-[12px] font-black text-white disabled:opacity-60">{savingOutcome ? "Saving..." : "Save notes"}</button>
+                      <button type="button" onClick={() => updateMeetingStatus(selectedMeeting, selectedMeeting.status)} disabled={savingOutcome} className="meeting-save-notes h-10 rounded-[12px] border border-amber-300 bg-amber-400 px-4 text-[12px] font-black text-white disabled:opacity-60">{savingOutcome ? "Saving..." : "Save notes"}</button>
                     </div>
                   </div>
                 ) : selectedMeeting.outcome_notes ? (
                   <MetaPill label="Outcome notes" value={selectedMeeting.outcome_notes} />
                 ) : null}
 
-                <div className="mt-4 rounded-[18px] border border-slate-200 bg-slate-50 p-3">
+                <div className="meeting-detail-section mt-4 rounded-[18px] border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-400">Participants</div>
                     {participantsLoading[selectedMeeting.id] ? <span className="text-[11px] font-bold text-slate-400">Loading...</span> : null}
@@ -1142,7 +1143,7 @@ export default function MeetingsCalendarPage() {
                       const canEditParticipant = canManage || matchesSelf;
                       const avatarUrl = avatarByLogin[loginOf(participant)] || "";
                       return (
-                        <div key={participant.user_id} className="rounded-[14px] border border-slate-200 bg-white px-3 py-3">
+                        <div key={participant.user_id} className="meeting-participant-row rounded-[14px] border border-slate-200 bg-white px-3 py-3">
                           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px] md:items-start">
                             <button
                               type="button"
@@ -1270,15 +1271,15 @@ export default function MeetingsCalendarPage() {
                   <textarea value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} className="min-h-[96px] w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-amber-300" placeholder="Topics to cover, preparation notes, or room setup details." />
                 </Field>
                 {form.board_id ? (
-                  <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="meeting-board-talents">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-[12px] font-black uppercase tracking-[0.12em] text-slate-500">Board talents</div>
-                      {boardMembersLoading[Number(form.board_id)] ? <span className="text-[11px] font-bold text-slate-400">Loading...</span> : null}
+                      <div className="meeting-board-talents-title">Board talents</div>
+                      {boardMembersLoading[Number(form.board_id)] ? <span className="text-[11px] font-bold text-slate-400">Loading...</span> : <span className="meeting-board-talents-count">{selectedBoardMembers.length}</span>}
                     </div>
                     {selectedBoardMembers.length === 0 && !boardMembersLoading[Number(form.board_id)] ? (
-                      <div className="mt-2 text-[12px] font-semibold text-slate-500">No talents found for this board.</div>
+                      <div className="mt-2 text-[12px] font-normal text-slate-500">No talents found for this board.</div>
                     ) : (
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="meeting-board-talents-list">
                         {selectedBoardMembers.map((member) => {
                           const avatarUrl = avatarByLogin[loginOf(member)] || "";
                           return (
@@ -1286,13 +1287,13 @@ export default function MeetingsCalendarPage() {
                               key={member.user_id}
                               type="button"
                               onClick={() => openUserProfile(member.user_id)}
-                              className="flex min-w-0 items-center gap-3 rounded-[12px] border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-[#6d5efc]/25 hover:bg-[#f7f5ff] focus:outline-none focus:ring-4 focus:ring-[#6d5efc]/12"
+                              className="meeting-board-talent"
                               title="Open profile"
                             >
                               <UserAvatar src={avatarUrl} alt={member.full_name} fallback={initialsOf(member.full_name)} sizeClass="h-9 w-9" textClass="text-[11px]" className="bg-slate-50" previewable />
                               <div className="min-w-0">
-                                <div className="truncate text-[13px] font-black text-slate-900">{member.full_name}</div>
-                                <div className="truncate text-[11px] font-semibold text-slate-500">{member.nickname ? `@${member.nickname}` : member.email}</div>
+                                <div className="truncate text-[13px] font-semibold text-slate-900">{member.full_name}</div>
+                                <div className="truncate text-[11px] font-normal text-slate-500">{member.nickname ? `@${member.nickname}` : member.email}</div>
                               </div>
                             </button>
                           );
@@ -1475,9 +1476,9 @@ function SelectField({
             : "border-slate-200 bg-slate-50 text-slate-600";
 
   return (
-    <label className="grid gap-1.5">
+    <label className="meeting-status-field grid gap-1.5">
       <span className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-400">{label}</span>
-      <div className={`relative min-w-[132px] rounded-[12px] border shadow-[0_6px_18px_rgba(15,23,42,0.05)] transition ${toneClass}`}>
+      <div className={`meeting-status-select relative min-w-0 rounded-[10px] border transition ${toneClass}`}>
         <select
           value={value}
           disabled={disabled}
