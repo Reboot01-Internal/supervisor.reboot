@@ -1,5 +1,7 @@
 import { useConfirm } from "../lib/useConfirm";
-import { Link2, Plus, LayoutDashboard, CalendarDays, Pencil, Trash2 } from "lucide-react";
+import { Link2, Plus, LayoutDashboard, CalendarDays, Pencil, Trash2, X, CircleCheck, CircleSlash } from "lucide-react";
+import "./MeetingComposer.css";
+import "./MeetingsTheme.css";
 import "./BoardMeetingsPage.css";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -139,6 +141,19 @@ export default function BoardMeetingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+  const [outcome, setOutcome] = useState("");
+  const [updating, setUpdating] = useState(false);
+  useEffect(() => {
+    if (!showControls && !showComposer) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setShowControls(false); setShowComposer(false); }
+    };
+    document.addEventListener("keydown", escape);
+    return () => { document.body.style.overflow = previous; document.removeEventListener("keydown", escape); };
+  }, [showControls, showComposer]);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     title: "",
@@ -225,6 +240,40 @@ export default function BoardMeetingsPage() {
       void loadParticipants(selectedMeeting.id);
     }
   }, [loadParticipants, participantsByMeeting, participantsLoading, selectedMeeting]);
+
+  function openControls(meeting: MeetingRow) {
+    setSelectedMeetingID(meeting.id);
+    setOutcome(meeting.outcome_notes || "");
+    setError("");
+    setShowControls(true);
+  }
+
+  async function saveControls(status: MeetingRow["status"]) {
+    if (!selectedMeeting || updating) return;
+    setUpdating(true);
+    setError("");
+    try {
+      await apiFetch("/admin/meetings/status", { method: "POST", body: JSON.stringify({
+        meeting_id: selectedMeeting.id, status, outcome_notes: outcome.trim(),
+      }) });
+      setMeetings(rows => rows.map(row => row.id === selectedMeeting.id ? { ...row, status, outcome_notes: outcome.trim() } : row));
+    } catch (e) { setError(errorMessage(e, "Failed to save meeting")); }
+    finally { setUpdating(false); }
+  }
+
+  async function saveParticipant(participant: MeetingParticipant, field: "rsvp_status" | "attendance_status", value: string) {
+    if (!selectedMeeting || updating) return;
+    setUpdating(true);
+    setError("");
+    try {
+      await apiFetch("/admin/meeting-participants/update", { method: "POST", body: JSON.stringify({
+        meeting_id: selectedMeeting.id, user_id: participant.user_id,
+        rsvp_status: participant.rsvp_status, attendance_status: participant.attendance_status, [field]: value,
+      }) });
+      await loadParticipants(selectedMeeting.id);
+    } catch (e) { setError(errorMessage(e, "Failed to update participant")); }
+    finally { setUpdating(false); }
+  }
 
   function startCreateMeeting() {
  setEditing(null);
@@ -326,7 +375,7 @@ export default function BoardMeetingsPage() {
         </div>
       }
     >
-      <div className="board-meetings-content">
+      <div className="board-meetings-content meetings-page">
       {error ? (
         <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {error}
@@ -349,7 +398,7 @@ export default function BoardMeetingsPage() {
             </div>
           ) : (
             <>
-              <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+              <div className="board-meetings-toolbar">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-[12px] font-black text-slate-700">
@@ -370,10 +419,10 @@ export default function BoardMeetingsPage() {
                 </div>
               </div>
 
-              <div className="grid min-h-0 gap-4 xl:grid-cols-[360px_minmax(0,1fr)] ">
-              <div className="min-h-0 rounded-[22px] border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] overflow-hidden">
+              <div className="board-meetings-layout">
+              <div className="board-meetings-timeline min-h-0 rounded-[22px] border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] overflow-hidden">
                 <div className="mb-2 px-2 text-[12px] font-black uppercase tracking-[0.16em] text-slate-400">
-                  Board timeline
+                  Meetings <span className="board-meetings-hint">Double-click to manage</span>
                 </div>
                 <div className="grid max-h-full min-h-0 gap-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
                   {meetings.map((meeting) => (
@@ -381,7 +430,11 @@ export default function BoardMeetingsPage() {
                       key={meeting.id}
                       type="button"
                       onClick={() => setSelectedMeetingID(meeting.id)}
-                      className={`rounded-[18px] border p-4 text-left transition ${
+                      onDoubleClick={() => openControls(meeting)}
+                      onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); openControls(meeting); } }}
+                      title="Double-click to open meeting controls"
+                      aria-pressed={selectedMeeting?.id === meeting.id}
+                      className={`board-meetings-item rounded-[18px] border p-4 text-left transition ${
                         selectedMeeting?.id === meeting.id
                           ? "border-amber-300 bg-amber-50 shadow-[0_14px_32px_rgba(245,158,11,0.14)]"
                           : "border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-white"
@@ -410,8 +463,26 @@ export default function BoardMeetingsPage() {
               </div>
 
               {selectedMeeting ? (
-                <div className="min-h-0 overflow-y-auto rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] [scrollbar-width:thin]">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className={showControls ? "board-controls-overlay" : "board-detail-wrap"} onClick={() => setShowControls(false)}>
+                <div role={showControls ? "dialog" : undefined} aria-modal={showControls || undefined} aria-label="Meeting details and controls" onClick={event => event.stopPropagation()} className="board-meetings-detail min-h-0 overflow-y-auto rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] [scrollbar-width:thin]">
+                  {showControls ? <>
+                    <header className="board-modal-header">
+                      <div className="board-modal-badges"><span>{selectedMeeting.status}</span><span>{selectedMeeting.location || "Online"}</span></div>
+                      <div className="board-modal-icons">
+                        {canManage && <><button aria-label="Edit meeting" onClick={() => { setShowControls(false); editMeeting(); }}><Pencil size={18}/></button><button aria-label="Delete meeting" className="danger" disabled={deleting} onClick={deleteMeeting}><Trash2 size={18}/></button></>}
+                        <button autoFocus aria-label="Close meeting controls" onClick={() => setShowControls(false)}><X size={22}/></button>
+                      </div>
+                      <h2>{selectedMeeting.title}</h2>
+                      <p>{selectedMeeting.board_name || board?.name}</p>
+                    </header>
+                    <div className="board-modal-summary">
+                      <InfoCard label="Date" value={new Date(selectedMeeting.starts_at).toLocaleDateString(undefined, {day:"numeric",month:"short",year:"numeric"})}/>
+                      <InfoCard label="Time" value={formatMeetingRange(selectedMeeting.starts_at,selectedMeeting.ends_at)}/>
+                      <InfoCard label="Booked by" value={selectedMeeting.created_by_name || "Unknown"}/>
+                      <InfoCard label="Room" value={selectedMeeting.location || "Online"}/>
+                    </div>
+                    {selectedMeeting.notes && <TextCard title="Agenda / Notes" content={selectedMeeting.notes}/>}
+                  </> : <>                  <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
                       <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900">{selectedMeeting.title}</div>
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -427,18 +498,19 @@ export default function BoardMeetingsPage() {
                       </div>
                     </div>
 
-                    {canManage&&<div className="board-meeting-edit"><button type="button" onClick={editMeeting} disabled={deleting}><Pencil size={15}/>Edit</button><button type="button" onClick={deleteMeeting} disabled={deleting} className="danger"><Trash2 size={15}/>{deleting?'Deleting…':'Delete'}</button></div>}
+                    {showControls && <button autoFocus type="button" className="board-controls-close" aria-label="Close meeting controls" onClick={() => setShowControls(false)}><X size={18}/></button>}
+                    {canManage&&<div className="board-meeting-edit"><button type="button" onClick={() => openControls(selectedMeeting)}>Meeting controls</button><button type="button" onClick={() => { setShowControls(false); editMeeting(); }} disabled={deleting}><Pencil size={15}/>Edit</button><button type="button" onClick={deleteMeeting} disabled={deleting} className="danger"><Trash2 size={15}/>{deleting?'Deleting…':'Delete'}</button></div>}
                     <span className={`rounded-full border px-3 py-1.5 text-[12px] font-black capitalize ${statusTone(selectedMeeting.status)}`}>
                       {selectedMeeting.status}
                     </span>
                   </div>
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <div className="board-meetings-meta">
                     <InfoCard label="Supervisor" value={selectedMeeting.supervisor_name || "Unknown"} />
                     <InfoCard label="Created by" value={selectedMeeting.created_by_name || "Unknown"} />
                   </div>
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <div className="board-meetings-notes">
                     <TextCard
                       title="Agenda / Notes"
                       content={selectedMeeting.notes || "No meeting notes were added yet."}
@@ -449,7 +521,18 @@ export default function BoardMeetingsPage() {
                     />
                   </div>
 
-                  <div className="mt-5">
+</>}
+                  {showControls && canManage && <section className="board-controls-section">
+                    <h3>Meeting controls</h3>
+                    {error && <p role="alert" className="text-rose-600">{error}</p>}
+                    <div className="board-controls-actions">
+                      <button type="button" disabled={updating || selectedMeeting.status === "completed"} onClick={() => void saveControls("completed")}><CircleCheck size={20}/><span><strong>Complete Meeting</strong><small>Close it out and keep the outcome notes.</small></span></button>
+                      <button type="button" className="danger" disabled={updating || selectedMeeting.status === "canceled"} onClick={() => void saveControls("canceled")}><CircleSlash size={20}/><span><strong>Cancel Meeting</strong><small>Mark it canceled so everyone sees the update.</small></span></button>
+                    </div>
+                    <label>Outcome notes<textarea value={outcome} onChange={event => setOutcome(event.target.value)} placeholder="Summary, action items, and follow-up decisions." /></label>
+                    <button type="button" className="board-controls-save" disabled={updating} onClick={() => void saveControls(selectedMeeting.status)}>{updating ? "Saving…" : "Save notes"}</button>
+                  </section>}
+                  <div className={showControls ? "board-modal-participants" : "mt-5"}>
                     <div className="mb-3 text-[13px] font-black uppercase tracking-[0.16em] text-slate-400">
                       Participants
                     </div>
@@ -467,7 +550,7 @@ export default function BoardMeetingsPage() {
                           return (
                             <div
                               key={participant.user_id}
-                              className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-3"
+                              className="board-meetings-person"
                             >
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="flex min-w-0 items-center gap-3">
@@ -477,7 +560,7 @@ export default function BoardMeetingsPage() {
                                       {participant.full_name}
                                     </div>
                                     <div className="mt-1 flex flex-wrap gap-2 text-[12px] font-semibold text-slate-500">
-                                      <span>{participant.email}</span>
+                                      {!showControls && <span>{participant.email}</span>}
                                       {participant.nickname ? <span>@{participant.nickname}</span> : null}
                                       <span>{participant.role_in_board || participant.role}</span>
                                     </div>
@@ -485,12 +568,15 @@ export default function BoardMeetingsPage() {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                  <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${rsvpTone(participant.rsvp_status)}`}>
+                                  {showControls && canManage ? <>
+                                    <label className="board-participant-field">RSVP<select disabled={updating} value={participant.rsvp_status} onChange={e => void saveParticipant(participant, "rsvp_status", e.target.value)}>{["pending", "going", "maybe", "cant"].map(value => <option key={value} value={value}>{value === "cant" ? "Can't attend" : value[0].toUpperCase() + value.slice(1)}</option>)}</select></label>
+                                    <label className="board-participant-field">Attendance<select disabled={updating} value={participant.attendance_status} onChange={e => void saveParticipant(participant, "attendance_status", e.target.value)}>{["pending", "attended", "late", "missed"].map(value => <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}</select></label>
+                                  </> : <><span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${rsvpTone(participant.rsvp_status)}`}>
                                     RSVP: {participant.rsvp_status}
                                   </span>
                                   <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${attendanceTone(participant.attendance_status)}`}>
                                     Attendance: {participant.attendance_status}
-                                  </span>
+                                  </span></>}
                                 </div>
                               </div>
                             </div>
@@ -499,7 +585,7 @@ export default function BoardMeetingsPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </div></div>
               ) : null}
             </div>
             </>
@@ -509,16 +595,16 @@ export default function BoardMeetingsPage() {
 
       {showComposer ? (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/45 p-4 max-[520px]:items-start max-[520px]:p-3" onClick={closeComposer}>
-          <div className="flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+          <div role="dialog" aria-modal="true" aria-label={editing ? "Edit meeting" : "Book a meeting"} className="meeting-composer flex max-h-[calc(100dvh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_30px_80px_rgba(15,23,42,0.35)] max-[520px]:max-h-[calc(100dvh-24px)] max-[520px]:rounded-[18px] max-[520px]:p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="meeting-composer-header mb-4 flex shrink-0 items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[24px] font-black tracking-[-0.03em] text-slate-900 max-[520px]:text-[20px]">{editing ? "Edit meeting" : "Book a meeting"}</div>
                 <div className="mt-1 max-w-[430px] text-[13px] font-semibold text-slate-500 max-[520px]:text-[12px]">
                   This will be added to {board?.name || "this board"} and participants will sync from the board.
                 </div>
               </div>
-              <button type="button" onClick={closeComposer} disabled={saving} className="h-10 shrink-0 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700 disabled:opacity-60">
-                Close
+              <button type="button" onClick={closeComposer} disabled={saving} aria-label="Close booking" className="meeting-composer-close h-10 shrink-0 rounded-[12px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-700 disabled:opacity-60">
+                <X size={18}/>
               </button>
             </div>
 
@@ -537,6 +623,8 @@ export default function BoardMeetingsPage() {
                     {MEETING_LOCATIONS.map((location) => <option key={location} value={location}>{location}</option>)}
                   </select>
                 </Field>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
                 <Field label="Date">
                   <input required type="date" value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} className="h-12 w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-[13px] font-bold text-slate-800 outline-none focus:border-amber-300" />
                 </Field>
@@ -552,8 +640,9 @@ export default function BoardMeetingsPage() {
                 <textarea value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} className="min-h-[96px] w-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3 text-[13px] font-semibold text-slate-800 outline-none focus:border-amber-300" placeholder="Topics to cover, preparation notes, or room setup details." />
               </Field>
 
-              <div className="flex justify-end max-[520px]:sticky max-[520px]:bottom-0 max-[520px]:bg-white max-[520px]:py-2">
-                <button type="submit" disabled={saving} className="h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70 max-[520px]:w-full">
+              <div className="meeting-composer-footer flex justify-end gap-3 max-[520px]:sticky max-[520px]:bottom-0 max-[520px]:bg-white max-[520px]:py-2">
+                <button type="button" className="meeting-composer-cancel" onClick={closeComposer}>Cancel</button>
+                <button type="submit" disabled={saving} className="meeting-composer-submit h-12 rounded-[14px] border border-amber-300 bg-gradient-to-br from-amber-400 to-orange-400 px-5 text-[13px] font-black text-white shadow-[0_16px_34px_rgba(245,158,11,0.24)] disabled:opacity-70 max-[520px]:w-full">
                   {saving ? "Saving..." : editing ? "Save changes" : "Create meeting"}
                 </button>
               </div>
@@ -577,7 +666,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 p-4">
+    <div className="board-meetings-info">
       <div className="text-[12px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
       <div className="mt-2 text-[16px] font-black text-slate-900">{value}</div>
     </div>
@@ -586,7 +675,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
 
 function TextCard({ title, content }: { title: string; content: string }) {
   return (
-    <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 p-4">
+    <div className="board-meetings-note">
       <div className="text-[12px] font-black uppercase tracking-[0.16em] text-slate-400">{title}</div>
       <div className="mt-2 whitespace-pre-wrap text-[14px] font-semibold leading-6 text-slate-700">
         {content}
