@@ -428,6 +428,7 @@ export default function CardModal({
   const [editingBody, setEditingBody] = useState("");
   const [attachments, setAttachments] = useState<CardAttachment[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [previewAttachment, setPreviewAttachment] = useState<CardAttachment | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -995,35 +996,39 @@ export default function CardModal({
     }
   }
 
-  async function uploadAttachment(file: File | null | undefined) {
-    if (!card || !file || uploadingAttachment) return;
+  async function uploadAttachments(files: File[]) {
+    if (!card || files.length === 0 || uploadingAttachment) return;
     setErr("");
     setMsg("");
-
-    if (!file.type.startsWith("image/")) {
-      setErr("Please upload an image file.");
-      return;
-    }
-
-    if (file.size > 20 * 1024 * 1024) {
-      setErr("Choose an image smaller than 20 MB.");
-      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
-      return;
-    }
-    const form = new FormData();
-    form.append("card_id", String(card.id));
-    form.append("file", file);
-
     setUploadingAttachment(true);
+    const failures: string[] = [];
+    let uploaded = 0;
     try {
-      await apiFetch("/admin/card/attachments/upload", {
-        method: "POST",
-        body: form,
-      });
-      await loadAll();
-      setMsg("Image uploaded");
-    } catch (e: any) {
-      setErr(e.message || "Failed to upload image");
+      for (const [index, file] of files.entries()) {
+        setUploadProgress({ current: index + 1, total: files.length });
+        if (!file.type.startsWith("image/")) {
+          failures.push(file.name + ": not an image.");
+          continue;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          failures.push(file.name + ": exceeds the 20 MB limit.");
+          continue;
+        }
+        const form = new FormData();
+        form.append("card_id", String(card.id));
+        form.append("file", file);
+        try {
+          await apiFetch("/admin/card/attachments/upload", { method: "POST", body: form });
+          uploaded += 1;
+        } catch (error: unknown) {
+          failures.push(file.name + ": " + (error instanceof Error ? error.message : "Upload failed."));
+        }
+      }
+      if (uploaded > 0) {
+        await loadAll();
+        setMsg(uploaded === 1 ? "1 image uploaded" : uploaded + " images uploaded");
+      }
+      if (failures.length) setErr(failures.join(" "));
     } finally {
       setUploadingAttachment(false);
       if (attachmentInputRef.current) attachmentInputRef.current.value = "";
@@ -1228,14 +1233,15 @@ export default function CardModal({
                           onClick={() => attachmentInputRef.current?.click()}
                           disabled={uploadingAttachment}
                         >
-                          <ImagePlus size={16} /> {uploadingAttachment ? "Uploading..." : "Add image"}
+                          <ImagePlus size={16} /> {uploadingAttachment ? `Uploading ${uploadProgress.current} of ${uploadProgress.total}…` : "Add images"}
                         </button>
                         <input
                           ref={attachmentInputRef}
                           type="file"
                           accept="image/*"
+                          multiple
                           className="hidden"
-                          onChange={(event) => uploadAttachment(event.target.files?.[0])}
+                          onChange={(event) => void uploadAttachments(Array.from(event.target.files || []))}
                         />
                       </div>
 
