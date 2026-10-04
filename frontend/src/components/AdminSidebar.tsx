@@ -11,7 +11,7 @@ import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
 
 
 type Props = {
-  active?: "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
+  active?: "attendance" | "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
   drawer?: boolean;
   darkMode?: boolean;
   onToggleTheme?: () => void;
@@ -263,6 +263,7 @@ export default function AdminSidebar({ active, drawer = false, darkMode = false,
                   </svg>
                 }
               />
+              <SidebarItem currentActive={active} onNavigate={onNavigate} id="attendance" label="Mandatory Attendance" to="/admin/attendance" icon={<span style={{color:"#2563eb"}}>✓</span>} />
               <SidebarItem
                 currentActive={active}
                 onNavigate={onNavigate}

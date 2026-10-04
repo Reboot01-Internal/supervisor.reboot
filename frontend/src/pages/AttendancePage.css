@@ -1,0 +1,60 @@
+/* Restrained directory styling, using the application's shared Modal. */
+.attendance-page,.attendance-dialog{color:#1e293b;font-size:14px}
+.attendance-primary,.attendance-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 14px;border:1px solid transparent;border-radius:8px;font-size:13px;font-weight:600;transition:background .15s}
+.attendance-primary{background:#2563eb;color:#fff}.attendance-primary:hover{background:#1d4ed8}
+.attendance-secondary{background:#fff;color:#475569;border-color:#e2e8f0}.attendance-secondary:hover{background:#f8fafc}
+.attendance-primary:disabled,.attendance-secondary:disabled{opacity:.5;cursor:not-allowed}
+.attendance-directory{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.attendance-directory-heading{padding:22px 24px 16px}.attendance-directory-heading h2{font-size:17px;font-weight:600;display:flex;align-items:center;gap:10px}
+.attendance-directory-heading h2 span{font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:2px 7px;color:#64748b}
+.attendance-directory-heading p,.attendance-import>p{margin-top:5px;color:#64748b;font-size:13px;line-height:1.6}
+.attendance-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px 20px}
+.attendance-tabs{display:flex;gap:3px;padding:3px;background:#f1f5f9;border-radius:8px}
+.attendance-tabs button{padding:6px 10px;border-radius:6px;font-size:12px;color:#64748b;white-space:nowrap}
+.attendance-tabs button[aria-pressed=true]{background:white;color:#0f172a;box-shadow:0 1px 3px #0f172a15}
+.attendance-tabs span{margin-left:7px;font-size:11px;color:#94a3b8}
+.attendance-toolbar label,.attendance-import-search{display:flex;align-items:center;gap:8px;border:1px solid #e2e8f0;border-radius:8px;padding:0 11px;color:#94a3b8;background:white}
+.attendance-toolbar input,.attendance-import-search input{height:38px;width:100%;min-width:0;border:0!important;background:transparent!important;outline:0;font-size:13px;color:#334155}
+.attendance-toolbar label{width:280px}.attendance-toolbar label:focus-within,.attendance-import-search:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px #eff6ff}
+.attendance-table{overflow:auto}.attendance-table table{width:100%;border-collapse:collapse;text-align:left}
+.attendance-table th{background:#f8fafc;border-block:1px solid #e2e8f0;padding:10px 24px;font-size:12px;font-weight:500;color:#64748b}
+.attendance-table td{padding:16px 24px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:middle}
+.attendance-table tr:hover td{background:#fafcff}.attendance-person{display:flex;align-items:center;gap:10px;min-width:0}
+.attendance-person strong{display:block;font-size:13px;font-weight:600;color:#1e293b}.attendance-person span,.attendance-table small{display:block;font-size:12px;color:#64748b;margin-top:3px}
+.attendance-table td:first-child>small{margin-left:50px;font-size:11px}.attendance-view{display:flex;align-items:center;gap:6px;color:#64748b;font-size:12px;padding:6px}
+.attendance-view:hover{color:#2563eb}.attendance-badge{display:inline-flex;align-items:center;gap:5px;color:#2563eb;background:#eff6ff;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:500;white-space:nowrap}
+.attendance-badge.is-archived{color:#64748b;background:#f1f5f9}
+.attendance-directory footer{padding:14px 24px;font-size:12px;color:#94a3b8}
+.attendance-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:56px 24px;text-align:center;color:#94a3b8}
+.attendance-empty h3{font-size:15px;color:#334155;font-weight:600}.attendance-empty p{max-width:340px;font-size:13px;line-height:1.7;color:#64748b}
+.attendance-error{padding:12px 14px;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:8px;font-size:13px;margin-bottom:14px}
+.attendance-dialog>div>div{max-width:660px;border-radius:12px}
+.attendance-dialog>div>div>div:first-child{padding:16px 20px}
+.attendance-dialog>div>div>div:nth-child(2){background:white;padding:20px}
+.attendance-dialog>div>div>div:last-child{padding:14px 20px}
+.attendance-dialog .modal-close{background:transparent;border:0;border-radius:6px;color:#64748b}
+.attendance-import-search{margin-top:16px}.attendance-selection-count{margin-right:auto;font-size:12px;color:#64748b}
+.attendance-selected{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.attendance-selected button{display:flex;align-items:center;gap:7px;font-size:11px;background:#eff6ff;color:#2563eb;border-radius:6px;padding:5px 8px}
+.attendance-results{margin-top:16px;min-height:200px;max-height:320px;overflow:auto}
+.attendance-result{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid #f1f5f9;border-radius:6px;cursor:pointer}
+.attendance-result:hover{background:#f8fafc}.attendance-result small{margin-left:auto;font-size:11px;color:#64748b}.attendance-result input{accent-color:#2563eb;width:16px;height:16px}
+.attendance-profile-dialog>div>div{max-width:560px}
+.attendance-member-detail header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;padding-bottom:20px;border-bottom:1px solid #e2e8f0}
+.attendance-member-detail dl{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:22px 0}
+.attendance-member-detail dt{font-size:12px;color:#94a3b8;margin-bottom:5px}.attendance-member-detail dd{font-size:13px;color:#334155;overflow-wrap:anywhere}
+.attendance-record-note{font-size:12px;color:#94a3b8;line-height:1.6;border-top:1px solid #e2e8f0;padding-top:14px}
+.attendance-page button:focus-visible,.attendance-dialog button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+@media(max-width:700px){.attendance-toolbar{align-items:stretch;flex-direction:column;padding-inline:16px}.attendance-toolbar label{width:100%}.attendance-directory-heading{padding:18px 16px}.attendance-tabs{align-self:flex-start}.attendance-table td,.attendance-table th{padding:12px 16px}.attendance-member-detail dl{grid-template-columns:1fr}.attendance-directory footer{padding:14px 16px}}
+
+/* The containing search control owns the focus indicator. */
+.attendance-toolbar input:focus,
+.attendance-toolbar input:focus-visible,
+.attendance-import-search input:focus,
+.attendance-import-search input:focus-visible {
+  outline: none;
+  outline-offset: 0;
+  box-shadow: none;
+}
+.attendance-toolbar label > svg,
+.attendance-import-search > svg { flex-shrink: 0; }

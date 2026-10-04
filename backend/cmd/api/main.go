@@ -104,6 +104,8 @@ func main() {
 	// admin
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Use(api.RequireActiveAccount)
+		ar.Get("/attendance/members", api.AttendanceMembers)
+		ar.Post("/attendance/members", api.AttendanceMembers)
 		ar.Post("/users/status", api.UpdateUserStatus)
 		ar.Post("/users", api.AdminCreateUser)
 		ar.Post("/users/delete", api.AdminDeleteUser)
@@ -256,6 +258,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/018_list_colors.sql",
 		"migrations/019_inactive_assignments.sql",
 		"migrations/020_board_covers.sql",
+		"migrations/021_attendance_members.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 

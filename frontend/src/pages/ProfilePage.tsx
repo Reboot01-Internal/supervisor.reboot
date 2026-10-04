@@ -240,7 +240,7 @@ function formatBahrainDateTime(value: string) {
   });
 }
 
-async function loadRebootProfile(login: string, jwt: string): Promise<RebootProfile> {
+export async function loadRebootProfile(login: string, jwt: string): Promise<RebootProfile> {
   const query = `
     query Profile($login: String!) {
       user(where: { login: { _eq: $login } }, limit: 1) {
