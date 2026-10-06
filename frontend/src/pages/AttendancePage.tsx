@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, X, ArrowUpRight } from "lucide-react";
+import AttendanceWeek from "../components/AttendanceWeek";
 import AttendanceRequirements from "../components/AttendanceRequirements";
 import AttendanceRecords from "../components/AttendanceRecords";
 import Modal from "../components/Modal";
@@ -76,11 +77,11 @@ export default function AttendancePage() {
  {error&&<div role="alert" className="attendance-error">{error}</div>}
  <div className="attendance-manage-top">
  <section className="attendance-manage-card attendance-member-detail">
- <header>{person(detail)}<span className="attendance-badge">Attendance Member</span></header>
+ <header><div className="attendance-person attendance-profile-identity"><UserAvatar src={avatars[detail.nickname]} alt={detail.full_name} fallback={detail.full_name.slice(0,1)} sizeClass="h-20 w-20" previewable/><div><strong>{detail.full_name}</strong><span>@{detail.nickname}</span><button className="attendance-view" onClick={()=>{if(detail.user_id>0)nav(`/admin/users/${detail.user_id}/profile`,{state:{backTo:"/admin/attendance"}});else setProfileOnly(true);}}>View profile <ArrowUpRight size={15}/></button></div></div><span className="attendance-badge">Attendance Member</span></header>
  <dl>{Object.entries({"Email":detail.email,"Phone":profile?.user?.number||phones[detail.nickname]||"Unavailable","Cohort":detail.cohort||"Unavailable","Existing role":detail.role==="student"?"Talent":detail.role||"No workspace role","Gender":profileLoading?"Loading…":profile?.user?.gender||"Unavailable","Level":profileLoading?"Loading…":profile?.level?.toString()||"Unavailable","Audit ratio":profileLoading?"Loading…":profile?.user?.auditRatio?.toString()||"Unavailable","Added":new Date(detail.created_at.replace(" ","T")+"Z").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
  {profileError&&<p role="status" className="attendance-record-note">{profileError}</p>}
  </section>
- <aside className="attendance-manage-card attendance-manage-status"><h2>Status</h2><span className={detail.enrolled?"attendance-badge":"attendance-badge is-archived"}>{detail.enrolled?"Enrolled":"Archived"}</span><dl><dt>Account</dt><dd>{detail.user_id?(detail.is_active?"Active":"Inactive"):"Reboot member"}</dd></dl><p>Membership applies to mandatory attendance. Existing roles stay unchanged.</p><button disabled={saving} className="attendance-secondary" onClick={()=>void toggle(detail)}>{saving?"Saving…":detail.enrolled?"Archive membership":"Restore membership"}</button></aside>
+ <aside className="attendance-manage-card attendance-manage-status"><h2>Status</h2><span className={detail.enrolled?"attendance-badge":"attendance-badge is-archived"}>{detail.enrolled?"Enrolled":"Archived"}</span><dl><dt>Account</dt><dd>{detail.user_id?(detail.is_active?"Active":"Inactive"):"Reboot member"}</dd></dl><AttendanceWeek key={detail.id} memberID={detail.id}/><button disabled={saving} className="attendance-secondary" onClick={()=>void toggle(detail)}>{saving?"Saving…":detail.enrolled?"Archive membership":"Restore membership"}</button></aside>
  </div>
  <section className="attendance-manage-card"><div className="attendance-manage-heading"><h2>Attendance</h2><p>Review recorded days, punches and hours.</p></div><AttendanceRecords key={detail.id} memberID={detail.id}/></section>
  <section className="attendance-manage-card"><AttendanceRequirements key={detail.id} memberID={detail.id}/></section>
