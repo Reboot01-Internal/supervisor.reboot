@@ -29,3 +29,7 @@ Admins select explicit dates and required hours per date using `/admin/attendanc
 Required dates are compared with usable BioTime minutes. Future dates are scheduled, today remains in progress until met, and past dates become met, below target, no record (review), or incomplete (review). Notifications deliberately request review, not a definitive absence judgment.
 
 The backend checks enrolled members' required months at startup and hourly while the server runs. A successful calendar fetch also checks the displayed month; an open calendar refreshes every five minutes. Provider failures never create absence notifications. Alerts are persisted to the existing admin notification inbox and deduplicated by member/date/status. Historical notifications remain as a record even when a later sync or requirement edit changes the current status. Restart the backend to apply migration 023 and start the worker. Email, push, and external messaging are not configured.
+
+## Student view
+
+Enrolled students see My attendance above their supervisors on the dashboard, with a read-only page at `/attendance`. `/admin/attendance/me` and `/admin/attendance/me/records` resolve the member from the Reboot-verified session and ignore client member IDs. Archived members and inactive linked accounts cannot read records. The admin requirements endpoints remain admin-only. Personal alerts are sent to the matching active local account, deduplicated separately from admin deliveries, and link to `/attendance`. Student deliveries are excluded from the admin workspace feed.

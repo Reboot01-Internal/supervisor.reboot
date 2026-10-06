@@ -141,6 +141,9 @@ func (a *API) evaluateAttendanceDates(id int64, login, start, end string, days [
 		item.Recorded = d.Minutes
 		item.Status = requirementStatus(item.Date, today, d.Minutes, ok, item.Required)
 		if item.Status == "no_record" || item.Status == "below_target" || item.Status == "needs_review" {
+			if err := a.notifyAttendanceStudent(id, login, *item); err != nil {
+				return nil, err
+			}
 			// A unique alert per date/status prevents repeated notifications on refresh.
 			tx, err := a.conn.Begin()
 			if err != nil {

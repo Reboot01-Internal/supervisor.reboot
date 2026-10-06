@@ -18,7 +18,7 @@ function todayInBahrain() {
 }
 function dateKey(date:Date){return date.toISOString().slice(0,10);}
 function hours(minutes:number){return Math.floor(minutes/60)+"h "+minutes%60+"m";}
-export default function AttendanceRecords({memberID}:{memberID:number}) {
+export default function AttendanceRecords({memberID=0,self=false}:{memberID?:number;self?:boolean}) {
  const today=todayInBahrain();
  const [month,setMonth]=useState(today.slice(0,7));
  const [selected,setSelected]=useState(today);
@@ -32,13 +32,13 @@ export default function AttendanceRecords({memberID}:{memberID:number}) {
  useEffect(()=>{
   const controller=new AbortController();
   setLoading(true);setError("");setData(null);
-  apiFetch("/admin/attendance/records?"+new URLSearchParams({member_id:String(memberID),startDate:start,endDate:end}),{
+  apiFetch((self?"/admin/attendance/me/records?":"/admin/attendance/records?")+new URLSearchParams({member_id:String(memberID),startDate:start,endDate:end}),{
    signal:controller.signal,headers:{Authorization:"Bearer "+(localStorage.getItem("jwt")||"")},
   }).then(result=>{if(!controller.signal.aborted)setData(result);})
    .catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Could not load attendance.");})
    .finally(()=>{if(!controller.signal.aborted)setLoading(false);});
   return()=>controller.abort();
- },[memberID,start,end,revision]);
+ },[memberID,self,start,end,revision]);
  const cells=useMemo(()=>{
   const first=new Date(start+"T00:00:00Z");
   return Array.from({length:42},(_,i)=>dateKey(new Date(first.getTime()+(i-first.getUTCDay())*86400000)));
@@ -96,6 +96,6 @@ export default function AttendanceRecords({memberID}:{memberID:number}) {
  </>}
  </aside>
  </div>
- {data&&<><div className="attendance-data-notes">{data.warnings.map(w=><p key={w}>{w}</p>)}</div><p className="attendance-record-note">BioTime · Updated {new Date(data.fetchedAt).toLocaleString(undefined,{timeZone:"Asia/Bahrain"})} (Bahrain). Attendance targets are managed below.</p></>}
+ {data&&<><div className="attendance-data-notes">{data.warnings.map(w=><p key={w}>{w}</p>)}</div><p className="attendance-record-note">BioTime · Updated {new Date(data.fetchedAt).toLocaleString(undefined,{timeZone:"Asia/Bahrain"})} (Bahrain). {self?"Your requirements are set by your administrator.":"Attendance targets are managed below."}</p></>}
  </section>;
 }

@@ -1,3 +1,4 @@
+import MyAttendancePage from "./pages/MyAttendancePage";
 import AttendancePage from "./pages/AttendancePage";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./lib/auth";
@@ -71,6 +72,7 @@ function CatchAll() {
 export default function App() {
   return (
     <Routes>
+ <Route path="/attendance" element={<RequireAuth><MyAttendancePage/></RequireAuth>}/>
       <Route path="/admin/attendance" element={<RequireAdmin><AttendancePage /></RequireAdmin>} />
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LandingPage />} />

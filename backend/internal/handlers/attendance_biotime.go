@@ -143,6 +143,9 @@ func (a *API) AttendanceRecords(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "A valid member is required")
 		return
 	}
+	a.attendanceRecordsForMember(w, r, id)
+}
+func (a *API) attendanceRecordsForMember(w http.ResponseWriter, r *http.Request, id int64) {
 	var login string
 	if a.conn.QueryRow("SELECT nickname FROM attendance_members WHERE id=?", id).Scan(&login) != nil {
 		writeErr(w, 404, "Attendance member not found")

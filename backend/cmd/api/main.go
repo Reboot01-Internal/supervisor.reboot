@@ -108,6 +108,8 @@ func main() {
 		ar.Get("/attendance/requirements", api.AttendanceRequirements)
 		ar.Post("/attendance/requirements", api.AttendanceRequirements)
 		ar.Get("/attendance/records", api.AttendanceRecords)
+		ar.Get("/attendance/me", api.MyAttendance)
+		ar.Get("/attendance/me/records", api.MyAttendanceRecords)
 		ar.Get("/attendance/dates", api.AttendanceDates)
 		ar.Post("/attendance/dates", api.AttendanceDates)
 		ar.Get("/attendance/members", api.AttendanceMembers)
