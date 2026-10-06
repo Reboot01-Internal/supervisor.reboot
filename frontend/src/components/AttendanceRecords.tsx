@@ -96,6 +96,6 @@ export default function AttendanceRecords({memberID=0,self=false}:{memberID?:num
  </>}
  </aside>
  </div>
- {data&&<><div className="attendance-data-notes">{data.warnings.map(w=><p key={w}>{w}</p>)}</div><p className="attendance-record-note">BioTime · Updated {new Date(data.fetchedAt).toLocaleString(undefined,{timeZone:"Asia/Bahrain"})} (Bahrain). {self?"Your requirements are set by your administrator.":"Attendance targets are managed below."}</p></>}
+ {data&&<><div className="attendance-data-notes">{data.warnings.map(w=><p key={w}>{w}</p>)}</div><p className="attendance-record-note">BioTime · Last synced {new Date(data.fetchedAt).toLocaleString(undefined,{timeZone:"Asia/Bahrain"})} (Bahrain). Cached for up to 2 hours. {self?"Your requirements are set by your administrator.":"Attendance targets are managed below."}</p></>}
  </section>;
 }

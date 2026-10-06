@@ -158,7 +158,7 @@ func (a *API) attendanceRecordsForMember(w http.ResponseWriter, r *http.Request,
 		writeErr(w, 400, "Choose a valid date range of up to 366 days")
 		return
 	}
-	days, err := fetchBioAttendance(r.Context(), login, start, end)
+	days, fetchedAt, err := fetchBioAttendanceSnapshot(r.Context(), login, start, end)
 	if err != nil {
 		writeErr(w, 502, err.Error())
 		return
@@ -176,7 +176,7 @@ func (a *API) attendanceRecordsForMember(w http.ResponseWriter, r *http.Request,
 			unknown++
 		}
 	}
-	writeJSON(w, 200, map[string]any{"requirements": requirements, "source": "biotime", "timezone": "Asia/Bahrain", "records": days, "daysWithRecords": len(days), "knownMinutes": total, "excludedDates": unknown, "startDate": start, "endDate": end, "fetchedAt": time.Now().UTC().Format(time.RFC3339), "warnings": []string{"Hours use BioTime’s reported daily duration. Missing records do not establish absence. Incomplete days are excluded from total hours."}})
+	writeJSON(w, 200, map[string]any{"requirements": requirements, "source": "biotime", "timezone": "Asia/Bahrain", "records": days, "daysWithRecords": len(days), "knownMinutes": total, "excludedDates": unknown, "startDate": start, "endDate": end, "fetchedAt": fetchedAt.UTC().Format(time.RFC3339), "warnings": []string{"Hours use BioTime’s reported daily duration. Missing records do not establish absence. Incomplete days are excluded from total hours."}})
 }
 func buildAttendanceDays(reports []bioReport, transactions []bioTransaction, code, login, start, end string) ([]attendanceDay, error) {
 	summaries := map[string][]bioReport{}
@@ -272,7 +272,7 @@ func attendanceMinutes(value string) (int, bool) {
 	return h*60 + m, true
 }
 
-func fetchBioAttendance(parent context.Context, login, start, end string) ([]attendanceDay, error) {
+func fetchBioAttendanceUncached(parent context.Context, login, start, end string) ([]attendanceDay, error) {
 	key := strings.TrimSpace(os.Getenv("BIO_TIME_TOKEN"))
 	employeesURL := strings.TrimSpace(os.Getenv("BIO_TIME_EMPLOYEES"))
 	reportsURL := strings.TrimSpace(os.Getenv("BIO_TIME_RECORDS"))
@@ -288,7 +288,7 @@ func fetchBioAttendance(parent context.Context, login, start, end string) ([]att
 	}
 	ctx, cancel := context.WithTimeout(parent, 60*time.Second)
 	defer cancel()
-	employees, err := bioPages[bioEmployee](ctx, employeesURL, key, url.Values{})
+	employees, _, err := attendanceEmployeeCache.get(ctx, bioConfigurationKey(), func() ([]bioEmployee, error) { return bioPages[bioEmployee](ctx, employeesURL, key, url.Values{}) })
 	if err != nil {
 		return nil, err
 	}
