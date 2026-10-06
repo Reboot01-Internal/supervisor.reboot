@@ -200,3 +200,134 @@ func TestWhiteboardWebSocketCollaboration(t *testing.T) {
 	}
 	c1.Close()
 }
+
+func TestMultipleWhiteboardCreationAndPersistence(t *testing.T) {
+	a := whiteboardTestAPI(t)
+	request := func(method, path, login, body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		r.Header.Set("X-User-Login", login)
+		w := httptest.NewRecorder()
+		if strings.Split(path, "?")[0] == "/admin/whiteboards" {
+			a.AdminWhiteboards(w, r)
+		} else {
+			a.AdminWhiteboard(w, r)
+		}
+		return w
+	}
+	w := request("POST", "/admin/whiteboards", "admin1", `{"title":"October planning"}`)
+	if w.Code != 201 {
+		t.Fatalf("Create %d %s", w.Code, w.Body.String())
+	}
+	var created struct {
+		ID string `json:"id"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &created)
+	if !validWhiteboardID(created.ID) || created.ID == "default" {
+		t.Fatal("Invalid new board ID")
+	}
+	w = request("GET", "/admin/whiteboard?board_id="+created.ID, "admin2", "")
+	var doc whiteboardDocument
+	_ = json.Unmarshal(w.Body.Bytes(), &doc)
+	if w.Code != 200 || doc.Title != "October planning" || len(doc.Items) != 0 || doc.Revision == 0 {
+		t.Fatal("New board is not a fresh blank canvas")
+	}
+	w = request("GET", "/admin/whiteboards", "admin2", "")
+	var list []map[string]any
+	_ = json.Unmarshal(w.Body.Bytes(), &list)
+	if w.Code != 200 || len(list) != 2 {
+		t.Fatalf("Shared list %d %s", w.Code, w.Body.String())
+	}
+	h := a.whiteboardRoom(created.ID)
+	if err := a.loadWhiteboard(h); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "new-room-note", Changes: []whiteboardChange{{ID: "new-note", Add: whiteboardTestItem("new-note", "Only in planning")}}}); err != nil {
+		t.Fatal(err)
+	}
+	w = request("GET", "/admin/whiteboard", "admin1", "")
+	if strings.Contains(w.Body.String(), "Only in planning") {
+		t.Fatal("New note leaked into original board")
+	}
+	reloaded := &API{conn: a.conn}
+	restored := reloaded.whiteboardRoom(created.ID)
+	if err := reloaded.loadWhiteboard(restored); err != nil || len(restored.document.Items) != 1 {
+		t.Fatal("New board did not persist across restart")
+	}
+	for _, body := range []string{`{}`, `{"title":"   "}`, `{"title":"` + strings.Repeat("x", 161) + `"}`} {
+		if w = request("POST", "/admin/whiteboards", "admin1", body); w.Code != 400 {
+			t.Fatal("Invalid board name accepted")
+		}
+	}
+	if w = request("POST", "/admin/whiteboards", "student", `{"title":"No access"}`); w.Code != 403 {
+		t.Fatal("Student created board")
+	}
+	if w = request("GET", "/admin/whiteboard?board_id=../other", "admin1", ""); w.Code != 400 {
+		t.Fatal("Invalid ID accepted")
+	}
+	if w = request("GET", "/admin/whiteboard?board_id=wb_00000000000000000000000000000000", "admin1", ""); w.Code != 404 {
+		t.Fatal("Unknown board did not return 404")
+	}
+}
+
+func TestWhiteboardRoomsIsolateWebSocketUpdatesAndPresence(t *testing.T) {
+	a := whiteboardTestAPI(t)
+	ids := []string{"wb_00000000000000000000000000000000", "wb_11111111111111111111111111111111"}
+	for _, id := range ids {
+		raw, _ := json.Marshal(whiteboardDocument{Title: id, Items: []map[string]json.RawMessage{}, Revision: 1})
+		if err := db.UpsertAppSetting(a.conn, "admin_whiteboard_room_"+id, string(raw)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/stream", a.WhiteboardStream)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	read := func(c *websocket.Conn) map[string]json.RawMessage {
+		t.Helper()
+		_ = c.SetReadDeadline(time.Now().Add(3 * time.Second))
+		var m map[string]json.RawMessage
+		if err := c.ReadJSON(&m); err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	dial := func(id, login string) *websocket.Conn {
+		t.Helper()
+		c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/stream?login="+login+"&board_id="+id, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { c.Close() })
+		read(c)
+		presence := read(c)
+		var people []whiteboardPerson
+		_ = json.Unmarshal(presence["people"], &people)
+		if len(people) != 1 {
+			t.Fatalf("Presence leaked across rooms: %s", presence["people"])
+		}
+		return c
+	}
+	c1, c2 := dial(ids[0], "admin1"), dial(ids[1], "admin2")
+	for index, c := range []*websocket.Conn{c1, c2} {
+		id := ids[index]
+		_ = c.WriteJSON(whiteboardOperation{ID: id, Changes: []whiteboardChange{{ID: id, Add: whiteboardTestItem(id, "Independent note")}}})
+	}
+	for index, c := range []*websocket.Conn{c1, c2} {
+		event := read(c)
+		var op whiteboardOperation
+		_ = json.Unmarshal(event["operation"], &op)
+		if op.ID != ids[index] {
+			t.Fatalf("Operation leaked into another board: %s", event["operation"])
+		}
+	}
+	for _, id := range ids {
+		h := a.whiteboardRoom(id)
+		h.mu.Lock()
+		if len(h.document.Items) != 1 || string(h.document.Items[0]["id"]) != `"`+id+`"` {
+			t.Error("Room data is mixed")
+		}
+		h.mu.Unlock()
+	}
+	c1.Close()
+	c2.Close()
+}

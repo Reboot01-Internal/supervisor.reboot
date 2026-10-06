@@ -13,6 +13,8 @@ import (
 )
 
 type API struct {
+	whiteboardMu           sync.Mutex
+	whiteboardRooms        map[string]*whiteboardHub
 	whiteboardOnce         sync.Once
 	whiteboard             *whiteboardHub
 	conn                   *sql.DB

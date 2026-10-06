@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -47,14 +49,58 @@ type whiteboardPeer struct {
 	person whiteboardPerson
 }
 type whiteboardHub struct {
+	key      string
 	mu       sync.Mutex
 	document *whiteboardDocument
 	clients  map[*whiteboardPeer]bool
 }
 
-func (a *API) whiteboardRoom() *whiteboardHub {
-	a.whiteboardOnce.Do(func() { a.whiteboard = &whiteboardHub{clients: make(map[*whiteboardPeer]bool)} })
-	return a.whiteboard
+func (a *API) whiteboardRoom(ids ...string) *whiteboardHub {
+	a.whiteboardOnce.Do(func() {
+		a.whiteboard = &whiteboardHub{key: sharedWhiteboardKey, clients: make(map[*whiteboardPeer]bool)}
+		a.whiteboardRooms = map[string]*whiteboardHub{"default": a.whiteboard}
+	})
+	id := "default"
+	if len(ids) > 0 && ids[0] != "" {
+		id = ids[0]
+	}
+	a.whiteboardMu.Lock()
+	defer a.whiteboardMu.Unlock()
+	if h := a.whiteboardRooms[id]; h != nil {
+		return h
+	}
+	h := &whiteboardHub{key: "admin_whiteboard_room_" + id, clients: make(map[*whiteboardPeer]bool)}
+	a.whiteboardRooms[id] = h
+	return h
+}
+func validWhiteboardID(id string) bool {
+	if id == "" || id == "default" {
+		return true
+	}
+	if len(id) != 35 || !strings.HasPrefix(id, "wb_") {
+		return false
+	}
+	_, err := hex.DecodeString(id[3:])
+	return err == nil
+}
+func (a *API) requestWhiteboard(w http.ResponseWriter, r *http.Request) (*whiteboardHub, bool) {
+	id := r.URL.Query().Get("board_id")
+	if !validWhiteboardID(id) {
+		writeErr(w, 400, "Invalid whiteboard ID")
+		return nil, false
+	}
+	if id != "" && id != "default" {
+		value, err := db.GetAppSetting(a.conn, "admin_whiteboard_room_"+id)
+		if err != nil {
+			writeErr(w, 500, "Could not load whiteboard")
+			return nil, false
+		}
+		if value == "" {
+			writeErr(w, 404, "Whiteboard not found")
+			return nil, false
+		}
+	}
+	return a.whiteboardRoom(id), true
 }
 func (a *API) whiteboardIdentity(w http.ResponseWriter, r *http.Request) (whiteboardPerson, bool) {
 	// Resolve an active existing admin, using the same identity contract as other workspace endpoints.
@@ -132,7 +178,7 @@ func (a *API) loadWhiteboard(h *whiteboardHub) error {
 	if h.document != nil {
 		return nil
 	}
-	value, err := db.GetAppSetting(a.conn, sharedWhiteboardKey)
+	value, err := db.GetAppSetting(a.conn, h.key)
 	if err != nil {
 		return err
 	}
@@ -143,6 +189,9 @@ func (a *API) loadWhiteboard(h *whiteboardHub) error {
 		}
 		h.document = &doc
 		return nil
+	}
+	if h.key != sharedWhiteboardKey {
+		return errors.New("Whiteboard not found")
 	}
 	rows, err := a.conn.Query(`SELECT value FROM app_settings WHERE key GLOB 'admin_whiteboard_[0-9]*' ORDER BY updated_at DESC,key`)
 	if err != nil {
@@ -190,7 +239,7 @@ func (a *API) loadWhiteboard(h *whiteboardHub) error {
 		return fmt.Errorf("Could not combine old boards: %w. Your original boards are preserved", err)
 	}
 	data, _ := json.Marshal(doc)
-	if err = db.UpsertAppSetting(a.conn, sharedWhiteboardKey, string(data)); err != nil {
+	if err = db.UpsertAppSetting(a.conn, h.key, string(data)); err != nil {
 		return err
 	}
 	h.document = &doc
@@ -285,7 +334,7 @@ func (a *API) applyWhiteboard(h *whiteboardHub, op whiteboardOperation) error {
 		return err
 	}
 	data, _ := json.Marshal(next)
-	if err := db.UpsertAppSetting(a.conn, sharedWhiteboardKey, string(data)); err != nil {
+	if err := db.UpsertAppSetting(a.conn, h.key, string(data)); err != nil {
 		return errors.New("Could not save shared whiteboard")
 	}
 	h.document = &next
@@ -296,7 +345,10 @@ func (a *API) AdminWhiteboard(w http.ResponseWriter, r *http.Request) {
 	if _, ok := a.whiteboardIdentity(w, r); !ok {
 		return
 	}
-	h := a.whiteboardRoom()
+	h, ok := a.requestWhiteboard(w, r)
+	if !ok {
+		return
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if err := a.loadWhiteboard(h); err != nil {
@@ -314,7 +366,10 @@ func (a *API) WhiteboardStream(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	h := a.whiteboardRoom()
+	h, ok := a.requestWhiteboard(w, r)
+	if !ok {
+		return
+	}
 	h.mu.Lock()
 	err := a.loadWhiteboard(h)
 	h.mu.Unlock()
@@ -383,4 +438,82 @@ func (a *API) WhiteboardStream(w http.ResponseWriter, r *http.Request) {
 		}
 		h.mu.Unlock()
 	}
+}
+
+// AdminWhiteboards lists and creates shared canvases; the original board retains its existing storage key.
+func (a *API) AdminWhiteboards(w http.ResponseWriter, r *http.Request) {
+	if _, ok := a.whiteboardIdentity(w, r); !ok {
+		return
+	}
+	if r.Method == http.MethodPost {
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		var req struct {
+			Title string `json:"title"`
+		}
+		if json.NewDecoder(r.Body).Decode(&req) != nil || strings.TrimSpace(req.Title) == "" || utf8.RuneCountInString(req.Title) > 160 {
+			writeErr(w, 400, "Enter a whiteboard name of up to 160 characters")
+			return
+		}
+		random := make([]byte, 16)
+		if _, err := rand.Read(random); err != nil {
+			writeErr(w, 500, "Could not create whiteboard")
+			return
+		}
+		id := "wb_" + hex.EncodeToString(random)
+		doc := whiteboardDocument{Title: strings.TrimSpace(req.Title), Items: []map[string]json.RawMessage{}, Revision: 1}
+		raw, _ := json.Marshal(doc)
+		if err := db.UpsertAppSetting(a.conn, "admin_whiteboard_room_"+id, string(raw)); err != nil {
+			writeErr(w, 500, "Could not save whiteboard")
+			return
+		}
+		writeJSON(w, 201, map[string]any{"id": id, "title": doc.Title, "objects": 0})
+		return
+	}
+	if r.Method != http.MethodGet {
+		writeErr(w, 405, "Method not allowed")
+		return
+	}
+	h := a.whiteboardRoom()
+	h.mu.Lock()
+	err := a.loadWhiteboard(h)
+	h.mu.Unlock()
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	rows, err := a.conn.Query(`SELECT key,value,updated_at FROM app_settings WHERE key=? OR key GLOB 'admin_whiteboard_room_wb_*' ORDER BY updated_at DESC,key`, sharedWhiteboardKey)
+	if err != nil {
+		writeErr(w, 500, "Could not list whiteboards")
+		return
+	}
+	defer rows.Close()
+	type entry struct {
+		ID        string `json:"id"`
+		Title     string `json:"title"`
+		Objects   int    `json:"objects"`
+		UpdatedAt string `json:"updated_at"`
+	}
+	result := []entry{}
+	for rows.Next() {
+		var key, value, updated string
+		if rows.Scan(&key, &value, &updated) != nil {
+			writeErr(w, 500, "Could not read whiteboards")
+			return
+		}
+		var doc whiteboardDocument
+		if json.Unmarshal([]byte(value), &doc) != nil {
+			writeErr(w, 500, "Could not read whiteboard document")
+			return
+		}
+		id := "default"
+		if key != sharedWhiteboardKey {
+			id = strings.TrimPrefix(key, "admin_whiteboard_room_")
+		}
+		result = append(result, entry{ID: id, Title: doc.Title, Objects: len(doc.Items), UpdatedAt: updated})
+	}
+	if rows.Err() != nil {
+		writeErr(w, 500, "Could not list whiteboards")
+		return
+	}
+	writeJSON(w, 200, result)
 }

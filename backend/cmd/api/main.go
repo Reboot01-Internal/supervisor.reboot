@@ -182,6 +182,8 @@ func main() {
 		ar.Post("/card/reminders/delete", api.AdminDeleteReminder)
 
 		ar.Get("/all-boards", api.AdminAllBoards)
+		ar.Get("/whiteboards", api.AdminWhiteboards)
+		ar.Post("/whiteboards", api.AdminWhiteboards)
 		ar.Get("/whiteboard", api.AdminWhiteboard)
 		ar.Get("/whiteboard/stream", api.WhiteboardStream)
 		ar.Get("/workspace-calendar", api.WorkspaceCalendar)

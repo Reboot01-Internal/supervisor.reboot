@@ -35,7 +35,7 @@ export function applyWhiteboardDelta(board: Whiteboard, delta: WhiteboardDelta):
 }
 
 // Persist pending operations, then rebase them over each server update. Reconnects never send stale full canvases.
-export function useSharedWhiteboard(login: string, email: string, starter: () => Whiteboard) {
+export function useSharedWhiteboard(login: string, email: string, starter: () => Whiteboard, boardID = 'default') {
   const [board, renderBoard] = useState<Whiteboard>(starter);
   const boardRef = useRef(board);
   const [loaded, setLoaded] = useState(false);
@@ -51,7 +51,7 @@ export function useSharedWhiteboard(login: string, email: string, starter: () =>
   const ready = useRef(false);
   const sent = useRef(new Set<string>());
   const starterRef = useRef(starter);
-  const draftKey = `taskflow-whiteboard-shared-pending:${login || email}`;
+  const draftKey = `taskflow-whiteboard-shared-pending:${login || email}${boardID==='default'?'':`:${boardID}`}`;
   const flushRef = useRef<() => void>(()=>{});
   function storePending() {
     try { if (pending.current.length) localStorage.setItem(draftKey,JSON.stringify(pending.current)); else localStorage.removeItem(draftKey); }
@@ -73,7 +73,7 @@ export function useSharedWhiteboard(login: string, email: string, starter: () =>
     let reconnect: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     let flushTimer: ReturnType<typeof setTimeout> | undefined;
-    const key = `taskflow-whiteboard-shared-pending:${login || email}`;
+    const key = `taskflow-whiteboard-shared-pending:${login || email}${boardID==='default'?'':`:${boardID}`}`;
     try { const raw = localStorage.getItem(key); const saved: Operation[] = raw ? JSON.parse(raw) : []; if (Array.isArray(saved) && saved.every(o=>typeof o.id==='string' && Array.isArray(o.changes))) pending.current=saved; } catch { /* Retain the draft on disk for recovery. */ }
     function persist() {
       try { if (pending.current.length) localStorage.setItem(key,JSON.stringify(pending.current)); else localStorage.removeItem(key); } catch { setError('Browser draft storage is full. Keep this page open until all changes are saved.'); }
@@ -91,7 +91,7 @@ export function useSharedWhiteboard(login: string, email: string, starter: () =>
     function connect() {
       if (disposed) return;
       if (!navigator.onLine) { reconnect=setTimeout(connect,1000);return; }
-      const query = new URLSearchParams({login,email});
+      const query = new URLSearchParams({login,email,board_id:boardID});
       const ws = new WebSocket(`${API_URL.replace(/^http/i,'ws')}/admin/whiteboard/stream?${query}`);
       socket.current=ws;ready.current=false;sent.current.clear();
       ws.onmessage = event => {
@@ -108,7 +108,7 @@ export function useSharedWhiteboard(login: string, email: string, starter: () =>
             const legacyKey=`taskflow-whiteboard-draft:${login || email}`;
             try {
               const legacy=localStorage.getItem(legacyKey);
-              if(legacy){const old=JSON.parse(legacy) as Whiteboard;const current=pending.current.reduce(applyWhiteboardDelta,confirmed.current);const ids=new Set(current.items.map(i=>i.id));if(Array.isArray(old.items)){const missing=old.items.filter(i=>!ids.has(i.id));if(missing.length)pending.current.push({id:crypto.randomUUID(),changes:missing.map(i=>({id:i.id,add:i}))});persist();localStorage.removeItem(legacyKey);}}
+              if(legacy && boardID==='default'){const old=JSON.parse(legacy) as Whiteboard;const current=pending.current.reduce(applyWhiteboardDelta,confirmed.current);const ids=new Set(current.items.map(i=>i.id));if(Array.isArray(old.items)){const missing=old.items.filter(i=>!ids.has(i.id));if(missing.length)pending.current.push({id:crypto.randomUUID(),changes:missing.map(i=>({id:i.id,add:i}))});persist();localStorage.removeItem(legacyKey);}}
             } catch { /* Keep malformed legacy drafts untouched. */ }
             ready.current=true;attempts=0;setConnected(true);setLoaded(true);setError('');rebase();flush();
           } else if (message.type === 'operation') {
@@ -144,6 +144,6 @@ export function useSharedWhiteboard(login: string, email: string, starter: () =>
     function beforeUnload(e: BeforeUnloadEvent){if(pending.current.length){e.preventDefault();}}
     window.addEventListener('beforeunload',beforeUnload);
     return () => {disposed=true;ready.current=false;clearTimeout(reconnect);clearInterval(ticker);clearTimeout(flushTimer);window.removeEventListener('beforeunload',beforeUnload);window.removeEventListener('offline',offline);window.removeEventListener('online',online);socket.current?.close();flushRef.current=()=>{};};
-  },[login,email,retry]);
+  },[login,email,retry,boardID]);
   return { board,boardRef,setBoard,loaded,status,error,setError,connected,people,retry:()=>setRetry(n=>n+1) };
 }

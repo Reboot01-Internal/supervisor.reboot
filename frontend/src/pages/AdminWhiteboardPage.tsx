@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import { MousePointer2, Hand, StickyNote, Type, Square, Circle, Pencil, ImagePlus, Undo2, Redo2, Minus, Plus, Maximize2, Download, Copy, Trash2, Check, CloudOff, LayoutTemplate, X, RotateCcw, Users, BringToFront, SendToBack } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import Modal from '../components/Modal';
+import { useSearchParams } from 'react-router-dom';
+import { apiFetch } from '../lib/api';
 import UserAvatar from '../components/UserAvatar';
 import { fetchRebootAvatar, getCachedRebootAvatar } from '../lib/rebootAvatars';
 import { useSharedWhiteboard, diffWhiteboard, applyWhiteboardDelta, type Whiteboard as Board, type WhiteboardItem as Item, type WhiteboardKind as Kind } from '../lib/whiteboardSync';
@@ -27,9 +30,50 @@ function WhiteboardAvatar({ login, name }: { login: string; name: string }) {
   return <UserAvatar src={src} alt={name} fallback={name.split(/\s+/).map(n => n[0]).slice(0, 2).join('')} sizeClass="h-full w-full" textClass="text-[10px]" className="border-0 bg-transparent" />;
 }
 
+type WhiteboardEntry = { id:string; title:string; objects:number };
 export default function AdminWhiteboardPage() {
+  const [params,setParams]=useSearchParams();
+  const boardID=params.get('board') || 'default';
+  const [boards,setBoards]=useState<WhiteboardEntry[]>([]);
+  const [listError,setListError]=useState('');
+  const [createOpen,setCreateOpen]=useState(false);
+  const [name,setName]=useState('');
+  const [creating,setCreating]=useState(false);
+  const [createError,setCreateError]=useState('');
+  useEffect(()=>{
+    let cancelled=false;
+    async function refresh(){try{const result=await apiFetch('/admin/whiteboards');if(!cancelled){setBoards(result);setListError('');}}catch(e){if(!cancelled)setListError(e instanceof Error?e.message:'Could not load whiteboards');}}
+    void refresh();const timer=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);
+    return()=>{cancelled=true;clearInterval(timer);window.removeEventListener('focus',refresh);};
+  },[]);
+  async function create(event:React.FormEvent){
+    event.preventDefault();if(!name.trim() || creating)return;setCreating(true);setCreateError('');
+    try{const next=await apiFetch('/admin/whiteboards',{method:'POST',body:JSON.stringify({title:name.trim()})});setBoards(current=>[next,...current]);setParams(current=>{const updated=new URLSearchParams(current);updated.set('board',next.id);return updated;});setCreateOpen(false);setName('');}
+    catch(e){setCreateError(e instanceof Error?e.message:'Could not create whiteboard');}finally{setCreating(false);}
+  }
+  const navigation=<>
+    <div className="wb-board-navigation">
+      <label><StickyNote size={17}/><span>Whiteboards</span><select aria-label="Switch whiteboard" value={boardID} onChange={event=>setParams(current=>{const updated=new URLSearchParams(current);updated.set('board',event.target.value);return updated;})}>
+        {!boards.some(b=>b.id===boardID)&&<option value={boardID}>{boardID==='default'?'Current whiteboard':'Opening whiteboard…'}</option>}
+        {boards.map(b=><option key={b.id} value={b.id}>{b.title || 'Untitled whiteboard'}</option>)}
+      </select></label>
+      <button type="button" onClick={()=>{setCreateError('');setName('');setCreateOpen(true);}}><Plus size={17}/>New whiteboard</button>
+    </div>
+    {listError&&<div className="wb-error" role="alert">{listError}</div>}
+    <Modal open={createOpen} title="New whiteboard" onClose={()=>{if(!creating)setCreateOpen(false);}} footer={<><button className="wb-create-cancel" disabled={creating} onClick={()=>setCreateOpen(false)}>Cancel</button><button className="wb-create-submit" type="submit" form="wb-create-form" disabled={creating || !name.trim()}>{creating?'Creating…':'Create whiteboard'}</button></>}>
+      <form id="wb-create-form" className="wb-create-form" onSubmit={create}>
+        <p>Start a fresh canvas for your next idea. All admins can join and work together live.</p>
+        <label>Whiteboard name<input autoFocus required maxLength={160} disabled={creating} value={name} placeholder="e.g. October planning" onChange={event=>setName(event.target.value)}/></label>
+        {createError&&<div className="wb-error" role="alert">{createError}</div>}
+      </form>
+    </Modal>
+  </>;
+  return <WhiteboardEditor key={boardID} boardID={boardID} navigation={navigation}/>;
+}
+
+function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactNode}) {
   const { login, email } = useAuth();
-  const {board,boardRef,setBoard,loaded,status,error,setError,connected,people,retry} = useSharedWhiteboard(login,email,starter);
+  const {board,boardRef,setBoard,loaded,status,error,setError,connected,people,retry} = useSharedWhiteboard(login,email,starter,boardID);
   const [tool, setTool] = useState<Tool>('select');
   const [color, setColor] = useState(colors[0]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -152,6 +196,7 @@ export default function AdminWhiteboardPage() {
     const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href=url; link.download=`${board.title.replace(/[^a-z0-9_-]/gi,'_') || 'whiteboard'}.svg`; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   return <AdminLayout active="whiteboard" title="Whiteboard" subtitle="One shared space for your admin team’s next big idea.">
+    {navigation}
     <section className={`wb-shell ${full ? 'wb-full' : ''}`} aria-label="Admin whiteboard" onKeyDown={e => {
       if (!loaded || (e.target instanceof HTMLElement && ['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
