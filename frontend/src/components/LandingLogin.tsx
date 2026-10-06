@@ -35,7 +35,7 @@ export default function LandingLogin({ open, onClose }: { open: boolean; onClose
         <p>Your next great thing is waiting.<br />Sign in with your Reboot account to get started.</p>
         <LoginPage embedded />
         <div className="flow-login-trust"><ShieldCheck size={15} /><span>Your Reboot account. Your TaskFlow workspace.</span></div>
-        <div className="flow-login-form-footer"><span>Built by Reem, for Reboot.</span><Sparkles size={14} /></div>
+        <div className="flow-login-form-footer"><span></span><Sparkles size={14} /></div>
       </section>
     </div>
   </dialog>;
