@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Eye, EyeOff, ArrowUpRight, LoaderCircle, UserRound, LockKeyhole } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import placeholder from "../reboot.JPG";
@@ -150,6 +151,7 @@ export default function LoginPage({ embedded = false }: { embedded?: boolean }) 
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -245,37 +247,33 @@ export default function LoginPage({ embedded = false }: { embedded?: boolean }) 
   }
 
   if (embedded) return <div className="embedded-login">
-              <form onSubmit={onLogin} className="space-y-3">
-                <label className="login-field">Email or nickname<input
-                  type="text"
-                  aria-label="Email or nickname" autoComplete="username" placeholder="Email or Nickname"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-                /></label>
-
-                <label className="login-field">Password<input
-                  type="password"
-                  aria-label="Password" autoComplete="current-password" placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-[48px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-[#6d5efc]/35 focus:bg-white focus:ring-4 focus:ring-[#6d5efc]/12"
-                /></label>
-
-                {error ? (
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700">
-                    {error}
-                  </div>
-                ) : null}
-
-                <button
-                  className="mt-1 h-[48px] w-full rounded-xl bg-[#6d5efc] text-white font-extrabold transition hover:bg-[#5f50f6] disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={loading}
-                >
-                  {loading ? "Signing in..." : "Sign In"}
-                </button>
-              </form>
-</div>;
+    <form onSubmit={onLogin} className="flow-login-fields" aria-busy={loading}>
+      <label className="login-field"><span>Email or nickname</span>
+        <span className="flow-login-input"><UserRound size={17} aria-hidden="true" />
+          <input type="text" aria-label="Email or nickname" autoComplete="username" autoCapitalize="none" spellCheck={false}
+            autoFocus required disabled={loading} placeholder="Your Reboot email or nickname" value={identifier}
+            aria-invalid={!!error} aria-describedby={error ? "login-error" : undefined}
+            onChange={event => { setIdentifier(event.target.value); if(error) setError(""); }} />
+        </span>
+      </label>
+      <label className="login-field"><span>Password</span>
+        <span className="flow-login-input"><LockKeyhole size={17} aria-hidden="true" />
+          <input type={showPassword ? "text" : "password"} aria-label="Password" autoComplete="current-password"
+            required disabled={loading} placeholder="Your Reboot password" value={password}
+            aria-invalid={!!error} aria-describedby={error ? "login-error" : "login-credentials-hint"}
+            onChange={event => { setPassword(event.target.value); if(error) setError(""); }} />
+          <button type="button" className="flow-login-password-toggle" aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+        </span>
+      </label>
+      <span className="flow-login-credentials-hint" id="login-credentials-hint">The same credentials you use on Reboot.</span>
+      {error && <div className="flow-login-error" id="login-error" role="alert">{error}</div>}
+      <button type="submit" className="flow-login-submit" disabled={loading}>
+        <span>{loading ? "Opening your workspace…" : "Enter your workspace"}</span>
+        {loading ? <LoaderCircle size={19} className="flow-login-spinner" /> : <ArrowUpRight size={19} />}
+      </button>
+    </form>
+  </div>;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f7f8f4] p-4 sm:p-6">

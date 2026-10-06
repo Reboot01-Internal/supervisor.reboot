@@ -1,8 +1,42 @@
 import { useEffect, useRef } from "react";
-import { X, ArrowUpRight } from "lucide-react";
+import { X, ArrowUpRight, Sparkles, ShieldCheck } from "lucide-react";
 import LoginPage from "../pages/LoginPage";
-export default function LandingLogin({open,onClose}:{open:boolean;onClose:()=>void}) {
- const ref=useRef<HTMLDialogElement>(null);
- useEffect(()=>{const dialog=ref.current;if(open&&!dialog?.open)dialog?.showModal();if(!open&&dialog?.open)dialog.close()},[open]);
- return <dialog ref={ref} className="landing-login-dialog" onCancel={onClose} onClick={e=>{if(e.target===ref.current)onClose()}} aria-labelledby="login-heading"><div className="login-shell"><button className="login-dismiss" aria-label="Close sign in" onClick={onClose}><X size={18}/></button><aside className="login-brand-panel"><img src="/reboot-logo.png" alt="Reboot"/><span className="login-code">{'{ }'}</span><div><small>YOUR PEOPLE. YOUR PROJECTS.</small><h2>A little focus.<br/>A lot of <em>possibility.</em></h2><p>Your next chapter starts here.</p></div><span className="login-brand-footer">TaskFlow <ArrowUpRight size={16}/></span></aside><section className="login-form-panel"><small>WELCOME BACK</small><h2 id="login-heading">Find your flow.</h2><p>Use your Reboot account to enter your workspace.</p><LoginPage embedded/><div className="login-footnote">Built for the Reboot community.</div></section></div></dialog>
+import "./LandingLogin.css";
+
+export default function LandingLogin({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (open && !dialog?.open) {
+      dialog?.showModal();
+      dialog?.querySelector<HTMLInputElement>('input[autocomplete="username"]')?.focus({ preventScroll: true });
+    }
+    if (!open && dialog?.open) dialog.close();
+    if (!open) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = overflow; };
+  }, [open]);
+
+  return <dialog ref={ref} className="landing-login-dialog flow-login" onCancel={onClose}
+    onClick={event => { if (event.target === ref.current) onClose(); }} aria-labelledby="login-heading">
+    <div className="flow-login-shell">
+      <button type="button" className="flow-login-dismiss" aria-label="Close sign in" onClick={onClose}><X size={18} /></button>
+      <aside className="flow-login-visual">
+        <div className="flow-login-brand"><img src="/favicon-icon.png" alt="" /><span>TaskFlow<span>.</span></span><small>FOR REBOOT</small></div>
+        <div className="flow-login-story"><span className="flow-login-eyebrow"><span />YOUR NEXT CHAPTER</span>
+          <h2>A little spark.<br />A big <em>possibility.</em></h2><p>Your people. Your projects.<br />A space to make things happen.</p>
+        </div>
+        <div className="flow-login-visual-footer"><span>MADE FOR OUR COMMUNITY</span><span>01 / LET’S BEGIN <ArrowUpRight size={13} /></span></div>
+      </aside>
+      <section className="flow-login-form">
+        <span className="flow-login-eyebrow"><span />BACK TO YOUR WORKSPACE</span>
+        <h2 id="login-heading">Welcome back.<br /><em>Find your flow.</em></h2>
+        <p>Your next great thing is waiting.<br />Sign in with your Reboot account to get started.</p>
+        <LoginPage embedded />
+        <div className="flow-login-trust"><ShieldCheck size={15} /><span>Your Reboot account. Your TaskFlow workspace.</span></div>
+        <div className="flow-login-form-footer"><span>Built by Reem, for Reboot.</span><Sparkles size={14} /></div>
+      </section>
+    </div>
+  </dialog>;
 }
