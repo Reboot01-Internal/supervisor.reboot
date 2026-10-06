@@ -12,7 +12,7 @@ import { fetchRebootAvatar, getCachedRebootAvatar } from "../lib/rebootAvatars";
 
 
 type Props = {
-  active?: "attendance" | "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
+  active?: "whiteboard" | "attendance" | "dashboard" | "supervisors" | "boards" | "reports" | "profile" | "users" | "meetings" | "notifications";
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   hideHeader?: boolean;

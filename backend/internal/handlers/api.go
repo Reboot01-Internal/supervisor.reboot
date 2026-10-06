@@ -7,11 +7,14 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"taskflow/internal/discord"
 )
 
 type API struct {
+	whiteboardOnce         sync.Once
+	whiteboard             *whiteboardHub
 	conn                   *sql.DB
 	discord                *discord.Service
 	notifications          *notificationHub

@@ -3,6 +3,7 @@ import AttendancePage from "./pages/AttendancePage";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import LandingPage from "./pages/LandingPage";
+import AdminWhiteboardPage from "./pages/AdminWhiteboardPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import SupervisorsPage from "./pages/SupervisorsPage";
 import SupervisorFilePage from "./pages/SupervisorFilePage";
@@ -72,6 +73,7 @@ function CatchAll() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/admin/whiteboard" element={<RequireAdmin><AdminWhiteboardPage /></RequireAdmin>} />
  <Route path="/attendance" element={<RequireAuth><MyAttendancePage/></RequireAuth>}/>
       <Route path="/admin/attendance" element={<RequireAdmin><AttendancePage /></RequireAdmin>} />
       <Route path="/" element={<LandingPage />} />
