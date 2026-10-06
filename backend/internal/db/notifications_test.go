@@ -60,3 +60,27 @@ func TestWorkspaceNotificationsCollapseDeliveries(t *testing.T) {
 		t.Fatalf("stored deliveries changed: %d", count)
 	}
 }
+
+func TestAttendanceAlertsVisibleInWorkspaceFeed(t *testing.T) {
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	for _, q := range []string{
+		`CREATE TABLE users(id INTEGER PRIMARY KEY,full_name TEXT,nickname TEXT)`,
+		`CREATE TABLE app_notifications(id INTEGER PRIMARY KEY,user_id INTEGER,kind TEXT,title TEXT,body TEXT,link TEXT,is_read INTEGER DEFAULT 0,created_at TEXT)`,
+		`INSERT INTO app_notifications VALUES(1,1,'attendance','Attendance needs review','Example below target','/admin/attendance',0,'2026-10-06 15:00:00'),(2,2,'attendance','Attendance needs review','Example below target','/admin/attendance',0,'2026-10-06 15:00:00'),(3,1,'private','Private message','Private','/admin/attendance',0,'2026-10-06 16:00:00')`,
+	} {
+		if _, err = conn.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	items, err := ListAllNotifications(conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].Kind != "attendance" || items[0].Link != "/admin/attendance" {
+		t.Fatalf("attendance should appear once, unrelated private records must remain excluded: %+v", items)
+	}
+}

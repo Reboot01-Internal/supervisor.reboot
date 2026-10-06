@@ -75,7 +75,7 @@ func ListAllNotifications(conn DBTX) ([]models.AppNotification, error) {
 		WITH updates AS (
 			SELECT MAX(id) AS id
 			FROM app_notifications
-			WHERE link = '/notifications'
+			WHERE link = '/notifications' OR (kind = 'attendance' AND link = '/admin/attendance')
 			GROUP BY kind, title, body, link, created_at
 		)
 		SELECT n.id, n.user_id, IFNULL(u.full_name, ''), IFNULL(u.nickname, ''), n.kind, n.title, n.body, n.link, n.is_read, n.created_at

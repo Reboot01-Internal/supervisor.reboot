@@ -6,7 +6,7 @@ import { apiFetch } from "../lib/api";
 import { useNotifications, type NotificationItem } from "../lib/notifications";
 import UserAvatar from "../components/UserAvatar";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
-import { Search, ArrowUpRight, Inbox, X, Check, Clock3, Ban, RefreshCw, Zap } from "lucide-react";
+import { Search, ArrowUpRight, Inbox, X, Check, Clock3, Ban, RefreshCw, Zap, Siren } from "lucide-react";
 import "./NotificationsPage.css";
 import { getNotificationTone } from "../lib/notificationTheme";
 
@@ -243,8 +243,8 @@ export default function NotificationsPage() {
 
 function NotificationCard({item,isNew,onOpen,supervisor,avatars}:{item:NotificationItem;isNew:boolean;onOpen:()=>void;supervisor?:SupervisorRow;avatars:Record<string,string>}) {
  const tone = getNotificationTone(item);
- const status = tone.label === "Canceled" ? "canceled" : tone.label === "Booked" ? "booked" : tone.label === "Rescheduled" ? "rescheduled" : item.title.toLowerCase().includes("starting now") ? "starting" : tone.label === "Completed" ? "completed" : "reminder";
- const Icon = status === "canceled" ? Ban : status === "booked" || status === "completed" ? Check : status === "rescheduled" ? RefreshCw : status === "starting" ? Zap : Clock3;
- const content = <>{supervisor ? <UserAvatar src={avatars[(supervisor.nickname || supervisor.email.split("@")[0]).toLowerCase()]} alt={supervisor.full_name} fallback={supervisor.full_name.slice(0,2)} sizeClass="h-10 w-10"/> : <span className="inbox-event-icon" aria-hidden="true"><Icon size={18}/></span>}<span className="inbox-event-content"><span className="inbox-event-meta"><span className="inbox-status"><Icon size={13}/>{status === "starting" ? "Starting" : tone.label}</span>{isNew && <span className="inbox-new">New</span>}<time dateTime={item.created_at}>{formatDate(item.created_at)}</time></span>{supervisor && <span className="inbox-supervisor">{supervisor.full_name} <small>Supervisor</small></span>}<span className="inbox-event-title">{item.title}</span><span className="inbox-event-body">{item.body}</span></span>{item.link && <ArrowUpRight className="inbox-event-arrow" size={18} aria-hidden="true"/>}</>;
+ const status = item.kind === "attendance" ? "attendance" : tone.label === "Canceled" ? "canceled" : tone.label === "Booked" ? "booked" : tone.label === "Rescheduled" ? "rescheduled" : item.title.toLowerCase().includes("starting now") ? "starting" : tone.label === "Completed" ? "completed" : "reminder";
+ const Icon = status === "attendance" ? Siren : status === "canceled" ? Ban : status === "booked" || status === "completed" ? Check : status === "rescheduled" ? RefreshCw : status === "starting" ? Zap : Clock3;
+ const content = <>{supervisor ? <UserAvatar src={avatars[(supervisor.nickname || supervisor.email.split("@")[0]).toLowerCase()]} alt={supervisor.full_name} fallback={supervisor.full_name.slice(0,2)} sizeClass="h-10 w-10"/> : <span className="inbox-event-icon" aria-hidden="true"><Icon size={18}/></span>}<span className="inbox-event-content"><span className="inbox-event-meta"><span className="inbox-status"><Icon size={13}/>{status === "attendance" ? "Attendance alert" : status === "starting" ? "Starting" : tone.label}</span>{isNew && <span className="inbox-new">New</span>}<time dateTime={item.created_at}>{formatDate(item.created_at)}</time></span>{supervisor && <span className="inbox-supervisor">{supervisor.full_name} <small>Supervisor</small></span>}<span className="inbox-event-title">{item.title}</span><span className="inbox-event-body">{item.body}</span></span>{item.link && <ArrowUpRight className="inbox-event-arrow" size={18} aria-hidden="true"/>}</>;
  return item.link ? <button type="button" data-status={status} className={`inbox-event ${isNew ? "is-new" : ""}`} onClick={onOpen}>{content}</button> : <article data-status={status} className={`inbox-event ${isNew ? "is-new" : ""}`}>{content}</article>;
 }

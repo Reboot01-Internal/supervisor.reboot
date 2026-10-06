@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, X, ArrowUpRight } from "lucide-react";
+import AttendanceRequirements from "../components/AttendanceRequirements";
+import AttendanceRecords from "../components/AttendanceRecords";
 import Modal from "../components/Modal";
 import AdminLayout from "../components/AdminLayout";
 import UserAvatar from "../components/UserAvatar";
@@ -30,6 +32,7 @@ export default function AttendancePage() {
  const [profile,setProfile]=useState<Awaited<ReturnType<typeof loadRebootProfile>>|null>(null);
  const [profileLoading,setProfileLoading]=useState(false);
  const [profileError,setProfileError]=useState("");
+ const [profileOnly,setProfileOnly]=useState(false);
  const [detail,setDetail]=useState<Member|null>(null);
  useEffect(()=>{
   if(!detail)return;
@@ -63,18 +66,32 @@ export default function AttendancePage() {
  }
  async function toggle(member:Member) {
   setSaving(true);setError("");
-  try {await apiFetch("/admin/attendance/members",{method:"POST",body:JSON.stringify({id:member.id,enrolled:!member.enrolled})});await load();setDetail(null);}
+  try {await apiFetch("/admin/attendance/members",{method:"POST",body:JSON.stringify({id:member.id,enrolled:!member.enrolled})});await load();setDetail({...member,enrolled:!member.enrolled});}
   catch(e){setError(e instanceof Error?e.message:"Could not update membership");}finally{setSaving(false);}
  }
  const visible=members.filter(m=>(status==="all" || m.enrolled===(status==="enrolled")) && [m.full_name,m.nickname,m.email,m.cohort].join(" ").toLowerCase().includes(query.toLowerCase()));
  function person(user:RebootCandidate) {return <div className="attendance-person"><UserAvatar src={avatars[user.nickname]} alt={user.full_name} fallback={user.full_name.slice(0,1)} sizeClass="h-10 w-10"/><div><strong>{user.full_name}</strong><span>@{user.nickname}</span></div></div>;}
+ if(detail && !profileOnly) return <AdminLayout active="attendance" title="Manage attendance" subtitle={detail.full_name+" · @"+detail.nickname} right={<button className="attendance-secondary" onClick={()=>setDetail(null)}>Back to members</button>}>
+ <div className="attendance-page attendance-manage">
+ {error&&<div role="alert" className="attendance-error">{error}</div>}
+ <div className="attendance-manage-top">
+ <section className="attendance-manage-card attendance-member-detail">
+ <header>{person(detail)}<span className="attendance-badge">Attendance Member</span></header>
+ <dl>{Object.entries({"Email":detail.email,"Phone":profile?.user?.number||phones[detail.nickname]||"Unavailable","Cohort":detail.cohort||"Unavailable","Existing role":detail.role==="student"?"Talent":detail.role||"No workspace role","Gender":profileLoading?"Loading…":profile?.user?.gender||"Unavailable","Level":profileLoading?"Loading…":profile?.level?.toString()||"Unavailable","Audit ratio":profileLoading?"Loading…":profile?.user?.auditRatio?.toString()||"Unavailable","Added":new Date(detail.created_at.replace(" ","T")+"Z").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+ {profileError&&<p role="status" className="attendance-record-note">{profileError}</p>}
+ </section>
+ <aside className="attendance-manage-card attendance-manage-status"><h2>Status</h2><span className={detail.enrolled?"attendance-badge":"attendance-badge is-archived"}>{detail.enrolled?"Enrolled":"Archived"}</span><dl><dt>Account</dt><dd>{detail.user_id?(detail.is_active?"Active":"Inactive"):"Reboot member"}</dd></dl><p>Membership applies to mandatory attendance. Existing roles stay unchanged.</p><button disabled={saving} className="attendance-secondary" onClick={()=>void toggle(detail)}>{saving?"Saving…":detail.enrolled?"Archive membership":"Restore membership"}</button></aside>
+ </div>
+ <section className="attendance-manage-card"><div className="attendance-manage-heading"><h2>Attendance</h2><p>Review recorded days, punches and hours.</p></div><AttendanceRecords key={detail.id} memberID={detail.id}/></section>
+ <section className="attendance-manage-card"><AttendanceRequirements key={detail.id} memberID={detail.id}/></section>
+ </div></AdminLayout>;
  return <AdminLayout active="attendance" title="Mandatory Attendance" subtitle="Manage attendance members and their Reboot profiles." right={<button className="attendance-primary" onClick={()=>{setOpen(true);setError("");}}><Plus size={17}/>Add members</button>}>
  <div className="attendance-page">
  {error && <div role="alert" className="attendance-error">{error}</div>}
  <section className="attendance-directory">
  <div className="attendance-directory-heading"><div><h2>Members <span>{members.length}</span></h2><p>People enrolled in mandatory attendance.</p></div></div>
  <div className="attendance-toolbar"><div className="attendance-tabs" role="group" aria-label="Membership filter">{[["enrolled","Enrolled"],["archived","Archived"],["all","All"]].map(([value,label])=><button key={value} aria-pressed={status===value} onClick={()=>setStatus(value)}>{label}<span>{members.filter(m=>value==="all"||m.enrolled===(value==="enrolled")).length}</span></button>)}</div><label><Search size={16}/><input aria-label="Search attendance members" placeholder="Search members…" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>
- {loading?<div className="attendance-empty">Loading members…</div>:visible.length===0?<div className="attendance-empty"><Users size={30}/><h3>{members.length?"No matching members":"Build your attendance group"}</h3><p>{members.length?"Try another search or filter.":"Add people from Reboot to get started. Their existing roles stay the same."}</p></div>:<div className="attendance-table"><table><thead><tr><th>Member</th><th>Contact</th><th>Cohort</th><th>Membership</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{visible.map(m=><tr key={m.id}><td>{person(m)}{m.role&&<small>{m.role==="student"?"Talent":m.role} · {m.is_active?"Active account":"Inactive account"}</small>}</td><td><span>{m.email}</span><small>{phones[m.nickname]||"Phone unavailable"}</small></td><td>{m.cohort||"—"}</td><td><span className={m.enrolled?"attendance-badge":"attendance-badge is-archived"}>{m.enrolled?"Attendance Member":"Archived"}</span></td><td><button className="attendance-view" aria-label={"View "+m.full_name} onClick={()=>setDetail(m)}>View<ArrowUpRight size={15}/></button></td></tr>)}</tbody></table></div>}
+ {loading?<div className="attendance-empty">Loading members…</div>:visible.length===0?<div className="attendance-empty"><Users size={30}/><h3>{members.length?"No matching members":"Build your attendance group"}</h3><p>{members.length?"Try another search or filter.":"Add people from Reboot to get started. Their existing roles stay the same."}</p></div>:<div className="attendance-table"><table><thead><tr><th>Member</th><th>Contact</th><th>Cohort</th><th>Membership</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{visible.map(m=><tr key={m.id}><td>{person(m)}{m.role&&<small>{m.role==="student"?"Talent":m.role} · {m.is_active?"Active account":"Inactive account"}</small>}</td><td><span>{m.email}</span><small>{phones[m.nickname]||"Phone unavailable"}</small></td><td>{m.cohort||"—"}</td><td><span className={m.enrolled?"attendance-badge":"attendance-badge is-archived"}>{m.enrolled?"Attendance Member":"Archived"}</span></td><td><div className="attendance-row-actions"><button className="attendance-view" aria-label={"Profile of "+m.full_name} onClick={()=>{if(m.user_id>0)nav(`/admin/users/${m.user_id}/profile`,{state:{backTo:"/admin/attendance"}});else {setProfileOnly(true);setDetail(m);}}}>Profile<ArrowUpRight size={15}/></button><button className="attendance-secondary" aria-label={"Manage "+m.full_name} onClick={()=>{setProfileOnly(false);setDetail(m);setError("");window.scrollTo(0,0);}}>Manage<ArrowUpRight size={15}/></button></div></td></tr>)}</tbody></table></div>}
  <footer>{visible.length} members shown · Records are retained when membership is archived.</footer>
  </section>
  <Modal open={open} title="Add attendance members" onClose={()=>{if(!saving)setOpen(false);}} className="attendance-dialog" footer={<><span className="attendance-selection-count">{queue.length} selected</span><button className="attendance-secondary" disabled={saving} onClick={()=>setOpen(false)}>Cancel</button><button className="attendance-primary" disabled={saving||!queue.length} onClick={()=>void add()}>{saving?"Adding…":`Add ${queue.length || ""} members`}</button></>}>

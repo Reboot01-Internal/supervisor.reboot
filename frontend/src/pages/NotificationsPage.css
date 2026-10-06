@@ -47,3 +47,4 @@ button.inbox-event:hover{background:var(--inbox-wash);border-radius:10px}
 .inbox-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:5px;background:var(--event-bg);color:var(--event-color);font-weight:600}
 .inbox-event-icon{color:var(--event-color);background:var(--event-bg);border-radius:50%}
 .admin-dark .inbox-status,.admin-dark .inbox-event-icon{background:color-mix(in srgb,var(--event-color) 15%,#272332);color:color-mix(in srgb,var(--event-color) 65%,white)}
+.inbox-event[data-status="attendance"] .inbox-status,.inbox-event[data-status="attendance"] .inbox-event-icon{background:#fff1f2;color:#be123c}

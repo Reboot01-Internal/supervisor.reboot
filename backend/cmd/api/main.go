@@ -54,6 +54,7 @@ func main() {
 
 	api := handlers.NewAPI(conn, discord.NewFromEnv())
 	api.StartDiscordReminderWorker()
+	api.StartAttendanceRequirementWorker()
 	api.SyncAllBoardDiscordChannelsAsync()
 
 	r := chi.NewRouter()
@@ -104,6 +105,11 @@ func main() {
 	// admin
 	r.Route("/admin", func(ar chi.Router) {
 		ar.Use(api.RequireActiveAccount)
+		ar.Get("/attendance/requirements", api.AttendanceRequirements)
+		ar.Post("/attendance/requirements", api.AttendanceRequirements)
+		ar.Get("/attendance/records", api.AttendanceRecords)
+		ar.Get("/attendance/dates", api.AttendanceDates)
+		ar.Post("/attendance/dates", api.AttendanceDates)
 		ar.Get("/attendance/members", api.AttendanceMembers)
 		ar.Post("/attendance/members", api.AttendanceMembers)
 		ar.Post("/users/status", api.UpdateUserStatus)
@@ -259,6 +265,8 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/019_inactive_assignments.sql",
 		"migrations/020_board_covers.sql",
 		"migrations/021_attendance_members.sql",
+		"migrations/022_attendance_requirements.sql",
+		"migrations/023_attendance_dates.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 
