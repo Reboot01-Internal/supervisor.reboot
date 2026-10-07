@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import type { TextRun } from './whiteboardText';
 import { API_URL } from './api';
 export type WhiteboardKind = 'note' | 'text' | 'rectangle' | 'circle' | 'image' | 'pen';
-export type WhiteboardItem = { id: string; kind: WhiteboardKind; x: number; y: number; w: number; h: number; color: string; text: string; font: number; points?: number[][]; z?: number };
+export type WhiteboardItem = { id: string; kind: WhiteboardKind; x: number; y: number; w: number; h: number; color: string; text: string; font: number; points?: number[][]; z?: number; align?: 'left' | 'center' | 'right'; textColor?: string; bold?: boolean; italic?: boolean; runs?: TextRun[] };
 export type Whiteboard = { title: string; items: WhiteboardItem[] };
 export type WhiteboardChange = { id: string; add?: WhiteboardItem; set?: Partial<WhiteboardItem>; delete?: boolean };
 export type WhiteboardDelta = { title?: string; changes: WhiteboardChange[] };
@@ -28,7 +29,7 @@ export function applyWhiteboardDelta(board: Whiteboard, delta: WhiteboardDelta):
   for (const c of delta.changes) {
     const index = items.findIndex(i => i.id === c.id);
     if (c.delete) items = items.filter(i => i.id !== c.id);
-    else if (c.add && index < 0) items.push({ ...c.add, z:c.add.z ?? Math.max(0,...items.map((i,n)=>i.z ?? n+1))+1 });
+    else if (c.add && index < 0) items.push({ runs:[],align:'center',textColor:'#252537',bold:false,italic:false,...c.add, z:c.add.z ?? Math.max(0,...items.map((i,n)=>i.z ?? n+1))+1 });
     else if (c.set && index >= 0) items[index] = { ...items[index], ...c.set, id:c.id };
   }
   return { title:delta.title ?? board.title, items };
@@ -101,7 +102,7 @@ export function useSharedWhiteboard(login: string, email: string, starter: () =>
           if (message.type === 'state') {
             const doc = message.document as Whiteboard & { revision:number; applied?:string[] };
             if (!doc || !Array.isArray(doc.items)) throw new Error('Invalid shared board');
-            confirmed.current={title:doc.title,items:doc.items.map((i,n)=>({...i,z:i.z ?? n+1}))};revision.current=doc.revision;
+            confirmed.current={title:doc.title,items:doc.items.map((i,n)=>({runs:[],align:'center',textColor:'#252537',bold:false,italic:false,...i,z:i.z ?? n+1}))};revision.current=doc.revision;
             const applied=new Set(doc.applied || []);pending.current=pending.current.filter(op=>!applied.has(op.id));
             // A deterministic starter avoids duplicate sample notes when two admins join a new board together.
             if (doc.revision===0 && !doc.items.length && !pending.current.length) pending.current.push({...diffWhiteboard(confirmed.current,starterRef.current()),id:crypto.randomUUID()});

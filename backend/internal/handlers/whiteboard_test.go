@@ -95,7 +95,7 @@ func TestWhiteboardMigratesExistingNotesWithoutDeletingBackups(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	_, _ = a.conn.Exec(`UPDATE app_settings SET updated_at='2026-10-07 01:00:00' WHERE key='admin_whiteboard_2'`)
+	_, _ = a.conn.Exec(`UPDATE app_settings SET updated_at=CASE key WHEN 'admin_whiteboard_1' THEN '2026-10-06 01:00:00' ELSE '2026-10-07 01:00:00' END WHERE key IN ('admin_whiteboard_1','admin_whiteboard_2')`)
 	h := a.whiteboardRoom()
 	if err := a.loadWhiteboard(h); err != nil {
 		t.Fatal(err)
@@ -330,4 +330,32 @@ func TestWhiteboardRoomsIsolateWebSocketUpdatesAndPresence(t *testing.T) {
 	}
 	c1.Close()
 	c2.Close()
+}
+
+func TestWhiteboardTextFormattingPersistsWithOtherEdits(t *testing.T) {
+	a := whiteboardTestAPI(t)
+	h := a.whiteboardRoom()
+	if err := a.loadWhiteboard(h); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "format-note-add", Changes: []whiteboardChange{{ID: "styled-note", Add: whiteboardTestItem("styled-note", "Formatted text")}}}); err != nil {
+		t.Fatal(err)
+	}
+	style := map[string]json.RawMessage{"align": json.RawMessage(`"right"`), "textColor": json.RawMessage(`"#cc3344"`), "bold": json.RawMessage(`true`), "italic": json.RawMessage(`true`)}
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "format-note-style", Changes: []whiteboardChange{{ID: "styled-note", Set: style}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "format-note-move", Changes: []whiteboardChange{{ID: "styled-note", Set: map[string]json.RawMessage{"x": json.RawMessage(`320`)}}}}); err != nil {
+		t.Fatal(err)
+	}
+	restored := (&API{conn: a.conn})
+	room := restored.whiteboardRoom()
+	if err := restored.loadWhiteboard(room); err != nil {
+		t.Fatal(err)
+	}
+	for key, value := range style {
+		if string(room.document.Items[0][key]) != string(value) {
+			t.Fatalf("Formatting %s was lost after movement or reload", key)
+		}
+	}
 }

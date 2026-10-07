@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
-import { MousePointer2, Hand, StickyNote, Type, Square, Circle, Pencil, ImagePlus, Undo2, Redo2, Minus, Plus, Maximize2, Download, Copy, Trash2, Check, CloudOff, LayoutTemplate, X, RotateCcw, Users, BringToFront, SendToBack } from 'lucide-react';
+import { MousePointer2, Hand, StickyNote, Type, Square, Circle, Pencil, ImagePlus, Undo2, Redo2, Minus, Plus, Maximize2, Download, Copy, Trash2, Check, CloudOff, LayoutTemplate, X, RotateCcw, Users, BringToFront, SendToBack, AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import Modal from '../components/Modal';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
+import WhiteboardTextEditor from '../components/WhiteboardTextEditor';
+import { textSegments,applyTextStyle,adjustTextRuns,type TextStyle } from '../lib/whiteboardText';
 import UserAvatar from '../components/UserAvatar';
 import { fetchRebootAvatar, getCachedRebootAvatar } from '../lib/rebootAvatars';
 import { useSharedWhiteboard, diffWhiteboard, applyWhiteboardDelta, type Whiteboard as Board, type WhiteboardItem as Item, type WhiteboardKind as Kind } from '../lib/whiteboardSync';
@@ -76,6 +78,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const {board,boardRef,setBoard,loaded,status,error,setError,connected,people,retry} = useSharedWhiteboard(login,email,starter,boardID);
   const [tool, setTool] = useState<Tool>('select');
   const [color, setColor] = useState(colors[0]);
+  const [textDefaults,setTextDefaults]=useState({align:'center' as 'left' | 'center' | 'right',textColor:'#252537',bold:false,italic:false,font:20});
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
@@ -86,15 +89,24 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const canvas = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const interaction = useRef<{ type: 'move' | 'pan' | 'resize' | 'draw'; id?: string; x: number; y: number; before: Board; originX: number; originY: number; layer?: number } | null>(null);
+  const [textSelection,setTextSelection]=useState<{id:string;start:number;end:number}|null>(null);
+  const formattingFocus=useRef(false);
   const item = board.items.find(i => i.id === selected);
 
   function remember(before: Board, after = boardRef.current, id?: string) { if (id) { before={title:after.title,items:before.items.filter(i=>i.id===id)};after={title:after.title,items:after.items.filter(i=>i.id===id)}; } if (JSON.stringify(before) !== JSON.stringify(after)) setHistory(h => ({ past: [...h.past.slice(-39), {before,after}], future: [] })); }
-  function beginEdit(id: string) { editorBefore.current={board:boardRef.current,id};setEditing(id); }
-  function endEdit() { if(editorBefore.current)remember(editorBefore.current.board,boardRef.current,editorBefore.current.id);editorBefore.current=null;setEditing(null); }
+  function beginEdit(id: string) { editorBefore.current={board:boardRef.current,id};setTextSelection(null);formattingFocus.current=false;setEditing(id); }
+  function endEdit() { if(editorBefore.current)remember(editorBefore.current.board,boardRef.current,editorBefore.current.id);editorBefore.current=null;setTextSelection(null);formattingFocus.current=false;setEditing(null); }
   function commit(next: Board) { const merged=applyWhiteboardDelta(boardRef.current,diffWhiteboard(board,next));remember(boardRef.current,merged);setBoard(merged); }
   function patch(id: string, changes: Partial<Item>, record = true) {
     const next = { ...boardRef.current, items: boardRef.current.items.map(i => i.id === id ? { ...i, ...changes } : i) };
     if (record) commit(next); else setBoard(next);
+  }
+  const selectedTextStyle=item && textSelection?.id===item.id && textSelection.end>textSelection.start ? textSegments(item.text,item.runs).find(s=>s.start<=textSelection.start&&s.end>textSelection.start) : undefined;
+  function formatText(changes:Partial<typeof textDefaults>) {
+    setTextDefaults(previous=>({...previous,...changes}));if(!item||['image','pen'].includes(item.kind))return;
+    const style:TextStyle={};for(const key of ['font','textColor','bold','italic'] as const)if(changes[key]!==undefined)Object.assign(style,{[key]:changes[key]});
+    if(textSelection?.id===item.id&&textSelection.end>textSelection.start&&Object.keys(style).length){patch(item.id,{runs:applyTextStyle(item.text,item.runs||[],textSelection.start,textSelection.end,style)});}
+    else {const runs=(item.runs||[]).map(run=>{const next={...run};for(const key of Object.keys(style) as (keyof TextStyle)[])delete next[key];return next;}).filter(r=>Object.keys(r).length>2);patch(item.id,{...changes,runs});}
   }
   function undo() { if (!history.past.length) return; endEdit(); const action=history.past[history.past.length-1];setHistory({past:history.past.slice(0,-1),future:[action,...history.future]});setBoard(applyWhiteboardDelta(boardRef.current,diffWhiteboard(action.after,action.before)));setSelected(null); }
   function redo() { if (!history.future.length) return;endEdit();const action=history.future[0];setHistory({past:[...history.past,action],future:history.future.slice(1)});setBoard(applyWhiteboardDelta(boardRef.current,diffWhiteboard(action.before,action.after)));setSelected(null); }
@@ -106,7 +118,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   function add(kind: Kind, x?: number, y?: number, text = '', height?: number) {
     if (board.items.length >= 500) { setError('This whiteboard has reached its 500-item limit.'); return; }
     const r = canvas.current!.getBoundingClientRect();
-    const next: Item = { id: uid(), kind, z:topLayer(), x: x ?? (r.width / 2 - view.x) / view.scale - 90, y: y ?? (r.height / 2 - view.y) / view.scale - 90, w: kind === 'text' ? 320 : kind === 'image' ? 280 : 180, h: height ?? (kind === 'text' ? 100 : kind === 'image' ? 200 : 180), color, text, font: kind === 'text' ? 28 : 20 };
+    const next: Item = { id: uid(), kind, ...textDefaults, z:topLayer(), x: x ?? (r.width / 2 - view.x) / view.scale - 90, y: y ?? (r.height / 2 - view.y) / view.scale - 90, w: kind === 'text' ? 320 : kind === 'image' ? 280 : 180, h: height ?? (kind === 'text' ? 100 : kind === 'image' ? 200 : 180), color, text, font: textDefaults.font };
     commit({ ...board, items: [...board.items, next] }); setSelected(next.id); setTool('select');
     if (kind === 'note' || kind === 'text') beginEdit(next.id);
     return next;
@@ -189,8 +201,16 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
       if (i.kind === 'pen') return `<polyline transform="translate(${i.x} ${i.y})" points="${i.points?.map(p=>p.join(',')).join(' ')}" stroke="${i.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
       if (i.kind === 'image') return /^data:image\/(png|jpeg|webp);base64,/.test(i.text) ? `<image x="${i.x}" y="${i.y}" width="${i.w}" height="${i.h}" href="${escape(i.text)}"/>` : '';
       const shape = i.kind === 'circle' ? `<ellipse cx="${i.x+i.w/2}" cy="${i.y+i.h/2}" rx="${i.w/2}" ry="${i.h/2}" fill="${i.color}"/>` : i.kind !== 'text' ? `<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.h}" fill="${i.color}" rx="${i.kind==='rectangle'?12:2}"/>` : '';
-      const lines = i.text.split('\n').flatMap(line => { const size=Math.max(1,Math.floor((i.w-24)/(i.font*.55))); return line.match(new RegExp(`.{1,${size}}`, 'g')) || ['']; });
-      return shape + `<text fill="#252537" font-family="Arial,sans-serif" font-size="${i.font}" text-anchor="middle">${lines.map((line,n)=>`<tspan x="${i.x+i.w/2}" y="${i.y+(i.h-lines.length*i.font*1.3)/2+i.font+n*i.font*1.3}">${escape(line)}</tspan>`).join('')}</text>`;
+      const size=Math.max(1,Math.floor((i.w-36)/(i.font*.55)));
+      const lines:{start:number;end:number}[]=[];let offset=0;
+      for(const paragraph of i.text.split('\n')){if(!paragraph.length)lines.push({start:offset,end:offset});else for(let n=0;n<paragraph.length;n+=size)lines.push({start:offset+n,end:offset+Math.min(n+size,paragraph.length)});offset+=paragraph.length+1;}
+      const align=i.align ?? 'center',anchor=align==='left'?'start':align==='right'?'end':'middle';
+      const textX=align==='left'?i.x+18:align==='right'?i.x+i.w-18:i.x+i.w/2;
+      const ink=/^#[0-9a-f]{6}$/i.test(i.textColor || '')?i.textColor:'#252537';
+      const lineHeights=lines.map(line=>Math.max(i.font,...(i.runs||[]).filter(r=>r.start<line.end&&r.end>line.start).map(r=>r.font||i.font))*1.3);
+      let baseline=i.y+Math.max(0,(i.h-lineHeights.reduce((sum,h)=>sum+h,0))/2);
+      const markup=lines.map((line,n)=>{baseline+=lineHeights[n];const runs=textSegments(i.text,i.runs).filter(s=>s.start<line.end&&s.end>line.start);return `<tspan x="${textX}" y="${baseline}">${runs.map(s=>`<tspan fill="${/^#[0-9a-f]{6}$/i.test(s.textColor||'')?s.textColor:ink}" font-size="${s.font||i.font}" font-weight="${(s.bold??i.bold)?700:400}" font-style="${(s.italic??i.italic)?'italic':'normal'}">${escape(i.text.slice(Math.max(s.start,line.start),Math.min(s.end,line.end)))}</tspan>`).join('')}</tspan>`;}).join('');
+      return shape+`<text fill="${ink}" font-family="Arial,sans-serif" font-size="${i.font}" font-weight="${i.bold?700:400}" font-style="${i.italic?'italic':'normal'}" text-anchor="${anchor}">${markup}</text>`;
     }).join('');
     const blob = new Blob([`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${left} ${top} ${w} ${h}" width="${w}" height="${h}"><rect x="${left}" y="${top}" width="${w}" height="${h}" fill="#f8f9fc"/>${elements}</svg>`],{type:'image/svg+xml'});
     const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href=url; link.download=`${board.title.replace(/[^a-z0-9_-]/gi,'_') || 'whiteboard'}.svg`; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -212,17 +232,30 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
       {error && <div className="wb-error" role="alert">{error} {!loaded ? <button onClick={retry}>Retry loading</button> : <span>Your team shares this board. Pending changes are retained locally.</span>}</div>}
       <div className={`wb-canvas wb-tool-${tool}`} ref={canvas} tabIndex={0} onPointerDown={e=>{e.currentTarget.focus();startCanvas(e);}} onClick={e=>{if (loaded && (e.target === e.currentTarget || (e.target instanceof HTMLElement && e.target.closest('.wb-item'))) && !['select','hand','pen','image'].includes(tool)) { const p=point(e); add(tool as Kind,p.x,p.y); }}} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} style={{backgroundSize:`${24*view.scale}px ${24*view.scale}px`,backgroundPosition:`${view.x}px ${view.y}px`}} onWheel={e=>{ if (editing) return; if(e.ctrlKey || e.metaKey) zoom(view.scale*(e.deltaY>0?.9:1.1)); else setView(v=>({...v,x:v.x-e.deltaX,y:v.y-e.deltaY})); }}>
         <div className="wb-world" style={{transform:`translate(${view.x}px,${view.y}px) scale(${view.scale})`}}>
-          {loaded && board.items.map(i=><div key={i.id} className={`wb-item wb-${i.kind} ${selected===i.id?'wb-selected':''}`} style={{left:i.x,top:i.y,width:i.w,height:i.h,background:i.kind==='text'||i.kind==='image'||i.kind==='pen'?'transparent':i.color,fontSize:i.font,zIndex:i.z ?? board.items.findIndex(object=>object.id===i.id)+1}} onPointerDown={e=>startItem(e,i)} onDoubleClick={e=>{e.stopPropagation();if(!['image','pen'].includes(i.kind)){setSelected(i.id);beginEdit(i.id);}}}>
-            {i.kind==='image'? <img draggable={false} src={/^data:image\/(png|jpeg|webp);base64,/.test(i.text)?i.text:undefined} alt="Whiteboard image"/> : i.kind==='pen'?<svg className="wb-stroke"><polyline points={i.points?.map(p=>p.join(',')).join(' ')} fill="none" stroke={i.color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> : editing===i.id?<textarea autoFocus aria-label="Edit whiteboard text" value={i.text} placeholder={i.kind==='text'?'Add your text…':'Write an idea…'} onChange={e=>patch(i.id,{text:e.target.value},false)} onBlur={()=>endEdit()} onKeyDown={e=>{if(e.key==='Escape')endEdit();}}/>:<span className={!i.text?'wb-placeholder':''}>{i.text || (i.kind==='note'?'Double-click to write':'Double-click to add text')}</span>}
+          {loaded && board.items.map(i=><div key={i.id} className={`wb-item wb-${i.kind} ${selected===i.id?'wb-selected':''}`} style={{left:i.x,top:i.y,width:i.w,height:i.h,background:i.kind==='text'||i.kind==='image'||i.kind==='pen'?'transparent':i.color,fontSize:i.font,textAlign:i.align ?? 'center',color:i.textColor,fontWeight:i.bold?700:400,fontStyle:i.italic?'italic':'normal',zIndex:i.z ?? board.items.findIndex(object=>object.id===i.id)+1}} onPointerDown={e=>startItem(e,i)} onDoubleClick={e=>{e.stopPropagation();if(!['image','pen'].includes(i.kind)){setSelected(i.id);beginEdit(i.id);}}}>
+            {i.kind==='image'? <img draggable={false} src={/^data:image\/(png|jpeg|webp);base64,/.test(i.text)?i.text:undefined} alt="Whiteboard image"/> : i.kind==='pen'?<svg className="wb-stroke"><polyline points={i.points?.map(p=>p.join(',')).join(' ')} fill="none" stroke={i.color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> : editing===i.id?<WhiteboardTextEditor text={i.text} runs={i.runs||[]} placeholder={i.kind==='text'?'Add your text…':'Write an idea…'} onChange={text=>patch(i.id,{text,runs:adjustTextRuns(i.text,text,i.runs||[])},false)} onSelection={(start,end)=>setTextSelection(previous=>previous?.id===i.id&&previous.start===start&&previous.end===end?previous:{id:i.id,start,end})} onBlur={target=>{if(!formattingFocus.current && !(target instanceof HTMLElement&&target.closest('.wb-context')))endEdit();}} onEscape={endEdit}/>:<span className={!i.text?'wb-placeholder':''}>{i.text?textSegments(i.text,i.runs).map((s,n)=><span key={n} style={{color:s.textColor,fontSize:s.font,fontWeight:s.bold===undefined?undefined:s.bold?700:400,fontStyle:s.italic===undefined?undefined:s.italic?'italic':'normal'}}>{s.text}</span>):(i.kind==='note'?'Double-click to write':'Double-click to add text')}</span>}
+
             {selected===i.id && i.kind!=='pen' && <button className="wb-resize" aria-label="Resize selected item" onPointerDown={e=>startItem(e,i,true)}/>}
           </div>)}
         </div>
         <div className="wb-tools" onPointerDown={e=>e.stopPropagation()} role="toolbar" aria-label="Whiteboard tools">
-          {([{id:'select',icon:MousePointer2,label:'Select & move'},{id:'hand',icon:Hand,label:'Pan canvas'},{id:'note',icon:StickyNote,label:'Sticky note'},{id:'text',icon:Type,label:'Text'},{id:'rectangle',icon:Square,label:'Rectangle'},{id:'circle',icon:Circle,label:'Circle'},{id:'pen',icon:Pencil,label:'Draw'}] as const).map(t=><button key={t.id} disabled={!loaded} title={t.label} aria-label={t.label} aria-pressed={tool===t.id} onClick={()=>{setTool(t.id);endEdit();}}><t.icon size={21} strokeWidth={1.8}/></button>)}
+          {([{id:'select',icon:MousePointer2,label:'Select & move'},{id:'hand',icon:Hand,label:'Pan canvas'},{id:'note',icon:StickyNote,label:'Sticky note'},{id:'text',icon:Type,label:'Text'},{id:'rectangle',icon:Square,label:'Rectangle'},{id:'circle',icon:Circle,label:'Circle'},{id:'pen',icon:Pencil,label:'Draw'}] as const).map(t=><button key={t.id} disabled={!loaded} title={t.label} aria-label={t.label} aria-pressed={tool===t.id} onClick={()=>{setTool(t.id);endEdit();setSelected(null);}}><t.icon size={21} strokeWidth={1.8}/></button>)}
           <button title="Add image" aria-label="Add image" disabled={!loaded} onClick={()=>file.current?.click()}><ImagePlus size={21}/></button><div className="wb-divider"/><button title="Undo" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={19}/></button><button title="Redo" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={19}/></button>
         </div>
-        <div className="wb-palette" onPointerDown={e=>e.stopPropagation()}><span>{item?'Item color':'Note color'}</span>{colors.map((c,n)=><button key={c} aria-label={['Yellow','Lavender','Blue','Orange','Pink','Green'][n]} aria-pressed={(item?.color||color)===c} style={{background:c}} onClick={()=>{setColor(c);if(item && item.kind!=='image')patch(item.id,{color:c});}}/>)}</div>
-        {item && <div className="wb-properties" onPointerDown={e=>e.stopPropagation()}>{!['image','pen'].includes(item.kind) && <><button title="Edit text" aria-label="Edit selected text" onClick={()=>{beginEdit(item.id);}}><Type size={17}/></button><select aria-label="Font size" value={item.font} onChange={e=>patch(item.id,{font:Number(e.target.value)})}>{[14,18,20,24,28,32,40].map(n=><option key={n} value={n}>{n}px</option>)}</select></>}<button title="Bring to front" aria-label="Bring selected item to front" onClick={()=>changeLayer(true)}><BringToFront size={17}/></button><button title="Send to back" aria-label="Send selected item to back" onClick={()=>changeLayer(false)}><SendToBack size={17}/></button><button title="Duplicate" aria-label="Duplicate selected item" onClick={duplicate}><Copy size={17}/></button><button title="Delete" aria-label="Delete selected item" onClick={remove}><Trash2 size={17}/></button></div>}
+        {(item || ['note','text','rectangle','circle','pen'].includes(tool)) && <div className="wb-context" role="toolbar" aria-label="Selected item controls" onPointerDown={e=>{e.stopPropagation();formattingFocus.current=true;}} style={item ? {left:`clamp(80px, ${item.x*view.scale+view.x}px, max(12px, calc(100% - 550px)))`,top:`clamp(12px, ${item.y*view.scale+view.y-112}px, calc(100% - 175px))`} : {left:80,top:18}}>
+          {((item && ['note','rectangle','circle','pen'].includes(item.kind)) || (!item && tool!=='text')) && <div className="wb-palette"><span>{item?.kind==='pen'||tool==='pen'?'Stroke color':'Note color'}</span>{colors.map((c,n)=><button key={c} aria-label={['Yellow','Lavender','Blue','Orange','Pink','Green'][n]} aria-pressed={(item?.color||color)===c} style={{background:c}} onClick={()=>{setColor(c);if(item)patch(item.id,{color:c});}}/>)}</div>}
+          {((item && !['image','pen'].includes(item.kind)) || (!item && ['note','text','rectangle','circle'].includes(tool))) && <div className="wb-formatting">
+            {item && <button title="Edit text" aria-label="Edit selected text" onClick={()=>beginEdit(item.id)}><Type size={17}/></button>}
+            <select aria-label="Font size" value={selectedTextStyle?.font ?? item?.font ?? textDefaults.font} onChange={e=>formatText({font:Number(e.target.value)})}>{[14,18,20,24,28,32,40].map(n=><option key={n} value={n}>{n}px</option>)}</select>
+            <span className="wb-control-divider"/>
+            {([{value:'left',Icon:AlignLeft},{value:'center',Icon:AlignCenter},{value:'right',Icon:AlignRight}] as const).map(({value,Icon})=><button key={value} title={`Align ${value}`} aria-label={`Align ${value}`} aria-pressed={(item?.align ?? textDefaults.align)===value} onClick={()=>formatText({align:value})}><Icon size={17}/></button>)}
+            <span className="wb-control-divider"/>
+            <button title="Bold" aria-label="Bold" aria-pressed={selectedTextStyle?.bold ?? item?.bold ?? textDefaults.bold} onClick={()=>formatText({bold:!(selectedTextStyle?.bold ?? item?.bold ?? textDefaults.bold)})}><Bold size={17}/></button>
+            <button title="Italic" aria-label="Italic" aria-pressed={selectedTextStyle?.italic ?? item?.italic ?? textDefaults.italic} onClick={()=>formatText({italic:!(selectedTextStyle?.italic ?? item?.italic ?? textDefaults.italic)})}><Italic size={17}/></button>
+            <label className="wb-text-color" title="Text color"><Type size={17}/><input type="color" aria-label="Text color" value={selectedTextStyle?.textColor ?? item?.textColor ?? textDefaults.textColor} onChange={e=>formatText({textColor:e.target.value})}/></label>
+          </div>}
+          {item && <div className="wb-context-actions"><button title="Bring to front" aria-label="Bring selected item to front" onClick={()=>changeLayer(true)}><BringToFront size={17}/></button><button title="Send to back" aria-label="Send selected item to back" onClick={()=>changeLayer(false)}><SendToBack size={17}/></button><button title="Duplicate" aria-label="Duplicate selected item" onClick={duplicate}><Copy size={17}/></button><button title="Delete" aria-label="Delete selected item" onClick={remove}><Trash2 size={17}/></button></div>}
+        </div>}
         {templates && <div className="wb-templates" onPointerDown={e=>e.stopPropagation()}><strong>Start with a little structure</strong><p>Add a prompt and make room for ideas.</p>{['Brainstorm: What could we do better?','Retrospective: What went well?','Planning: What’s our next big goal?'].map(prompt=><button key={prompt} onClick={()=>{add('text',undefined,undefined,prompt);setTemplates(false);}}><LayoutTemplate size={16}/>{prompt}</button>)}</div>}
         {!board.items.length && loaded && <div className="wb-empty"><StickyNote size={40}/><h2>Make room for your ideas</h2><p>Choose a sticky note, then click anywhere to begin.</p><button onPointerDown={e=>e.stopPropagation()} onClick={()=>add('note')}>Add your first note <Plus size={16}/></button></div>}
         <div className="wb-hint" onPointerDown={e=>e.stopPropagation()}>{tool==='select'?'Drag to move · Double-click to edit':tool==='hand'?'Drag anywhere to explore':tool==='pen'?'Drag to draw on the canvas':`Click anywhere to add ${tool==='note'?'a sticky note':tool==='text'?'text':`a ${tool}`}`}</div>
