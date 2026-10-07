@@ -1,6 +1,8 @@
+import { cachedProfileResource, clearProfileCache } from "./profileCache";
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export function clearAuth() {
+  clearProfileCache();
   localStorage.removeItem("jwt");
   localStorage.removeItem("role");
   localStorage.removeItem("email");
@@ -35,7 +37,19 @@ export function authHeaders(options: RequestInit = {}): Record<string, string> {
   return headers;
 }
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+export async function apiFetch(path: string, options: RequestInit = {}, force = false) {
+  const cacheable = (!options.method || options.method === 'GET') && ((path.startsWith('/admin/profile/summary?') && path.includes('reboot_details=1')) || /^\/admin\/users\/(rust|js)-status$/.test(path));
+  if (cacheable) {
+    // Shared requests outlive individual consumers; callers guard unmounts themselves.
+    return cachedProfileResource(`${API_URL}${path}`, async () => {
+      const value = await requestAPI(path, { ...options, signal: undefined });
+      if (path.includes('reboot_details=1') && !value?.user?.reboot_details) throw new Error('Reboot profile details are unavailable. Previously cached details are retained.');
+      return value;
+    }, force);
+  }
+  return requestAPI(path, options);
+}
+async function requestAPI(path: string, options: RequestInit = {}) {
   const headers = authHeaders(options);
 
   const res = await fetch(`${API_URL}${path}`, {

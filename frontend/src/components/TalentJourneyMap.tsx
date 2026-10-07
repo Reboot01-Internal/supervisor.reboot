@@ -1,7 +1,9 @@
+import ProfileSyncButton from './ProfileSyncButton';
+import { PROFILE_CACHE_TTL, peekProfileCache } from '../lib/profileCache';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Sparkles, ArrowUpRight } from 'lucide-react';
-import { apiFetch } from '../lib/api';
+import { apiFetch, API_URL } from '../lib/api';
 import { fetchRebootAvatars } from '../lib/rebootAvatars';
 import { programStart, type JourneyBoard } from '../lib/programJourney';
 import { latestProject } from '../lib/latestProject';
@@ -27,7 +29,7 @@ function placement(projects?:ProjectMembership[]) {
  return 'unknown';
 }
 type JourneySnapshot = {talents:Talent[]; profiles:Record<number,Profile|null>; avatars:Record<string,string>};
-let journeyCache: {key:string; value?:JourneySnapshot; pending?:Promise<JourneySnapshot>} | undefined;
+let journeyCache: {key:string; savedAt?:number; value?:JourneySnapshot; pending?:Promise<JourneySnapshot>} | undefined;
 const journeyListeners = new Set<(value:JourneySnapshot)=>void>();
 function journeySessionKey() {
  return ['jwt','role','email','login'].map(key=>localStorage.getItem(key)||'').join('|');
@@ -36,22 +38,23 @@ function loadJourney(force:boolean) {
  const key=journeySessionKey();
  if(!force && journeyCache?.key===key) {
   if(journeyCache.pending) return journeyCache.pending;
-  if(journeyCache.value) return Promise.resolve(journeyCache.value);
+  if(journeyCache.value && Date.now() - (journeyCache.savedAt || 0) < PROFILE_CACHE_TTL) return Promise.resolve(journeyCache.value);
  }
+ const previous = journeyCache?.key === key ? journeyCache.value : undefined;
  const entry: NonNullable<typeof journeyCache>={key};
  journeyCache=entry;
  entry.pending=(async()=>{
   // Reports retain achievement history for inactive talents as well.
   const talents:Talent[]=localStorage.getItem('role')==='supervisor' ? (await apiFetch('/admin/profile/summary?include_inactive=1')).supervisor?.assigned_students || [] : await apiFetch('/admin/users?include_inactive=1&role=student');
   const profiles:Record<number,Profile|null>={};
+  for(const t of talents){const cached=previous?.profiles[t.id] || peekProfileCache<Profile>(`${API_URL}/admin/profile/summary?user_id=${t.id}&reboot_details=1`)?.value;if(cached)profiles[t.id]=cached;}
   let avatars:Record<string,string>={};
   const publish=()=>{entry.value={talents,profiles:{...profiles},avatars};if(journeyCache===entry)journeyListeners.forEach(listener=>listener(entry.value!));};
   publish();
   const photos=fetchRebootAvatars(talents.map(t=>t.nickname).filter(Boolean)).catch(()=>({})).then(value=>{avatars=value;publish();return value;});
-  let cursor=0;
-  await Promise.all(Array.from({length:3},async()=>{while(cursor<talents.length){const t=talents[cursor++];try{profiles[t.id]=await apiFetch(`/admin/profile/summary?user_id=${t.id}&reboot_details=1`);}catch{profiles[t.id]=null;}publish();}}));
+  await Promise.all(talents.map(async t=>{try{profiles[t.id]=await apiFetch(`/admin/profile/summary?user_id=${t.id}&reboot_details=1`, {}, force);}catch{profiles[t.id]=profiles[t.id] || null;}publish();}));
   const value={talents,profiles,avatars:await photos};
-  entry.value=value;return value;
+  entry.value=value;entry.savedAt=Date.now();return value;
  })().finally(()=>{entry.pending=undefined;});
  return entry.pending;
 }
@@ -59,9 +62,12 @@ export default function TalentJourneyMap({revision}:{revision:number}) {
  const [talents,setTalents]=useState<Talent[]>([]),[profiles,setProfiles]=useState<Record<number,Profile|null>>({}),[avatars,setAvatars]=useState<Record<string,string>>({});
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[query,setQuery]=useState(''),[module,setModule]=useState('all'),[supervisor,setSupervisor]=useState('all'),[cohort,setCohort]=useState('all'),[selected,setSelected]=useState<number|null>(null);
  const lastRevision=useRef(revision);
+ const [syncVersion,setSyncVersion]=useState(0);
+ const forceSync=useRef(false);
+ useEffect(()=>{const sync=(event:Event)=>{forceSync.current=(event as CustomEvent<{force:boolean}>).detail?.force ?? false;setSyncVersion(v=>v+1);};window.addEventListener('profile:sync',sync);return()=>window.removeEventListener('profile:sync',sync);},[]);
  useEffect(()=>{
   let active=true;
-  const force=lastRevision.current!==revision;
+  const force=lastRevision.current!==revision || forceSync.current;forceSync.current=false;
   lastRevision.current=revision;
   setLoading(true);setError('');
   const update=(snapshot:JourneySnapshot)=>{if(active){setTalents(snapshot.talents);setProfiles(snapshot.profiles);setAvatars(snapshot.avatars);}};
@@ -70,7 +76,7 @@ export default function TalentJourneyMap({revision}:{revision:number}) {
   loadJourney(force).then(update).catch(()=>{if(active)setError('Could not load the talent journey. Use Refresh to try again.');})
     .finally(()=>{if(active)setLoading(false);});
   return()=>{active=false;journeyListeners.delete(update);};
- },[revision]);
+ },[revision,syncVersion]);
 
  const rows=useMemo(()=>talents.map(t=>{const p=profiles[t.id];const projects=p?.user?.reboot_details?.projects;return {...t,profile:p,projects,stage:placement(projects),latest:projects?latestProject(projects):null,start:programStart(p?.student?.boards||[],projects)};}),[talents,profiles]);
  const supervisors=[...new Map(rows.flatMap(r=>r.profile?.student?.supervisors||[]).map(s=>[s.id,s])).values()].sort((a,b)=>a.full_name.localeCompare(b.full_name));
@@ -80,7 +86,7 @@ export default function TalentJourneyMap({revision}:{revision:number}) {
  const unavailable=Object.values(profiles).filter(p=>!p?.user?.reboot_details?.projects).length;
  const detail=rows.find(r=>r.id===selected);
  function details(r:typeof rows[number]) {const start=r.start?.board.added_at;return `${r.full_name} · ${r.latest?.name||'Project unavailable'}\nSupervisor: ${r.profile?.student?.supervisors.map(s=>s.full_name).join(', ')||'Not recorded'}\n${start?`Started ${new Date(start).toLocaleDateString('en-GB')} · ${Math.max(0,Math.floor((Date.now()-Date.parse(start))/86400000))} days in program`:'Start date unavailable'}`;}
- return <section className="talent-map"><header><div><span className="talent-map-eyebrow">THE TALENT JOURNEY</span><h2>Every talent. Their next chapter.</h2><p>Explore the path from foundations to specialization.</p></div><span className="talent-map-milestone"><Sparkles size={17}/><strong>{loading?'…':rows.filter(r=>r.stage==='specialization').length}</strong> reached specialization</span></header>
+ return <section className="talent-map"><header><div><span className="talent-map-eyebrow">THE TALENT JOURNEY</span><h2>Every talent. Their next chapter.</h2><p>Explore the path from foundations to specialization.</p></div><ProfileSyncButton/><span className="talent-map-milestone"><Sparkles size={17}/><strong>{loading?'…':rows.filter(r=>r.stage==='specialization').length}</strong> reached specialization</span></header>
  <div className="talent-map-filters"><label className="talent-map-search"><Search size={16}/><input aria-label="Search talent or project" placeholder="Find a talent or project…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filter journey by module" value={module} onChange={e=>setModule(e.target.value)}><option value="all">All modules</option>{modules.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select><select aria-label="Filter journey by supervisor" value={supervisor} onChange={e=>setSupervisor(e.target.value)}><option value="all">All supervisors</option>{supervisors.map(s=><option key={s.id} value={s.id}>{s.full_name}</option>)}</select><select aria-label="Filter journey by cohort" value={cohort} onChange={e=>setCohort(e.target.value)}><option value="all">All cohorts</option>{[...new Set(talents.map(t=>t.cohort).filter(Boolean))].sort().map(c=><option key={c}>{c}</option>)}</select>{(query||module!=='all'||supervisor!=='all'||cohort!=='all')&&<button onClick={()=>{setQuery('');setModule('all');setSupervisor('all');setCohort('all');}}>Reset</button>}</div>
  <div className="talent-map-status" role="status">{error || (loading ? talents.length ? `${percent}% · ${checked} of ${talents.length} profiles checked${checked===talents.length?' · Finishing photos…':''}` : 'Connecting · Loading talent list…' : `${visible.length} talents shown · ${checked} profiles checked`)}{unavailable>0 && <span> · {unavailable} profiles with unavailable progress</span>}</div>
  {loading && <progress className="talent-load-progress" aria-label="Talent profile loading progress" max={100} value={talents.length?percent:undefined}/>}

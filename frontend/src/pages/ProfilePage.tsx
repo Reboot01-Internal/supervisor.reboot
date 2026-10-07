@@ -1,3 +1,5 @@
+import ProfileSyncButton from "../components/ProfileSyncButton";
+import { cachedProfileResource, peekProfileCache } from "../lib/profileCache";
 import AccountStatusBadge from "../components/AccountStatusBadge";
 import ProgramJourney from "../components/ProgramJourney";
 import LatestProject, { useAssignedLatestProjects } from "../components/LatestProject";
@@ -12,7 +14,7 @@ import AdminLayout from "../components/AdminLayout";
 import BackButton from "../components/BackButton";
 import { SkeletonBlock } from "../components/Skeleton";
 import UserAvatar from "../components/UserAvatar";
-import { apiFetch } from "../lib/api";
+import { apiFetch, API_URL } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { fetchRebootAvatar, fetchRebootAvatars } from "../lib/rebootAvatars";
 import { fetchRebootPhones } from "../lib/rebootPhones";
@@ -240,7 +242,10 @@ function formatBahrainDateTime(value: string) {
   });
 }
 
-export async function loadRebootProfile(login: string, jwt: string): Promise<RebootProfile> {
+export function loadRebootProfile(login: string, jwt: string, force = false): Promise<RebootProfile> {
+  return cachedProfileResource(`reboot:${login.toLowerCase()}`, () => fetchRebootProfile(login, jwt), force);
+}
+async function fetchRebootProfile(login: string, jwt: string): Promise<RebootProfile> {
   const query = `
     query Profile($login: String!) {
       user(where: { login: { _eq: $login } }, limit: 1) {
@@ -522,15 +527,15 @@ export default function ProfilePage() {
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  const loadProfileData = useCallback(async (initial?: LocalProfile) => {
+  const loadProfileData = useCallback(async (initial?: LocalProfile, force = !initial) => {
     const knownLogin = String(initial?.user?.nickname || (isTargetUserView ? "" : ownLogin)).trim();
-    const rebootRequest = knownLogin && jwt ? loadRebootProfile(knownLogin, jwt).catch(() => null) : null;
+    const rebootRequest = knownLogin && jwt ? loadRebootProfile(knownLogin, jwt, force).catch(() => null) : null;
     const local = await apiFetch(
-      isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}&reboot_details=1` : "/admin/profile/summary?reboot_details=1"
+      isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}&reboot_details=1` : "/admin/profile/summary?reboot_details=1", {}, force
     );
     const targetLogin =
       String(local?.user?.nickname || "").trim() || (isTargetUserView ? "" : ownLogin);
-    let reboot = rebootRequest ? await rebootRequest : targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt).catch((error) => {
+    let reboot = rebootRequest ? await rebootRequest : targetLogin && jwt ? await loadRebootProfile(targetLogin, jwt, force).catch((error) => {
       if (local?.user?.reboot_details) return null;
       throw error;
     }) : null;
@@ -542,41 +547,46 @@ export default function ProfilePage() {
         ...(typeof details.auditRatio === "number" ? { auditRatio: details.auditRatio } : {}),
       } } as RebootProfile;
     }
-    return { local: local as LocalProfile, reboot };
+    // Keep workspace assignments fresh while reusing upstream enrichment.
+    return { local: initial ? { ...initial, user: { ...initial.user, reboot_details: local.user?.reboot_details } } : local as LocalProfile, reboot };
   }, [isTargetUserView, jwt, ownLogin, targetUserID, role]);
 
   useEffect(() => {
     let mounted = true;
-    async function load() {
-      setLoading(true);
-      setRebootLoading(true);
-      setErr("");
+    let syncing = false;
+    const path = isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}&reboot_details=1` : '/admin/profile/summary?reboot_details=1';
+    async function load(force = false, initialLoad = false) {
+      if (syncing) return;
+      syncing = true;
+      const cached = peekProfileCache<LocalProfile>(`${API_URL}${path}`)?.value;
+      if (initialLoad) {
+        setLocalProfile(cached || null);
+        const login = cached?.user.nickname || (isTargetUserView ? '' : ownLogin);
+        setRebootProfile(peekProfileCache<RebootProfile>(`reboot:${login.toLowerCase()}`)?.value || null);
+        setLoading(!cached);
+      }
+      setRebootLoading(true); setErr('');
       try {
-        // Render local identity and assignments immediately; upstream enrichment
-        // must not hold the entire profile behind the loading screen.
-        const initial = await apiFetch(isTargetUserView
-          ? `/admin/profile/summary?user_id=${targetUserID}`
-          : "/admin/profile/summary") as LocalProfile;
+        const initial = await apiFetch(isTargetUserView ? `/admin/profile/summary?user_id=${targetUserID}` : '/admin/profile/summary') as LocalProfile;
         if (!mounted) return;
-        setLocalProfile(initial);
-        setRebootProfile(null);
+        setLocalProfile(previous => ({ ...initial, user: { ...initial.user, reboot_details: previous?.user.id === initial.user.id ? previous.user.reboot_details : undefined } }));
         setLoading(false);
-        const { local, reboot } = await loadProfileData(initial);
+        const { local, reboot } = await loadProfileData(initial, force);
         if (!mounted) return;
         setLocalProfile(local);
-        setRebootProfile(reboot);
-      } catch (e: any) {
-        if (!mounted) return;
-        setErr(e?.message || "Failed to load profile");
+        if (reboot) setRebootProfile(reboot);
+      } catch (e: unknown) {
+        if (mounted) setErr(e instanceof Error ? e.message : 'Could not sync profile. Cached information is still shown.');
       } finally {
+        syncing = false;
         if (mounted) { setLoading(false); setRebootLoading(false); }
       }
     }
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [loadProfileData]);
+    const sync = (event: Event) => { void load((event as CustomEvent<{force:boolean}>).detail?.force ?? false); };
+    void load(false, true);
+    window.addEventListener('profile:sync', sync);
+    return () => { mounted = false; window.removeEventListener('profile:sync', sync); };
+  }, [loadProfileData, isTargetUserView, targetUserID, ownLogin]);
 
   const displayName = useMemo(() => {
     if (rebootProfile?.user?.firstName || rebootProfile?.user?.lastName) {
@@ -1038,6 +1048,7 @@ export default function ProfilePage() {
         ) : null
       }
     >
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><ProfileSyncButton/></div>
       {confirmDialog}
       {err ? (
         <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-slate-800">

@@ -20,16 +20,19 @@ export function useAssignedPiscineStatuses(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    for (const track of tracks) {
-      apiFetch(`/admin/users/${track}-status`)
+    const load = (force = false) => { for (const track of tracks) {
+      apiFetch(`/admin/users/${track}-status`, {}, force)
         .then((result: Record<string, string>) => {
           if (active) setStatuses(previous => ({ ...previous, [track]: result }));
         })
         .catch(() => {
-          if (active) setStatuses(previous => ({ ...previous, [track]: {} }));
+          if (active) setStatuses(previous => ({ ...previous, [track]: previous[track] || {} }));
         });
     }
-    return () => { active = false; };
+    };
+    const sync = (event: Event) => load((event as CustomEvent<{force:boolean}>).detail?.force ?? false);
+    load(); window.addEventListener('profile:sync', sync);
+    return () => { active = false; window.removeEventListener('profile:sync', sync); };
   }, [enabled]);
   return statuses;
 }

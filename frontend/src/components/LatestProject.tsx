@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Code2, Clock3, CircleCheck, CircleX, CircleHelp } from 'lucide-react';
-import { apiFetch } from '../lib/api';
+import { peekProfileCache } from '../lib/profileCache';
+import { apiFetch, API_URL } from '../lib/api';
 import type { ProjectMembership } from './ProfileProjects';
 import { latestProject } from '../lib/latestProject';
 import './LatestProject.css';
@@ -10,23 +11,25 @@ export function useAssignedLatestProjects(ids: number[], enabled: boolean) {
   const key = enabled ? [...new Set(ids)].sort((a, b) => a - b).join(',') : '';
   const [result, setResult] = useState<Record<number, ProjectState>>({});
   useEffect(() => {
-    const controller = new AbortController();
-    setResult({});
-    const pending = key ? key.split(',').map(Number) : [];
-    async function worker() {
-      while (pending.length && !controller.signal.aborted) {
-        const id = pending.shift()!;
-        let projects: ProjectState = null;
-        try {
-          const profile = await apiFetch(`/admin/profile/summary?user_id=${id}&reboot_details=1`, { signal: controller.signal });
-          projects = profile.user?.reboot_details?.projects ?? null;
-        } catch { /* Keep unavailable distinct from an empty project history. */ }
-        if (!controller.signal.aborted) setResult(previous => ({ ...previous, [id]: projects }));
+    let active = true;
+    const ids = key ? key.split(',').map(Number) : [];
+    const cached: Record<number, ProjectState> = {};
+    for (const id of ids) {
+      const value = peekProfileCache<{user?:{reboot_details?:{projects?:ProjectMembership[]}}}>(`${API_URL}/admin/profile/summary?user_id=${id}&reboot_details=1`)?.value;
+      if (value?.user?.reboot_details?.projects) cached[id] = value.user.reboot_details.projects;
+    }
+    setResult(cached);
+    function load(force = false) {
+      for (const id of ids) {
+        void apiFetch(`/admin/profile/summary?user_id=${id}&reboot_details=1`, {}, force).then(profile => {
+          if (active) setResult(previous => ({ ...previous, [id]: profile.user?.reboot_details?.projects ?? previous[id] ?? null }));
+        }).catch(() => { if (active) setResult(previous => ({ ...previous, [id]: previous[id] ?? null })); });
       }
     }
-    void worker();
-    void worker();
-    return () => controller.abort();
+    const sync = (event: Event) => load((event as CustomEvent<{force:boolean}>).detail?.force ?? false);
+    load();
+    window.addEventListener('profile:sync', sync);
+    return () => { active = false; window.removeEventListener('profile:sync', sync); };
   }, [key]);
   return result;
 }
