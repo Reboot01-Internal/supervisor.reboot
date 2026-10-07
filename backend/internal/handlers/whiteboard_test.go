@@ -341,7 +341,7 @@ func TestWhiteboardTextFormattingPersistsWithOtherEdits(t *testing.T) {
 	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "format-note-add", Changes: []whiteboardChange{{ID: "styled-note", Add: whiteboardTestItem("styled-note", "Formatted text")}}}); err != nil {
 		t.Fatal(err)
 	}
-	style := map[string]json.RawMessage{"align": json.RawMessage(`"right"`), "textColor": json.RawMessage(`"#cc3344"`), "bold": json.RawMessage(`true`), "italic": json.RawMessage(`true`)}
+	style := map[string]json.RawMessage{"align": json.RawMessage(`"right"`), "textColor": json.RawMessage(`"#cc3344"`), "bold": json.RawMessage(`true`), "italic": json.RawMessage(`true`), "runs": json.RawMessage(`[{"start":0,"end":9,"font":32,"textColor":"#3366cc"}]`)}
 	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "format-note-style", Changes: []whiteboardChange{{ID: "styled-note", Set: style}}}); err != nil {
 		t.Fatal(err)
 	}
@@ -356,6 +356,39 @@ func TestWhiteboardTextFormattingPersistsWithOtherEdits(t *testing.T) {
 	for key, value := range style {
 		if string(room.document.Items[0][key]) != string(value) {
 			t.Fatalf("Formatting %s was lost after movement or reload", key)
+		}
+	}
+}
+
+func TestWhiteboardStickersPersistAndRejectUnknownAssets(t *testing.T) {
+	a := whiteboardTestAPI(t)
+	h := a.whiteboardRoom()
+	if err := a.loadWhiteboard(h); err != nil {
+		t.Fatal(err)
+	}
+	sticker := whiteboardTestItem("sticker-one", "")
+	sticker["kind"] = json.RawMessage(`"sticker"`)
+	sticker["stickerId"] = json.RawMessage(`"cute-star"`)
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "sticker-add", Changes: []whiteboardChange{{ID: "sticker-one", Add: sticker}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "sticker-resize", Changes: []whiteboardChange{{ID: "sticker-one", Set: map[string]json.RawMessage{"w": json.RawMessage(`240`), "h": json.RawMessage(`240`), "z": json.RawMessage(`8`)}}}}); err != nil {
+		t.Fatal(err)
+	}
+	restored := &API{conn: a.conn}
+	room := restored.whiteboardRoom()
+	if err := restored.loadWhiteboard(room); err != nil {
+		t.Fatal(err)
+	}
+	if string(room.document.Items[0]["stickerId"]) != `"cute-star"` || string(room.document.Items[0]["w"]) != "240" {
+		t.Fatal("Sticker asset or size did not persist")
+	}
+	if err := a.applyWhiteboard(h, whiteboardOperation{ID: "sticker-invalid", Changes: []whiteboardChange{{ID: "sticker-one", Set: map[string]json.RawMessage{"stickerId": json.RawMessage(`"https://untrusted.example/file.svg"`)}}}}); err == nil {
+		t.Fatal("Unknown sticker accepted")
+	}
+	for _, id := range []string{"helper-comment", "helper-progress", "helper-code", "helper-braces", "helper-syntax", "cute-moon"} {
+		if !validWhiteboardSticker(id) {
+			t.Fatalf("Approved sticker missing: %s", id)
 		}
 	}
 }

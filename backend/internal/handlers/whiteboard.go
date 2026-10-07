@@ -135,15 +135,18 @@ func validateWhiteboard(document whiteboardDocument) error {
 	for _, item := range document.Items {
 		data, _ := json.Marshal(item)
 		var v struct {
-			ID, Kind, Color, Text string
-			X, Y, W, H, Font      float64
-			Points                [][]float64
+			ID, Kind, Color, Text, StickerID string
+			X, Y, W, H, Font                 float64
+			Points                           [][]float64
 		}
 		if json.Unmarshal(data, &v) != nil || v.ID == "" || len(v.ID) > 120 || ids[v.ID] {
 			return errors.New("Invalid whiteboard object")
 		}
 		ids[v.ID] = true
-		if !strings.Contains("|note|text|rectangle|circle|image|pen|", "|"+v.Kind+"|") {
+		if v.Kind == "sticker" && !validWhiteboardSticker(v.StickerID) {
+			return errors.New("Unknown sticker")
+		}
+		if !strings.Contains("|note|text|rectangle|circle|image|pen|sticker|", "|"+v.Kind+"|") {
 			return errors.New("Invalid object type")
 		}
 		if !strings.Contains("|#ffe580|#c8b6ff|#a6ceff|#ffb780|#ffc5dc|#bce8bc|", "|"+v.Color+"|") {
@@ -516,4 +519,13 @@ func (a *API) AdminWhiteboards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, result)
+}
+
+func validWhiteboardSticker(id string) bool {
+	switch id {
+	case "cute-star", "cute-cloud", "cute-coffee-cat", "cute-heart", "cute-flower", "cute-coffee", "cute-plant", "cute-rocket", "cute-idea", "cute-laptop", "cute-checklist", "cute-moon",
+		"helper-comment", "helper-question", "helper-idea", "helper-important", "helper-todo", "helper-progress", "helper-done", "helper-blocked", "helper-deadline", "helper-decision", "helper-connect", "helper-reminder", "helper-code", "helper-braces", "helper-brackets", "helper-syntax":
+		return true
+	}
+	return false
 }

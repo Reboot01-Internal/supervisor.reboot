@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
-import { MousePointer2, Hand, StickyNote, Type, Square, Circle, Pencil, ImagePlus, Undo2, Redo2, Minus, Plus, Maximize2, Download, Copy, Trash2, Check, CloudOff, LayoutTemplate, X, RotateCcw, Users, BringToFront, SendToBack, AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react';
+import { MousePointer2, Hand, StickyNote, Type, Square, Circle, Pencil, ImagePlus, Undo2, Redo2, Minus, Plus, Maximize2, Download, Copy, Trash2, Check, CloudOff, LayoutTemplate, X, RotateCcw, Users, BringToFront, SendToBack, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Sticker } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import Modal from '../components/Modal';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
+import WhiteboardSticker from '../components/WhiteboardSticker';
+import { whiteboardStickers, getWhiteboardSticker, stickerSheets, stickerSheetData, type StickerGroup } from '../lib/whiteboardStickers';
 import WhiteboardTextEditor from '../components/WhiteboardTextEditor';
-import { textSegments,applyTextStyle,adjustTextRuns,type TextStyle } from '../lib/whiteboardText';
+import { textSegments,textLines,applyTextStyle,adjustTextRuns,type TextStyle } from '../lib/whiteboardText';
 import UserAvatar from '../components/UserAvatar';
 import { fetchRebootAvatar, getCachedRebootAvatar } from '../lib/rebootAvatars';
 import { useSharedWhiteboard, diffWhiteboard, applyWhiteboardDelta, type Whiteboard as Board, type WhiteboardItem as Item, type WhiteboardKind as Kind } from '../lib/whiteboardSync';
@@ -84,6 +86,8 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const [history, setHistory] = useState<{ past: {before:Board;after:Board}[]; future: {before:Board;after:Board}[] }>({ past: [], future: [] });
   const [full, setFull] = useState(false);
+  const [stickersOpen,setStickersOpen]=useState(false);
+  const [stickerGroup,setStickerGroup]=useState<StickerGroup>('Cute');
   const [templates, setTemplates] = useState(false);
   const editorBefore = useRef<{board:Board;id:string} | null>(null);
   const canvas = useRef<HTMLDivElement>(null);
@@ -91,10 +95,24 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const interaction = useRef<{ type: 'move' | 'pan' | 'resize' | 'draw'; id?: string; x: number; y: number; before: Board; originX: number; originY: number; layer?: number } | null>(null);
   const [textSelection,setTextSelection]=useState<{id:string;start:number;end:number}|null>(null);
   const formattingFocus=useRef(false);
+  const [contextDismissed,setContextDismissed]=useState(false);
+  const contextRef=useRef<HTMLDivElement>(null);
+  const [canvasSize,setCanvasSize]=useState({width:1000,height:600});
+  const [contextSize,setContextSize]=useState({width:535,height:100});
   const item = board.items.find(i => i.id === selected);
 
+  const showContext=!contextDismissed && !!(item || ['note','text','rectangle','circle','pen'].includes(tool));
+  useEffect(()=>{const el=canvas.current;if(!el)return;const observer=new ResizeObserver(entries=>{const r=entries[0].contentRect;setCanvasSize({width:r.width,height:r.height});});observer.observe(el);return()=>observer.disconnect();},[]);
+  useEffect(()=>{const el=contextRef.current;if(!el)return;const observer=new ResizeObserver(()=>{const r=el.getBoundingClientRect();setContextSize({width:r.width,height:r.height});});observer.observe(el);return()=>observer.disconnect();},[showContext]);
+  let contextPosition={left:80,top:18};
+  if(item){const left=item.x*view.scale+view.x,top=item.y*view.scale+view.y,right=left+item.w*view.scale,bottom=top+item.h*view.scale;const x=Math.max(12,Math.min(left,canvasSize.width-contextSize.width-12));
+    if(top-contextSize.height-12>=12)contextPosition={left:x,top:top-contextSize.height-12};
+    else if(bottom+contextSize.height+24<=canvasSize.height)contextPosition={left:x,top:bottom+12};
+    else if(right+contextSize.width+24<=canvasSize.width)contextPosition={left:right+12,top:Math.max(12,Math.min(top,canvasSize.height-contextSize.height-12))};
+    else contextPosition={left:x,top:Math.max(12,canvasSize.height-contextSize.height-12)};
+  }
   function remember(before: Board, after = boardRef.current, id?: string) { if (id) { before={title:after.title,items:before.items.filter(i=>i.id===id)};after={title:after.title,items:after.items.filter(i=>i.id===id)}; } if (JSON.stringify(before) !== JSON.stringify(after)) setHistory(h => ({ past: [...h.past.slice(-39), {before,after}], future: [] })); }
-  function beginEdit(id: string) { editorBefore.current={board:boardRef.current,id};setTextSelection(null);formattingFocus.current=false;setEditing(id); }
+  function beginEdit(id: string) { setContextDismissed(false); editorBefore.current={board:boardRef.current,id};setTextSelection(null);formattingFocus.current=false;setEditing(id); }
   function endEdit() { if(editorBefore.current)remember(editorBefore.current.board,boardRef.current,editorBefore.current.id);editorBefore.current=null;setTextSelection(null);formattingFocus.current=false;setEditing(null); }
   function commit(next: Board) { const merged=applyWhiteboardDelta(boardRef.current,diffWhiteboard(board,next));remember(boardRef.current,merged);setBoard(merged); }
   function patch(id: string, changes: Partial<Item>, record = true) {
@@ -103,9 +121,9 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   }
   const selectedTextStyle=item && textSelection?.id===item.id && textSelection.end>textSelection.start ? textSegments(item.text,item.runs).find(s=>s.start<=textSelection.start&&s.end>textSelection.start) : undefined;
   function formatText(changes:Partial<typeof textDefaults>) {
-    setTextDefaults(previous=>({...previous,...changes}));if(!item||['image','pen'].includes(item.kind))return;
-    const style:TextStyle={};for(const key of ['font','textColor','bold','italic'] as const)if(changes[key]!==undefined)Object.assign(style,{[key]:changes[key]});
-    if(textSelection?.id===item.id&&textSelection.end>textSelection.start&&Object.keys(style).length){patch(item.id,{runs:applyTextStyle(item.text,item.runs||[],textSelection.start,textSelection.end,style)});}
+    setTextDefaults(previous=>({...previous,...changes}));if(!item||['image','pen','sticker'].includes(item.kind))return;
+    const style:TextStyle={};for(const key of ['font','textColor','bold','italic','align'] as const)if(changes[key]!==undefined)Object.assign(style,{[key]:changes[key]});
+    if(textSelection?.id===item.id&&textSelection.end>textSelection.start&&Object.keys(style).length){const start=changes.align?item.text.lastIndexOf('\n',Math.max(0,textSelection.start-1))+1:textSelection.start;const nextBreak=item.text.indexOf('\n',textSelection.end-1);const end=changes.align?(nextBreak<0?item.text.length:nextBreak+1):textSelection.end;patch(item.id,{runs:applyTextStyle(item.text,item.runs||[],start,end,style)});}
     else {const runs=(item.runs||[]).map(run=>{const next={...run};for(const key of Object.keys(style) as (keyof TextStyle)[])delete next[key];return next;}).filter(r=>Object.keys(r).length>2);patch(item.id,{...changes,runs});}
   }
   function undo() { if (!history.past.length) return; endEdit(); const action=history.past[history.past.length-1];setHistory({past:history.past.slice(0,-1),future:[action,...history.future]});setBoard(applyWhiteboardDelta(boardRef.current,diffWhiteboard(action.after,action.before)));setSelected(null); }
@@ -123,9 +141,15 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
     if (kind === 'note' || kind === 'text') beginEdit(next.id);
     return next;
   }
+  function addSticker(id:string){
+    const sticker=getWhiteboardSticker(id);if(!sticker || boardRef.current.items.length>=500){setError('This whiteboard has reached its 500-item limit.');return;}
+    endEdit();const r=canvas.current!.getBoundingClientRect();const width=160,height=width*sticker.height/sticker.width;
+    const next:Item={id:uid(),kind:'sticker',stickerId:id,x:(r.width/2-view.x)/view.scale-width/2,y:(r.height/2-view.y)/view.scale-height/2,w:width,h:height,color:colors[0],font:20,text:'',z:topLayer()};
+    commit({...boardRef.current,items:[...boardRef.current.items,next]});setSelected(next.id);setTool('select');setContextDismissed(false);setStickersOpen(false);
+  }
   function startCanvas(e: ReactPointerEvent<HTMLDivElement>) {
     if (e.button !== 0 || !loaded) return;
-    endEdit(); setSelected(null);
+    endEdit(); setSelected(null);setStickersOpen(false);
     if (tool === 'hand') { interaction.current = { type: 'pan', x: e.clientX, y: e.clientY, originX: view.x, originY: view.y, before: board }; e.currentTarget.setPointerCapture(e.pointerId); return; }
     const p = point(e);
     if (tool === 'pen') {
@@ -137,6 +161,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
     }
   }
   function startItem(e: ReactPointerEvent, target: Item, resize = false) {
+    setContextDismissed(false);
     if (tool !== 'select' && !resize) return;
     e.stopPropagation();
     if (editing === target.id && !resize) return;
@@ -192,12 +217,17 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
     reader.onload = () => { const src = String(reader.result); if (JSON.stringify(boardRef.current).length + src.length > 3900000) { setError('The board is full of images. Remove an image or use a smaller file.'); return; } const image = new Image(); image.onload = () => { add('image', undefined, undefined, src, Math.max(60, 280 * image.height / image.width)); }; image.src = src; };
     reader.onerror = () => setError('Could not read this image. Please try another.'); reader.readAsDataURL(selectedFile);
   }
-  function exportBoard() {
+  async function exportBoard() {
+    try {
+    const sheets=[...new Set(board.items.filter(i=>i.kind==='sticker').map(i=>getWhiteboardSticker(i.stickerId)?.sheet).filter((s):s is 'cute'|'helpers'=>!!s))];
+    const data=await Promise.all(sheets.map(async name=>({name,uri:await stickerSheetData(name)})));
+    const defs=data.map(({name,uri})=>`<image id="sticker-sheet-${name}" href="${uri}" width="${stickerSheets[name].width}" height="${stickerSheets[name].height}"/>`).join('');
     const escape = (s: string) => s.replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]!));
     const bounds = board.items.flatMap(i => i.kind === 'pen' ? (i.points || []).map(p => ({ x:i.x+p[0], y:i.y+p[1], w:1, h:1 })) : [i]);
     const left = Math.min(0,...bounds.map(i => i.x))-40, top = Math.min(0,...bounds.map(i=>i.y))-40;
     const w = Math.max(800,...bounds.map(i=>i.x+i.w))-left+40, h = Math.max(600,...bounds.map(i=>i.y+i.h))-top+40;
-    const elements = board.items.map((item,index)=>({item,layer:item.z ?? index+1})).sort((a,b)=>a.layer-b.layer).map(({item:i}) => {
+    const elements = board.items.map((item,index)=>({item,layer:item.z ?? index+1})).sort((a,b)=>a.layer-b.layer).map(({item:i},index) => {
+      if(i.kind==='sticker'){const sticker=getWhiteboardSticker(i.stickerId);return sticker?`<svg x="${i.x}" y="${i.y}" width="${i.w}" height="${i.h}" viewBox="${sticker.x} ${sticker.y} ${sticker.width} ${sticker.height}" overflow="hidden"><defs><clipPath id="sticker-clip-${index}" clipPathUnits="userSpaceOnUse"><rect x="${sticker.x}" y="${sticker.y}" width="${sticker.width}" height="${sticker.height}"/></clipPath></defs><g clip-path="url(#sticker-clip-${index})"><use href="#sticker-sheet-${sticker.sheet}"/></g></svg>`:'';}
       if (i.kind === 'pen') return `<polyline transform="translate(${i.x} ${i.y})" points="${i.points?.map(p=>p.join(',')).join(' ')}" stroke="${i.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
       if (i.kind === 'image') return /^data:image\/(png|jpeg|webp);base64,/.test(i.text) ? `<image x="${i.x}" y="${i.y}" width="${i.w}" height="${i.h}" href="${escape(i.text)}"/>` : '';
       const shape = i.kind === 'circle' ? `<ellipse cx="${i.x+i.w/2}" cy="${i.y+i.h/2}" rx="${i.w/2}" ry="${i.h/2}" fill="${i.color}"/>` : i.kind !== 'text' ? `<rect x="${i.x}" y="${i.y}" width="${i.w}" height="${i.h}" fill="${i.color}" rx="${i.kind==='rectangle'?12:2}"/>` : '';
@@ -209,11 +239,12 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
       const ink=/^#[0-9a-f]{6}$/i.test(i.textColor || '')?i.textColor:'#252537';
       const lineHeights=lines.map(line=>Math.max(i.font,...(i.runs||[]).filter(r=>r.start<line.end&&r.end>line.start).map(r=>r.font||i.font))*1.3);
       let baseline=i.y+Math.max(0,(i.h-lineHeights.reduce((sum,h)=>sum+h,0))/2);
-      const markup=lines.map((line,n)=>{baseline+=lineHeights[n];const runs=textSegments(i.text,i.runs).filter(s=>s.start<line.end&&s.end>line.start);return `<tspan x="${textX}" y="${baseline}">${runs.map(s=>`<tspan fill="${/^#[0-9a-f]{6}$/i.test(s.textColor||'')?s.textColor:ink}" font-size="${s.font||i.font}" font-weight="${(s.bold??i.bold)?700:400}" font-style="${(s.italic??i.italic)?'italic':'normal'}">${escape(i.text.slice(Math.max(s.start,line.start),Math.min(s.end,line.end)))}</tspan>`).join('')}</tspan>`;}).join('');
+      const markup=lines.map((line,n)=>{baseline+=lineHeights[n];const runs=textSegments(i.text,i.runs).filter(s=>s.start<line.end&&s.end>line.start);const lineAlign=[...(i.runs||[])].reverse().find(r=>r.align&&r.start<=line.start&&r.end>line.start)?.align||align;const lineX=lineAlign==='left'?i.x+18:lineAlign==='right'?i.x+i.w-18:textX;const lineAnchor=lineAlign==='left'?'start':lineAlign==='right'?'end':'middle';return `<tspan x="${lineX}" y="${baseline}" text-anchor="${lineAnchor}">${runs.map(s=>`<tspan fill="${/^#[0-9a-f]{6}$/i.test(s.textColor||'')?s.textColor:ink}" font-size="${typeof s.font==='number'&&s.font>=1&&s.font<=200?s.font:i.font}" font-weight="${(s.bold??i.bold)?700:400}" font-style="${(s.italic??i.italic)?'italic':'normal'}">${escape(i.text.slice(Math.max(s.start,line.start),Math.min(s.end,line.end)))}</tspan>`).join('')}</tspan>`;}).join('');
       return shape+`<text fill="${ink}" font-family="Arial,sans-serif" font-size="${i.font}" font-weight="${i.bold?700:400}" font-style="${i.italic?'italic':'normal'}" text-anchor="${anchor}">${markup}</text>`;
     }).join('');
-    const blob = new Blob([`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${left} ${top} ${w} ${h}" width="${w}" height="${h}"><rect x="${left}" y="${top}" width="${w}" height="${h}" fill="#f8f9fc"/>${elements}</svg>`],{type:'image/svg+xml'});
+    const blob = new Blob([`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${left} ${top} ${w} ${h}" width="${w}" height="${h}"><defs>${defs}</defs><rect x="${left}" y="${top}" width="${w}" height="${h}" fill="#f8f9fc"/>${elements}</svg>`],{type:'image/svg+xml'});
     const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href=url; link.download=`${board.title.replace(/[^a-z0-9_-]/gi,'_') || 'whiteboard'}.svg`; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    } catch(e){setError(e instanceof Error?e.message:'Could not export this board');}
   }
   return <AdminLayout active="whiteboard" title="Whiteboard" subtitle="One shared space for your admin team’s next big idea.">
     {navigation}
@@ -232,23 +263,31 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
       {error && <div className="wb-error" role="alert">{error} {!loaded ? <button onClick={retry}>Retry loading</button> : <span>Your team shares this board. Pending changes are retained locally.</span>}</div>}
       <div className={`wb-canvas wb-tool-${tool}`} ref={canvas} tabIndex={0} onPointerDown={e=>{e.currentTarget.focus();startCanvas(e);}} onClick={e=>{if (loaded && (e.target === e.currentTarget || (e.target instanceof HTMLElement && e.target.closest('.wb-item'))) && !['select','hand','pen','image'].includes(tool)) { const p=point(e); add(tool as Kind,p.x,p.y); }}} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} style={{backgroundSize:`${24*view.scale}px ${24*view.scale}px`,backgroundPosition:`${view.x}px ${view.y}px`}} onWheel={e=>{ if (editing) return; if(e.ctrlKey || e.metaKey) zoom(view.scale*(e.deltaY>0?.9:1.1)); else setView(v=>({...v,x:v.x-e.deltaX,y:v.y-e.deltaY})); }}>
         <div className="wb-world" style={{transform:`translate(${view.x}px,${view.y}px) scale(${view.scale})`}}>
-          {loaded && board.items.map(i=><div key={i.id} className={`wb-item wb-${i.kind} ${selected===i.id?'wb-selected':''}`} style={{left:i.x,top:i.y,width:i.w,height:i.h,background:i.kind==='text'||i.kind==='image'||i.kind==='pen'?'transparent':i.color,fontSize:i.font,textAlign:i.align ?? 'center',color:i.textColor,fontWeight:i.bold?700:400,fontStyle:i.italic?'italic':'normal',zIndex:i.z ?? board.items.findIndex(object=>object.id===i.id)+1}} onPointerDown={e=>startItem(e,i)} onDoubleClick={e=>{e.stopPropagation();if(!['image','pen'].includes(i.kind)){setSelected(i.id);beginEdit(i.id);}}}>
-            {i.kind==='image'? <img draggable={false} src={/^data:image\/(png|jpeg|webp);base64,/.test(i.text)?i.text:undefined} alt="Whiteboard image"/> : i.kind==='pen'?<svg className="wb-stroke"><polyline points={i.points?.map(p=>p.join(',')).join(' ')} fill="none" stroke={i.color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> : editing===i.id?<WhiteboardTextEditor text={i.text} runs={i.runs||[]} placeholder={i.kind==='text'?'Add your text…':'Write an idea…'} onChange={text=>patch(i.id,{text,runs:adjustTextRuns(i.text,text,i.runs||[])},false)} onSelection={(start,end)=>setTextSelection(previous=>previous?.id===i.id&&previous.start===start&&previous.end===end?previous:{id:i.id,start,end})} onBlur={target=>{if(!formattingFocus.current && !(target instanceof HTMLElement&&target.closest('.wb-context')))endEdit();}} onEscape={endEdit}/>:<span className={!i.text?'wb-placeholder':''}>{i.text?textSegments(i.text,i.runs).map((s,n)=><span key={n} style={{color:s.textColor,fontSize:s.font,fontWeight:s.bold===undefined?undefined:s.bold?700:400,fontStyle:s.italic===undefined?undefined:s.italic?'italic':'normal'}}>{s.text}</span>):(i.kind==='note'?'Double-click to write':'Double-click to add text')}</span>}
+          {loaded && board.items.map(i=><div key={i.id} className={`wb-item wb-${i.kind} ${selected===i.id?'wb-selected':''}`} style={{left:i.x,top:i.y,width:i.w,height:i.h,background:i.kind==='text'||i.kind==='image'||i.kind==='pen'||i.kind==='sticker'?'transparent':i.color,fontSize:i.font,textAlign:i.align ?? 'center',color:i.textColor,fontWeight:i.bold?700:400,fontStyle:i.italic?'italic':'normal',zIndex:i.z ?? board.items.findIndex(object=>object.id===i.id)+1}} onPointerDown={e=>startItem(e,i)} onDoubleClick={e=>{e.stopPropagation();if(!['image','pen','sticker'].includes(i.kind)){setSelected(i.id);beginEdit(i.id);}}}>
+            {i.kind==='sticker'?<WhiteboardSticker id={i.stickerId}/>:i.kind==='image'? <img draggable={false} src={/^data:image\/(png|jpeg|webp);base64,/.test(i.text)?i.text:undefined} alt="Whiteboard image"/> : i.kind==='pen'?<svg className="wb-stroke"><polyline points={i.points?.map(p=>p.join(',')).join(' ')} fill="none" stroke={i.color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> : editing===i.id?<WhiteboardTextEditor text={i.text} runs={i.runs||[]} align={i.align||'center'} placeholder={i.kind==='text'?'Add your text…':'Write an idea…'} onChange={text=>patch(i.id,{text,runs:adjustTextRuns(i.text,text,i.runs||[])},false)} onSelection={(start,end)=>setTextSelection(previous=>previous?.id===i.id&&previous.start===start&&previous.end===end?previous:{id:i.id,start,end})} onBlur={target=>{if(!formattingFocus.current && !(target instanceof HTMLElement&&target.closest('.wb-context')))endEdit();}} onEscape={endEdit}/>:<span className={!i.text?'wb-placeholder':''}>{i.text?textLines(i.text,i.runs,i.align||'center').map((line,n)=><span className="wb-text-line" key={n} style={{textAlign:line.align}}>{line.pieces.length?line.pieces.map((s,k)=><span key={k} style={{color:s.textColor,fontSize:s.font,fontWeight:s.bold===undefined?undefined:s.bold?700:400,fontStyle:s.italic===undefined?undefined:s.italic?'italic':'normal'}}>{s.text}</span>):'\u200b'}</span>):(i.kind==='note'?'Double-click to write':'Double-click to add text')}</span>}
+
 
             {selected===i.id && i.kind!=='pen' && <button className="wb-resize" aria-label="Resize selected item" onPointerDown={e=>startItem(e,i,true)}/>}
           </div>)}
         </div>
         <div className="wb-tools" onPointerDown={e=>e.stopPropagation()} role="toolbar" aria-label="Whiteboard tools">
-          {([{id:'select',icon:MousePointer2,label:'Select & move'},{id:'hand',icon:Hand,label:'Pan canvas'},{id:'note',icon:StickyNote,label:'Sticky note'},{id:'text',icon:Type,label:'Text'},{id:'rectangle',icon:Square,label:'Rectangle'},{id:'circle',icon:Circle,label:'Circle'},{id:'pen',icon:Pencil,label:'Draw'}] as const).map(t=><button key={t.id} disabled={!loaded} title={t.label} aria-label={t.label} aria-pressed={tool===t.id} onClick={()=>{setTool(t.id);endEdit();setSelected(null);}}><t.icon size={21} strokeWidth={1.8}/></button>)}
-          <button title="Add image" aria-label="Add image" disabled={!loaded} onClick={()=>file.current?.click()}><ImagePlus size={21}/></button><div className="wb-divider"/><button title="Undo" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={19}/></button><button title="Redo" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={19}/></button>
+          {([{id:'select',icon:MousePointer2,label:'Select & move'},{id:'hand',icon:Hand,label:'Pan canvas'},{id:'note',icon:StickyNote,label:'Sticky note'},{id:'text',icon:Type,label:'Text'},{id:'rectangle',icon:Square,label:'Rectangle'},{id:'circle',icon:Circle,label:'Circle'},{id:'pen',icon:Pencil,label:'Draw'}] as const).map(t=><button key={t.id} disabled={!loaded} title={t.label} aria-label={t.label} aria-pressed={tool===t.id} onClick={()=>{setTool(t.id);endEdit();setSelected(null);setContextDismissed(false);}}><t.icon size={21} strokeWidth={1.8}/></button>)}
+          <button title="Stickers" aria-label="Stickers" aria-pressed={stickersOpen} disabled={!loaded} onClick={()=>{endEdit();setSelected(null);setTool('select');setStickersOpen(value=>!value);}}><Sticker size={21}/></button><button title="Add image" aria-label="Add image" disabled={!loaded} onClick={()=>file.current?.click()}><ImagePlus size={21}/></button><div className="wb-divider"/><button title="Undo" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={19}/></button><button title="Redo" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={19}/></button>
         </div>
-        {(item || ['note','text','rectangle','circle','pen'].includes(tool)) && <div className="wb-context" role="toolbar" aria-label="Selected item controls" onPointerDown={e=>{e.stopPropagation();formattingFocus.current=true;}} style={item ? {left:`clamp(80px, ${item.x*view.scale+view.x}px, max(12px, calc(100% - 550px)))`,top:`clamp(12px, ${item.y*view.scale+view.y-112}px, calc(100% - 175px))`} : {left:80,top:18}}>
+        {stickersOpen && <section className="wb-sticker-picker" onPointerDown={e=>e.stopPropagation()} aria-label="Sticker library">
+          <header><div><strong>A little joy for your board</strong><p>Pick a sticker. Make it yours.</p></div><button aria-label="Close stickers" onClick={()=>setStickersOpen(false)}><X size={16}/></button></header>
+          <div className="wb-sticker-tabs" role="tablist" aria-label="Sticker categories">{(['Cute','Board helpers','Tech symbols'] as const).map(group=><button key={group} role="tab" aria-selected={group===stickerGroup} onClick={()=>setStickerGroup(group)}>{group}</button>)}</div>
+          <div className="wb-sticker-grid" role="tabpanel" aria-label={stickerGroup}>{whiteboardStickers.filter(s=>s.group===stickerGroup).map(sticker=><button key={sticker.id} title={sticker.name} aria-label={`Add ${sticker.name} sticker`} onClick={()=>addSticker(sticker.id)}><WhiteboardSticker id={sticker.id}/><span>{sticker.name}</span></button>)}</div>
+          <footer>Drag to move · Resize from the corner</footer>
+        </section>}
+        {showContext && <div ref={contextRef} className="wb-context" role="toolbar" aria-label="Selected item controls" onPointerDown={e=>{e.stopPropagation();formattingFocus.current=true;}} style={contextPosition}>
+          <button className="wb-context-dismiss" title="Hide formatting controls" aria-label="Hide formatting controls" onClick={()=>setContextDismissed(true)}><X size={13}/></button>
           {((item && ['note','rectangle','circle','pen'].includes(item.kind)) || (!item && tool!=='text')) && <div className="wb-palette"><span>{item?.kind==='pen'||tool==='pen'?'Stroke color':'Note color'}</span>{colors.map((c,n)=><button key={c} aria-label={['Yellow','Lavender','Blue','Orange','Pink','Green'][n]} aria-pressed={(item?.color||color)===c} style={{background:c}} onClick={()=>{setColor(c);if(item)patch(item.id,{color:c});}}/>)}</div>}
-          {((item && !['image','pen'].includes(item.kind)) || (!item && ['note','text','rectangle','circle'].includes(tool))) && <div className="wb-formatting">
+          {((item && !['image','pen','sticker'].includes(item.kind)) || (!item && ['note','text','rectangle','circle'].includes(tool))) && <div className="wb-formatting">
             {item && <button title="Edit text" aria-label="Edit selected text" onClick={()=>beginEdit(item.id)}><Type size={17}/></button>}
             <select aria-label="Font size" value={selectedTextStyle?.font ?? item?.font ?? textDefaults.font} onChange={e=>formatText({font:Number(e.target.value)})}>{[14,18,20,24,28,32,40].map(n=><option key={n} value={n}>{n}px</option>)}</select>
             <span className="wb-control-divider"/>
-            {([{value:'left',Icon:AlignLeft},{value:'center',Icon:AlignCenter},{value:'right',Icon:AlignRight}] as const).map(({value,Icon})=><button key={value} title={`Align ${value}`} aria-label={`Align ${value}`} aria-pressed={(item?.align ?? textDefaults.align)===value} onClick={()=>formatText({align:value})}><Icon size={17}/></button>)}
+            {([{value:'left',Icon:AlignLeft},{value:'center',Icon:AlignCenter},{value:'right',Icon:AlignRight}] as const).map(({value,Icon})=><button key={value} title={`Align ${value}`} aria-label={`Align ${value}`} aria-pressed={(selectedTextStyle?.align ?? item?.align ?? textDefaults.align)===value} onClick={()=>formatText({align:value})}><Icon size={17}/></button>)}
             <span className="wb-control-divider"/>
             <button title="Bold" aria-label="Bold" aria-pressed={selectedTextStyle?.bold ?? item?.bold ?? textDefaults.bold} onClick={()=>formatText({bold:!(selectedTextStyle?.bold ?? item?.bold ?? textDefaults.bold)})}><Bold size={17}/></button>
             <button title="Italic" aria-label="Italic" aria-pressed={selectedTextStyle?.italic ?? item?.italic ?? textDefaults.italic} onClick={()=>formatText({italic:!(selectedTextStyle?.italic ?? item?.italic ?? textDefaults.italic)})}><Italic size={17}/></button>
