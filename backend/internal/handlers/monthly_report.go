@@ -64,18 +64,19 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 	}
 	type Participant struct {
 		MeetingID  int64  `json:"meeting_id"`
+		UserID     int64  `json:"user_id"`
 		Name       string `json:"name"`
 		Attendance string `json:"attendance"`
 	}
 	participants := []Participant{}
-	rows, err = a.conn.Query(`SELECT mp.meeting_id,u.full_name,mp.attendance_status FROM meeting_participants mp JOIN users u ON u.id=mp.user_id JOIN meetings m ON m.id=mp.meeting_id JOIN boards b ON b.id=m.board_id JOIN supervisor_files sf ON sf.id=b.supervisor_file_id WHERE (?=0 OR sf.supervisor_user_id=?) AND datetime(m.starts_at)>=datetime(?) AND datetime(m.starts_at)<datetime(?) ORDER BY u.full_name`, scope, scope, from, to)
+	rows, err = a.conn.Query(`SELECT mp.meeting_id,mp.user_id,u.full_name,mp.attendance_status FROM meeting_participants mp JOIN users u ON u.id=mp.user_id JOIN meetings m ON m.id=mp.meeting_id JOIN boards b ON b.id=m.board_id JOIN supervisor_files sf ON sf.id=b.supervisor_file_id WHERE (?=0 OR sf.supervisor_user_id=?) AND datetime(m.starts_at)>=datetime(?) AND datetime(m.starts_at)<datetime(?) ORDER BY u.full_name`, scope, scope, from, to)
 	if err != nil {
 		writeErr(w, 500, "could not load participants")
 		return
 	}
 	for rows.Next() {
 		var p Participant
-		if err = rows.Scan(&p.MeetingID, &p.Name, &p.Attendance); err != nil {
+		if err = rows.Scan(&p.MeetingID, &p.UserID, &p.Name, &p.Attendance); err != nil {
 			break
 		}
 		participants = append(participants, p)

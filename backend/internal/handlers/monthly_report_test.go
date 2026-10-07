@@ -54,6 +54,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 		}
 		Participants []struct {
 			MeetingID int `json:"meeting_id"`
+			UserID    int `json:"user_id"`
 		}
 		Journeys []struct{ Start, End string }
 	}
@@ -63,7 +64,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	if len(result.Tasks) != 2 || result.Tasks[0].Added != 1 || result.Tasks[0].Done != 1 || result.Tasks[1].Added != 0 || result.Tasks[1].Done != 0 {
 		t.Fatalf("incorrect per-board counts: %+v", result.Tasks)
 	}
-	if len(result.Participants) != 1 || result.Participants[0].MeetingID != 40 {
+	if len(result.Participants) != 1 || result.Participants[0].MeetingID != 40 || result.Participants[0].UserID != 3 {
 		t.Fatalf("wrong participants: %+v", result.Participants)
 	}
 	if len(result.Journeys) != 1 || result.Journeys[0].Start != "smart-road" || result.Journeys[0].End != "filler" {
@@ -97,7 +98,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	if len(result.Tasks) != 1 || result.Tasks[0].BoardID != 10 {
 		t.Fatalf("leaked other boards: %+v", result.Tasks)
 	}
-	if len(result.Participants) != 1 || result.Participants[0].MeetingID != 40 {
+	if len(result.Participants) != 1 || result.Participants[0].MeetingID != 40 || result.Participants[0].UserID != 3 {
 		t.Fatalf("leaked other meeting participants: %+v", result.Participants)
 	}
 	if len(result.Journeys) != 1 {
