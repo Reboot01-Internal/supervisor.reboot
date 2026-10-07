@@ -1,3 +1,4 @@
+import AttendanceReport from "../components/AttendanceReport";
 import { useAuth } from "../lib/auth";
 import RustPiscineReport from "./RustPiscineReport";
 import TalentJourneyMap from "../components/TalentJourneyMap";
@@ -53,6 +54,7 @@ export default function AdminReportsPage(){
  return <AdminLayout active="reports" title="Reports" subtitle="Supervisor activity, project progress, and the work still ahead." right={<button className="report-refresh" onClick={()=>setRevision(v=>v+1)} disabled={loading}><RefreshCw size={15}/> Refresh</button>}>
  <div className="reports-hub">
   {error && <p role="alert">{error}</p>}
+  {isAdmin && <AttendanceReport revision={revision}/>}
   {isAdmin && <SupervisorMonthlyMatrix people={people} boards={boards} avatars={avatars} loading={loading} sourceError={error} revision={revision}/>}
   {!isAdmin && <MyMonthlyReport revision={revision}/>}
   <details className="reports-supporting" ><summary>Workspace insights & talent overview</summary>
