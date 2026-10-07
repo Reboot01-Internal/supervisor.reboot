@@ -100,7 +100,7 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 	rows, err = a.conn.Query(`SELECT ss.supervisor_user_id,u.id,u.full_name,
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),''),
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),'')
- FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id WHERE (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, scope, scope)
+ FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id WHERE u.is_active=1 AND (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, scope, scope)
 	if err != nil {
 		writeErr(w, 500, "could not load talent journey")
 		return

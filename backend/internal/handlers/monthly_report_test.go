@@ -16,7 +16,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	defer conn.Close()
 	conn.SetMaxOpenConns(1)
 	_, err = conn.Exec(`
- CREATE TABLE users(id INTEGER,full_name TEXT,role TEXT);
+ CREATE TABLE users(id INTEGER,full_name TEXT,role TEXT,is_active INTEGER);
  CREATE TABLE user_roles(user_id INTEGER,role TEXT);
  CREATE TABLE supervisor_files(id INTEGER,supervisor_user_id INTEGER);
  CREATE TABLE boards(id INTEGER,supervisor_file_id INTEGER,name TEXT);
@@ -27,7 +27,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  CREATE TABLE meeting_participants(meeting_id INTEGER,user_id INTEGER,attendance_status TEXT);
  CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER);
  CREATE TABLE board_members(board_id INTEGER,user_id INTEGER,added_at TEXT);
- INSERT INTO users VALUES(1,'Admin','admin'),(2,'Supervisor','supervisor'),(3,'Talent','student');
+ INSERT INTO users VALUES(1,'Admin','admin',1),(2,'Supervisor','supervisor',1),(3,'Talent','student',1),(4,'Inactive talent','student',0);
  INSERT INTO supervisor_files VALUES(1,2);
  INSERT INTO boards VALUES(10,1,'smart-road'),(11,1,'filler');
  INSERT INTO lists VALUES(20,10),(21,11);
@@ -35,7 +35,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  INSERT INTO card_activity VALUES(30,'status_done','2025-02-10 10:00:00'),(30,'status_done','2025-02-15 10:00:00'),(31,'card_updated','2025-02-10 10:00:00'),(32,'status_done','2025-02-28 21:00:00');
  INSERT INTO meetings VALUES(40,'2025-01-31T21:00:00Z',10),(41,'2025-02-28T21:00:00Z',11);
  INSERT INTO meeting_participants VALUES(40,3,'attended'),(41,3,'unknown');
- INSERT INTO supervisor_students VALUES(2,3);
+ INSERT INTO supervisor_students VALUES(2,3),(2,4);
  INSERT INTO board_members VALUES(10,3,'2025-01-20 10:00:00'),(11,3,'2025-02-15 10:00:00');
  `)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	if _, err = conn.Exec(`UPDATE users SET role='supervisor' WHERE id=1;
  INSERT INTO supervisor_files VALUES(2,1);
  UPDATE boards SET supervisor_file_id=2 WHERE id=10;
- INSERT INTO supervisor_students VALUES(1,3);
+ INSERT INTO supervisor_students VALUES(1,3),(1,4);
  INSERT INTO meetings VALUES(42,'2025-02-10T10:00:00Z',11);
  INSERT INTO meeting_participants VALUES(42,2,'attended');`); err != nil {
 		t.Fatal(err)
@@ -103,6 +103,36 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	}
 	if len(result.Journeys) != 1 {
 		t.Fatalf("leaked other supervisor journeys: %+v", result.Journeys)
+	}
+	// Deactivation immediately removes the last counted supervisee, including past-month reviews.
+	if _, err = conn.Exec("UPDATE users SET is_active=0 WHERE id=3"); err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	api.AdminMonthlyReport(w, httptest.NewRequest("GET", "/admin/reports/monthly?month=2025-02", nil))
+	if w.Code != 200 {
+		t.Fatalf("inactive report: %d %s", w.Code, w.Body.String())
+	}
+	if err = json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Journeys) != 0 {
+		t.Fatalf("inactive supervisees still counted: %+v", result.Journeys)
+	}
+	// Reactivation restores eligibility without altering assignments.
+	if _, err = conn.Exec("UPDATE users SET is_active=1 WHERE id=3"); err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	api.AdminMonthlyReport(w, httptest.NewRequest("GET", "/admin/reports/monthly?month=2025-02", nil))
+	if w.Code != 200 {
+		t.Fatalf("reactivated report: %d", w.Code)
+	}
+	if err = json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Journeys) != 1 {
+		t.Fatalf("active supervisee missing: %+v", result.Journeys)
 	}
 	if _, err = conn.Exec("UPDATE users SET role='student' WHERE id=1"); err != nil {
 		t.Fatal(err)
