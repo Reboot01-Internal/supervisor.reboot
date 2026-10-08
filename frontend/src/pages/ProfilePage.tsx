@@ -1,5 +1,6 @@
 import ProfileSyncButton from "../components/ProfileSyncButton";
-import { cachedProfileResource, peekProfileCache } from "../lib/profileCache";
+import { cachedProfileResource, peekProfileCache, clearProfileCache } from "../lib/profileCache";
+import AccountStatusAction from "../components/AccountStatusAction";
 import AccountStatusBadge from "../components/AccountStatusBadge";
 import ProgramJourney from "../components/ProgramJourney";
 import LatestProject, { useAssignedLatestProjects } from "../components/LatestProject";
@@ -1085,7 +1086,7 @@ export default function ProfilePage() {
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
                     {normalizeCohort(localProfile.user.cohort) || "No cohort"}
                   </span>
-                  {(role === "admin" || role === "supervisor") && <AccountStatusBadge active={localProfile.user.is_active}/>}
+                  {isAdminViewingUser ? <AccountStatusAction id={localProfile.user.id} name={localProfile.user.full_name} active={localProfile.user.is_active !== false} onChange={active=>{clearProfileCache();setLocalProfile(previous=>previous?{...previous,user:{...previous.user,is_active:active}}:previous);}}/> : (role === "admin" || role === "supervisor") && <AccountStatusBadge active={localProfile.user.is_active}/>}
                   {canViewPiscineStatuses && localProfile.user.role === "student" && <PiscineStatusBadges login={localProfile.user.nickname} statuses={piscineStatuses}/>}
                 </div>
               </div>
