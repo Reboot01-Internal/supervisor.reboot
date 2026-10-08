@@ -95,19 +95,23 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 		Name         string `json:"name"`
 		Start        string `json:"start"`
 		End          string `json:"end"`
+		InPiscine    bool   `json:"in_piscine"`
+		MarkedBy     string `json:"marked_by"`
+		MarkedAt     string `json:"marked_at"`
 	}
 	journeys := []Journey{}
 	rows, err = a.conn.Query(`SELECT ss.supervisor_user_id,u.id,u.full_name,
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),''),
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),'')
- FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id WHERE u.is_active=1 AND (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, scope, scope)
+  , pe.student_user_id IS NOT NULL,COALESCE(marker.full_name,''),COALESCE(pe.marked_at,'')
+ FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id LEFT JOIN piscine_report_exclusions pe ON pe.student_user_id=u.id AND pe.month=? LEFT JOIN users marker ON marker.id=pe.marked_by WHERE u.is_active=1 AND (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, start.Format("2006-01"), scope, scope)
 	if err != nil {
 		writeErr(w, 500, "could not load talent journey")
 		return
 	}
 	for rows.Next() {
 		var j Journey
-		if err = rows.Scan(&j.SupervisorID, &j.ID, &j.Name, &j.Start, &j.End); err != nil {
+		if err = rows.Scan(&j.SupervisorID, &j.ID, &j.Name, &j.Start, &j.End, &j.InPiscine, &j.MarkedBy, &j.MarkedAt); err != nil {
 			break
 		}
 		journeys = append(journeys, j)

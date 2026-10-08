@@ -124,6 +124,8 @@ func main() {
 		ar.Get("/supervisors", api.AdminListSupervisors)
 		ar.Get("/dashboard/supervisor-activity", api.AdminSupervisorActivity)
 		ar.Get("/reports/monthly", api.AdminMonthlyReport)
+		ar.Get("/reports/piscine", api.MarkPiscineExclusion)
+		ar.Post("/reports/piscine", api.MarkPiscineExclusion)
 		ar.Get("/dashboard/task-completion", api.AdminTaskCompletionStats)
 		ar.Post("/boards", api.AdminCreateBoard)
 		ar.Get("/boards", api.AdminListBoardsByFile)
@@ -274,6 +276,7 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/021_attendance_members.sql",
 		"migrations/022_attendance_requirements.sql",
 		"migrations/023_attendance_dates.sql",
+		"migrations/024_piscine_report_exclusions.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 

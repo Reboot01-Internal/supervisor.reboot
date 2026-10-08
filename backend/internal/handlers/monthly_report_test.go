@@ -25,6 +25,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  CREATE TABLE card_activity(card_id INTEGER,action TEXT,created_at TEXT);
  CREATE TABLE meetings(id INTEGER,starts_at TEXT,board_id INTEGER);
  CREATE TABLE meeting_participants(meeting_id INTEGER,user_id INTEGER,attendance_status TEXT);
+ CREATE TABLE piscine_report_exclusions(student_user_id INTEGER,month TEXT,marked_by INTEGER,marked_at TEXT DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(student_user_id,month));
  CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER);
  CREATE TABLE board_members(board_id INTEGER,user_id INTEGER,added_at TEXT);
  INSERT INTO users VALUES(1,'Admin','admin',1),(2,'Supervisor','supervisor',1),(3,'Talent','student',1),(4,'Inactive talent','student',0);
@@ -56,7 +57,11 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 			MeetingID int `json:"meeting_id"`
 			UserID    int `json:"user_id"`
 		}
-		Journeys []struct{ Start, End string }
+		Journeys []struct {
+			Start, End string
+			InPiscine  bool   `json:"in_piscine"`
+			MarkedBy   string `json:"marked_by"`
+		}
 	}
 	if err = json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatal(err)
@@ -69,6 +74,28 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	}
 	if len(result.Journeys) != 1 || result.Journeys[0].Start != "smart-road" || result.Journeys[0].End != "filler" {
 		t.Fatalf("wrong journey: %+v", result.Journeys)
+	}
+	if _, err = conn.Exec(`INSERT INTO piscine_report_exclusions(student_user_id,month,marked_by) VALUES(3,'2025-02',2)`); err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	api.AdminMonthlyReport(w, httptest.NewRequest("GET", "/admin/reports/monthly?month=2025-02", nil))
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	if err = json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if !result.Journeys[0].InPiscine || result.Journeys[0].MarkedBy != "Supervisor" {
+		t.Fatalf("Piscine mark not reported: %+v", result.Journeys)
+	}
+	w = httptest.NewRecorder()
+	api.AdminMonthlyReport(w, httptest.NewRequest("GET", "/admin/reports/monthly?month=2025-03", nil))
+	if err = json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Journeys[0].InPiscine {
+		t.Fatal("Piscine mark leaked into another month")
 	}
 	for _, month := range []string{"", "invalid", "2025-13", "2999-01"} {
 		w = httptest.NewRecorder()

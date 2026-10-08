@@ -1,3 +1,4 @@
+import ProfilePiscineControl from "../components/ProfilePiscineControl";
 import ProfileSyncButton from "../components/ProfileSyncButton";
 import { cachedProfileResource, peekProfileCache, clearProfileCache } from "../lib/profileCache";
 import AccountStatusAction from "../components/AccountStatusAction";
@@ -1093,6 +1094,8 @@ export default function ProfilePage() {
             </div>
 
             {canViewPiscineStatuses && localProfile.user.role === "student" && <LatestProject projects={localProfile.user.reboot_details?.projects ?? (rebootLoading ? undefined : null)}/>}
+
+            {isTargetUserView && canViewPiscineStatuses && localProfile.user.role === "student" && piscineStatuses.rust && piscineStatuses.js && !(piscineStatuses.rust[localProfile.user.nickname.toLowerCase()] === "passed" && piscineStatuses.js[localProfile.user.nickname.toLowerCase()] === "passed") && <ProfilePiscineControl key={localProfile.user.id} userId={localProfile.user.id}/>}
 
             <div className="profile-details">
               <Info label="Email" value={rebootProfile?.user?.email || localProfile.user.email} />
