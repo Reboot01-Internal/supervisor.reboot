@@ -85,11 +85,7 @@ export default function AdminLayout({
   const { isAdmin, isSupervisor, login, email, logout } = useAuth();
   const { hasUnread } = useNotifications();
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const savedTheme = window.localStorage.getItem("taskflow-theme");
-    return savedTheme ? savedTheme === "dark" : false;
-  });
+  const darkMode = false;
   const baseName = login || email || "User";
   const avatarLogin = String(login || String(email || "").split("@")[0] || "").trim();
   const [avatarUrl, setAvatarUrl] = useState(() => getCachedRebootAvatar(avatarLogin));
@@ -129,9 +125,9 @@ export default function AdminLayout({
   }, [adminSidebarOpen]);
 
   useEffect(() => {
-    window.localStorage.setItem("taskflow-theme", darkMode ? "dark" : "light");
-    document.body.classList.toggle("admin-dark-theme", darkMode);
-  }, [darkMode]);
+    window.localStorage.setItem("taskflow-theme", "light");
+    document.body.classList.remove("admin-dark-theme");
+  }, []);
 
   const nonAdminNav = !isAdmin ? (
   <aside className="sticky top-[22px] self-start max-[1050px]:hidden">
@@ -239,7 +235,7 @@ export default function AdminLayout({
         </div>
       </div>
 
-      <SidebarAccount name={baseName} photo={avatarUrl} role={isSupervisor ? "Supervisor" : "Talent"} dark={darkMode} onTheme={() => setDarkMode(v => !v)} onProfile={() => {nav("/profile");setAdminSidebarOpen(false);}} onLogout={logout} />
+      <SidebarAccount name={baseName} photo={avatarUrl} role={isSupervisor ? "Supervisor" : "Talent"} dark={darkMode} onProfile={() => {nav("/profile");setAdminSidebarOpen(false);}} onLogout={logout} />
     </div>
   </aside>
 ) : null;
@@ -273,7 +269,7 @@ export default function AdminLayout({
       <AdminSidebar
         active={active}
         darkMode={darkMode}
-        onToggleTheme={() => setDarkMode((next) => !next)}
+
       />
     </div>
   ) : null}
@@ -293,7 +289,7 @@ export default function AdminLayout({
             active={active}
             drawer
             darkMode={darkMode}
-            onToggleTheme={() => setDarkMode((next) => !next)}
+
             onNavigate={() => setAdminSidebarOpen(false)}
           />
         ) : (
@@ -409,7 +405,7 @@ export default function AdminLayout({
                 </div>
               </div>
 
-              <SidebarAccount name={baseName} photo={avatarUrl} role={isSupervisor ? "Supervisor" : "Talent"} dark={darkMode} onTheme={() => setDarkMode(v => !v)} onProfile={() => {nav("/profile");setAdminSidebarOpen(false);}} onLogout={logout} />
+              <SidebarAccount name={baseName} photo={avatarUrl} role={isSupervisor ? "Supervisor" : "Talent"} dark={darkMode} onProfile={() => {nav("/profile");setAdminSidebarOpen(false);}} onLogout={logout} />
             </div>
           </div>
         )}

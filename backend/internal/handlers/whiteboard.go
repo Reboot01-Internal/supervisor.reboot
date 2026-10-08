@@ -136,11 +136,14 @@ func validateWhiteboard(document whiteboardDocument) error {
 		data, _ := json.Marshal(item)
 		var v struct {
 			ID, Kind, Color, Text, StickerID string
-			X, Y, W, H, Font                 float64
+			X, Y, W, H, Font, Rotation       float64
 			Points                           [][]float64
 		}
 		if json.Unmarshal(data, &v) != nil || v.ID == "" || len(v.ID) > 120 || ids[v.ID] {
 			return errors.New("Invalid whiteboard object")
+		}
+		if v.Rotation < -360 || v.Rotation > 360 {
+			return errors.New("Invalid rotation")
 		}
 		ids[v.ID] = true
 		if v.Kind == "sticker" && !validWhiteboardSticker(v.StickerID) {
@@ -525,7 +528,8 @@ func validWhiteboardSticker(id string) bool {
 	switch id {
 	case "cute-star", "cute-cloud", "cute-coffee-cat", "cute-heart", "cute-flower", "cute-coffee", "cute-plant", "cute-rocket", "cute-idea", "cute-laptop", "cute-checklist", "cute-moon",
 		"helper-comment", "helper-question", "helper-idea", "helper-important", "helper-todo", "helper-progress", "helper-done", "helper-blocked", "helper-deadline", "helper-decision", "helper-connect", "helper-reminder", "helper-code", "helper-braces", "helper-brackets", "helper-syntax",
-		"work-brainstorm", "work-discussion", "work-focus-group", "work-feedback", "work-training", "work-mentoring", "work-master-class", "work-new-learning", "work-audit", "work-review", "work-recognition", "work-trophy", "work-reward", "work-photo", "work-lanyard", "work-community", "work-catchup", "work-workspace", "work-concept-day", "work-third-eye", "work-hackathon", "work-game-jam", "work-spin-the-wheel", "work-challenge", "work-project-day", "work-switch-project", "work-problem-solving", "work-escalation", "work-decision", "work-action-item", "work-priority", "work-parking-lot":
+		"work-brainstorm", "work-discussion", "work-focus-group", "work-feedback", "work-training", "work-mentoring", "work-master-class", "work-new-learning", "work-audit", "work-review", "work-recognition", "work-trophy", "work-reward", "work-photo", "work-lanyard", "work-community", "work-catchup", "work-workspace", "work-concept-day", "work-third-eye", "work-hackathon", "work-game-jam", "work-spin-the-wheel", "work-challenge", "work-project-day", "work-switch-project", "work-problem-solving", "work-escalation", "work-decision", "work-action-item", "work-priority", "work-parking-lot",
+		"accent-emphasis-rays", "accent-underline", "accent-double-underline", "accent-swoosh", "accent-wave", "accent-zigzag", "accent-curved-arrow", "accent-straight-arrow", "accent-circle-highlight", "accent-bracket-accent", "accent-sparkle", "accent-burst":
 		return true
 	}
 	return false

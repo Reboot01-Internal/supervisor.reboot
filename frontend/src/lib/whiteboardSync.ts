@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { TextRun } from './whiteboardText';
 import { API_URL } from './api';
 export type WhiteboardKind = 'note' | 'text' | 'rectangle' | 'circle' | 'image' | 'pen' | 'sticker';
-export type WhiteboardItem = { id: string; kind: WhiteboardKind; x: number; y: number; w: number; h: number; color: string; text: string; font: number; points?: number[][]; z?: number; align?: 'left' | 'center' | 'right'; textColor?: string; bold?: boolean; italic?: boolean; runs?: TextRun[]; stickerId?: string };
+export type WhiteboardItem = { id: string; kind: WhiteboardKind; x: number; y: number; w: number; h: number; color: string; text: string; font: number; points?: number[][]; z?: number; align?: 'left' | 'center' | 'right'; textColor?: string; bold?: boolean; italic?: boolean; runs?: TextRun[]; stickerId?: string; rotation?: number };
 export type Whiteboard = { title: string; items: WhiteboardItem[] };
 export type WhiteboardChange = { id: string; add?: WhiteboardItem; set?: Partial<WhiteboardItem>; delete?: boolean };
 export type WhiteboardDelta = { title?: string; changes: WhiteboardChange[] };
