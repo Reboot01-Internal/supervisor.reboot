@@ -7,6 +7,7 @@ let entries: Record<string, Entry<unknown>> = {};
 const pending = new Map<string, Promise<unknown>>();
 const listeners = new Set<() => void>();
 let remaining = 0;
+let total = 0;
 let running = 0;
 const queue: (() => void)[] = [];
 function notify() { listeners.forEach(fn => fn()); }
@@ -34,7 +35,8 @@ export function cachedProfileResource<T>(key: string, loader: () => Promise<T>, 
  if (existing) return existing as Promise<T>;
  const cached = entries[key] as Entry<T> | undefined;
  if (!force && cached && Date.now() - cached.savedAt < PROFILE_CACHE_TTL) return Promise.resolve(cached.value);
- remaining++; notify();
+ if (remaining === 0) total = 0;
+ total++; remaining++; notify();
  const promise = new Promise<T>((resolve, reject) => {
   const run = () => {
    running++;
@@ -52,5 +54,6 @@ export function cachedProfileResource<T>(key: string, loader: () => Promise<T>, 
 }
 export const subscribeProfileFetches = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 export const profileFetchesRemaining = () => remaining;
+export const profileFetchProgress = () => total ? Math.round((total - remaining) / total * 100) : 0;
 // One sync event refreshes all mounted profile consumers; fresh cached entries still avoid network work.
 export function requestProfileSync(force = true) { window.dispatchEvent(new CustomEvent('profile:sync', { detail: { force } })); }
