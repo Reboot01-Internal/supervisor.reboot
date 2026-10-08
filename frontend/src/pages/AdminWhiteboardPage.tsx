@@ -7,7 +7,7 @@ import { apiFetch } from '../lib/api';
 import WhiteboardSticker from '../components/WhiteboardSticker';
 import { whiteboardStickers, getWhiteboardSticker, stickerSheets, stickerSheetData, type StickerGroup } from '../lib/whiteboardStickers';
 import WhiteboardTextEditor from '../components/WhiteboardTextEditor';
-import { textSegments,textLines,applyTextStyle,adjustTextRuns,type TextStyle } from '../lib/whiteboardText';
+import { textSegments,textLines,applyTextStyle,adjustTextRuns,type TextStyle,type TextRun } from '../lib/whiteboardText';
 import UserAvatar from '../components/UserAvatar';
 import { fetchRebootAvatar, getCachedRebootAvatar } from '../lib/rebootAvatars';
 import { useSharedWhiteboard, diffWhiteboard, applyWhiteboardDelta, type Whiteboard as Board, type WhiteboardItem as Item, type WhiteboardKind as Kind } from '../lib/whiteboardSync';
@@ -17,6 +17,11 @@ import './AdminWhiteboardPage.css';
 type Tool = 'select' | 'hand' | Kind;
 const colors = ['#ffe580', '#c8b6ff', '#a6ceff', '#ffb780', '#ffc5dc', '#bce8bc'];
 const uid = () => crypto.randomUUID();
+const componentClipboardType = 'application/x-taskflow-whiteboard';
+const componentClipboardPrefix = 'TaskFlow whiteboard component\n';
+function isTextInput(target: EventTarget | null) {
+  return target instanceof HTMLElement && (target.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(target.tagName));
+}
 function starter(): Board {
   return { title: 'Ideas & inspiration', items: [
     { id: 'starter-heading', kind: 'text', x: 300, y: 80, w: 510, h: 135, color: colors[0], text: 'Big ideas start here.\nWhat should we create next?', font: 32 },
@@ -81,7 +86,11 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const [tool, setTool] = useState<Tool>('select');
   const [color, setColor] = useState(colors[0]);
   const [textDefaults,setTextDefaults]=useState({align:'center' as 'left' | 'center' | 'right',textColor:'#252537',bold:false,italic:false,font:20});
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selected=selectedIds.length===1?selectedIds[0]:null;
+  function setSelected(id:string|null){setSelectedIds(id?[id]:[]);}
+  const selectedItems=board.items.filter(i=>selectedIds.includes(i.id));
+  const [marquee,setMarquee]=useState<{x:number;y:number;w:number;h:number}|null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const [history, setHistory] = useState<{ past: {before:Board;after:Board}[]; future: {before:Board;after:Board}[] }>({ past: [], future: [] });
@@ -92,7 +101,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const editorBefore = useRef<{board:Board;id:string} | null>(null);
   const canvas = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
-  const interaction = useRef<{ type: 'move' | 'pan' | 'resize' | 'draw'; id?: string; x: number; y: number; before: Board; originX: number; originY: number; layer?: number } | null>(null);
+  const interaction = useRef<{ type: 'move' | 'pan' | 'resize' | 'draw' | 'select'; ids?:string[]; id?: string; x: number; y: number; before: Board; originX: number; originY: number; layer?: number } | null>(null);
   const [textSelection,setTextSelection]=useState<{id:string;start:number;end:number}|null>(null);
   const formattingFocus=useRef(false);
   const [contextDismissed,setContextDismissed]=useState(false);
@@ -128,10 +137,19 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   }
   function undo() { if (!history.past.length) return; endEdit(); const action=history.past[history.past.length-1];setHistory({past:history.past.slice(0,-1),future:[action,...history.future]});setBoard(applyWhiteboardDelta(boardRef.current,diffWhiteboard(action.after,action.before)));setSelected(null); }
   function redo() { if (!history.future.length) return;endEdit();const action=history.future[0];setHistory({past:[...history.past,action],future:history.future.slice(1)});setBoard(applyWhiteboardDelta(boardRef.current,diffWhiteboard(action.before,action.after)));setSelected(null); }
-  function remove() { if (!selected) return; commit({ ...board, items: board.items.filter(i => i.id !== selected) }); setSelected(null); endEdit(); }
+  function remove() { if (!selectedIds.length) return; commit({ ...board, items: board.items.filter(i => !selectedIds.includes(i.id)) }); setSelected(null); endEdit(); }
   function topLayer() { return Math.max(0,...boardRef.current.items.map((i,n)=>i.z ?? n+1))+1; }
   function changeLayer(front: boolean) { if(item)patch(item.id,{z:front ? topLayer() : Math.min(0,...boardRef.current.items.map((i,n)=>i.z ?? n+1))-1}); }
-  function duplicate() { if (!item) return; if (board.items.length >= 500) { setError('This whiteboard has reached its 500-item limit.'); return; } const copy = { ...item, id: uid(), z:topLayer(), x: item.x + 24, y: item.y + 24 }; commit({ ...board, items: [...board.items, copy] }); setSelected(copy.id); }
+  function pasteItems(sources:Item[]) {
+    const current=boardRef.current;if(!sources.length)return;
+    if(current.items.length+sources.length>500){setError('This whiteboard has reached its 500-item limit.');return;}
+    let offset=24;
+    while(sources.some(source=>current.items.some(i=>i.x===source.x+offset&&i.y===source.y+offset)))offset+=24;
+    const layer=topLayer();
+    const copies=[...sources].sort((a,b)=>(a.z??0)-(b.z??0)).map((source,n)=>({...source,id:uid(),x:source.x+offset,y:source.y+offset,z:layer+n}));
+    endEdit();commit({...current,items:[...current.items,...copies]});setSelectedIds(copies.map(i=>i.id));setTool('select');setContextDismissed(false);
+  }
+  function duplicate(){pasteItems(selectedItems);}
   function point(e: { clientX: number; clientY: number }) { const r = canvas.current!.getBoundingClientRect(); return { x: (e.clientX - r.left - view.x) / view.scale, y: (e.clientY - r.top - view.y) / view.scale }; }
   function add(kind: Kind, x?: number, y?: number, text = '', height?: number) {
     if (board.items.length >= 500) { setError('This whiteboard has reached its 500-item limit.'); return; }
@@ -152,6 +170,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
     endEdit(); setSelected(null);setStickersOpen(false);
     if (tool === 'hand') { interaction.current = { type: 'pan', x: e.clientX, y: e.clientY, originX: view.x, originY: view.y, before: board }; e.currentTarget.setPointerCapture(e.pointerId); return; }
     const p = point(e);
+    if(tool==='select'){interaction.current={type:'select',x:p.x,y:p.y,originX:p.x,originY:p.y,before:board,ids:e.shiftKey?selectedIds:[]};setMarquee({x:p.x,y:p.y,w:0,h:0});e.currentTarget.setPointerCapture(e.pointerId);return;}
     if (tool === 'pen') {
       if (board.items.length >= 500) { setError('This whiteboard has reached its 500-item limit.'); return; }
       const next: Item = { id: uid(), kind: 'pen', z:topLayer(), x: p.x, y: p.y, w: 1, h: 1, color, text: '', font: 20, points: [[0,0]] };
@@ -165,27 +184,33 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
     if (tool !== 'select' && !resize) return;
     e.stopPropagation();
     if (editing === target.id && !resize) return;
-    setSelected(target.id); endEdit();
+    canvas.current?.focus({preventScroll:true});
+    if((e.shiftKey||e.metaKey||e.ctrlKey)&&!resize){endEdit();setSelectedIds(ids=>ids.includes(target.id)?ids.filter(id=>id!==target.id):[...ids,target.id]);return;}
+    const ids=!resize&&selectedIds.includes(target.id)?board.items.filter(i=>selectedIds.includes(i.id)).sort((a,b)=>(a.z??board.items.indexOf(a))-(b.z??board.items.indexOf(b))).map(i=>i.id):[target.id];
+    setSelectedIds(ids); endEdit();
     const p = point(e);
-    interaction.current = { type: resize ? 'resize' : 'move', id: target.id, x: p.x, y: p.y, before: board, originX: resize ? target.w : target.x, originY: resize ? target.h : target.y };
+    interaction.current = { type: resize ? 'resize' : 'move', ids, id: target.id, x: p.x, y: p.y, before: board, originX: resize ? target.w : target.x, originY: resize ? target.h : target.y };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
   function move(e: ReactPointerEvent) {
     const drag = interaction.current; if (!drag) return;
     if (drag.type === 'pan') { setView(v => ({ ...v, x: drag.originX + e.clientX - drag.x, y: drag.originY + e.clientY - drag.y })); return; }
     const p = point(e);
+    if(drag.type==='select'){const bounds={x:Math.min(p.x,drag.x),y:Math.min(p.y,drag.y),w:Math.abs(p.x-drag.x),h:Math.abs(p.y-drag.y)};setMarquee(bounds);if(bounds.w>3||bounds.h>3)setSelectedIds([...new Set([...(drag.ids||[]),...boardRef.current.items.filter(i=>i.x<bounds.x+bounds.w&&i.x+i.w>bounds.x&&i.y<bounds.y+bounds.h&&i.y+i.h>bounds.y).map(i=>i.id)])]);return;}
     if (drag.type === 'draw') {
       const i = boardRef.current.items.find(i => i.id === drag.id)!;
       patch(i.id, { points: [...(i.points || []), [p.x - drag.originX, p.y - drag.originY]] }, false);
     } else if (drag.type === 'resize') patch(drag.id!, { w: Math.max(80, drag.originX + p.x - drag.x), h: Math.max(60, drag.originY + p.y - drag.y) }, false);
     else {
       if (drag.layer === undefined && Math.hypot(p.x-drag.x,p.y-drag.y)>2) drag.layer=topLayer();
-      patch(drag.id!, { x: drag.originX + p.x - drag.x, y: drag.originY + p.y - drag.y, ...(drag.layer === undefined ? {} : {z:drag.layer}) }, false);
+      const ids=drag.ids||[drag.id!];
+      setBoard({...boardRef.current,items:boardRef.current.items.map(i=>{const origin=drag.before.items.find(o=>o.id===i.id);return ids.includes(i.id)&&origin?{...i,x:origin.x+p.x-drag.x,y:origin.y+p.y-drag.y,...(drag.layer===undefined?{}:{z:drag.layer+ids.indexOf(i.id)})}:i;})});
     }
   }
   function stop() {
     const drag = interaction.current;
-    if (drag && (drag.type === 'move' || drag.type === 'resize') && JSON.stringify(drag.before) !== JSON.stringify(boardRef.current)) remember(drag.before,boardRef.current,drag.id);
+    if (drag && (drag.type === 'move' || drag.type === 'resize') && JSON.stringify(drag.before) !== JSON.stringify(boardRef.current)) remember(drag.ids?.length&&drag.ids.length>1?{...drag.before,items:drag.before.items.filter(i=>drag.ids!.includes(i.id))}:drag.before,drag.ids?.length&&drag.ids.length>1?{...boardRef.current,items:boardRef.current.items.filter(i=>drag.ids!.includes(i.id))}:boardRef.current,drag.ids?.length&&drag.ids.length>1?undefined:drag.id);
+    setMarquee(null);
     if (drag?.type === 'draw') {
       const stroke = boardRef.current.items.find(i => i.id === drag.id);
       if (stroke?.points?.length) {
@@ -248,9 +273,37 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   }
   return <AdminLayout active="whiteboard" title="Whiteboard" subtitle="One shared space for your admin team’s next big idea.">
     {navigation}
-    <section className={`wb-shell ${full ? 'wb-full' : ''}`} aria-label="Admin whiteboard" onKeyDown={e => {
-      if (!loaded || (e.target instanceof HTMLElement && (e.target.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)))) return;
+    <section className={`wb-shell ${full ? 'wb-full' : ''}`} aria-label="Admin whiteboard" onCopy={e=>{
+      if(!loaded || isTextInput(e.target) || !selectedItems.length)return;
+      const payload=JSON.stringify({type:'taskflow-whiteboard-component',version:2,items:selectedItems});
+      e.clipboardData.setData(componentClipboardType,payload);
+      e.clipboardData.setData('text/plain',componentClipboardPrefix+payload);
+      e.preventDefault();
+    }} onPaste={e=>{
+      if(!loaded || isTextInput(e.target))return;
+      const plain=e.clipboardData.getData('text/plain');
+      const payload=e.clipboardData.getData(componentClipboardType)||(plain.startsWith(componentClipboardPrefix)?plain.slice(componentClipboardPrefix.length):'');
+      if(!payload)return;
+      e.preventDefault();
+      try {
+        const data=JSON.parse(payload);
+        if(data.type!=='taskflow-whiteboard-component'||![1,2].includes(data.version))return;
+        const sources:Item[]=data.version===1?[data.item]:data.items;
+        if(!Array.isArray(sources)||!sources.length||sources.length>500)return;
+        for(const source of sources){
+        if(!source||!['note','text','rectangle','circle','image','pen','sticker'].includes(source.kind))return;
+        if(!(['x','y','w','h','font'] as const).every(key=>typeof source[key]==='number'&&Number.isFinite(source[key]))||source.w<=0||source.h<=0||typeof source.text!=='string'||typeof source.color!=='string')return;
+        if(source.runs&&!Array.isArray(source.runs)||source.points&&!Array.isArray(source.points))return;
+        if(source.runs?.some((r:TextRun)=>!r||!Number.isInteger(r.start)||!Number.isInteger(r.end)))return;
+        if(source.points?.some((p:number[])=>!Array.isArray(p)||p.length!==2||!p.every(Number.isFinite)))return;
+        if(source.kind==='sticker'&&!getWhiteboardSticker(source.stickerId))return;
+        }
+        pasteItems(sources);
+      } catch { /* Ignore clipboard content that is not a board component. */ }
+    }} onKeyDown={e => {
+      if (!loaded || isTextInput(e.target)) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {e.preventDefault();setSelectedIds(board.items.map(i=>i.id));}
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicate(); }
       else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(); }
       else if (e.key === 'Escape') { endEdit(); setSelected(null); setTool('select'); setFull(false); }
@@ -263,13 +316,15 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
       {error && <div className="wb-error" role="alert">{error} {!loaded ? <button onClick={retry}>Retry loading</button> : <span>Your team shares this board. Pending changes are retained locally.</span>}</div>}
       <div className={`wb-canvas wb-tool-${tool}`} ref={canvas} tabIndex={0} onPointerDown={e=>{e.currentTarget.focus();startCanvas(e);}} onClick={e=>{if (loaded && (e.target === e.currentTarget || (e.target instanceof HTMLElement && e.target.closest('.wb-item'))) && !['select','hand','pen','image'].includes(tool)) { const p=point(e); add(tool as Kind,p.x,p.y); }}} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} style={{backgroundSize:`${24*view.scale}px ${24*view.scale}px`,backgroundPosition:`${view.x}px ${view.y}px`}} onWheel={e=>{ if (editing) return; if(e.ctrlKey || e.metaKey) zoom(view.scale*(e.deltaY>0?.9:1.1)); else setView(v=>({...v,x:v.x-e.deltaX,y:v.y-e.deltaY})); }}>
         <div className="wb-world" style={{transform:`translate(${view.x}px,${view.y}px) scale(${view.scale})`}}>
-          {loaded && board.items.map(i=><div key={i.id} className={`wb-item wb-${i.kind} ${selected===i.id?'wb-selected':''}`} style={{left:i.x,top:i.y,width:i.w,height:i.h,background:i.kind==='text'||i.kind==='image'||i.kind==='pen'||i.kind==='sticker'?'transparent':i.color,fontSize:i.font,textAlign:i.align ?? 'center',color:i.textColor,fontWeight:i.bold?700:400,fontStyle:i.italic?'italic':'normal',zIndex:i.z ?? board.items.findIndex(object=>object.id===i.id)+1}} onPointerDown={e=>startItem(e,i)} onDoubleClick={e=>{e.stopPropagation();if(!['image','pen','sticker'].includes(i.kind)){setSelected(i.id);beginEdit(i.id);}}}>
+          {loaded && board.items.map(i=><div key={i.id} className={`wb-item wb-${i.kind} ${selectedIds.includes(i.id)?'wb-selected':''}`} style={{left:i.x,top:i.y,width:i.w,height:i.h,background:i.kind==='text'||i.kind==='image'||i.kind==='pen'||i.kind==='sticker'?'transparent':i.color,fontSize:i.font,textAlign:i.align ?? 'center',color:i.textColor,fontWeight:i.bold?700:400,fontStyle:i.italic?'italic':'normal',zIndex:i.z ?? board.items.findIndex(object=>object.id===i.id)+1}} onPointerDown={e=>startItem(e,i)} onDoubleClick={e=>{e.stopPropagation();if(!['image','pen','sticker'].includes(i.kind)){setSelected(i.id);beginEdit(i.id);}}}>
             {i.kind==='sticker'?<WhiteboardSticker id={i.stickerId}/>:i.kind==='image'? <img draggable={false} src={/^data:image\/(png|jpeg|webp);base64,/.test(i.text)?i.text:undefined} alt="Whiteboard image"/> : i.kind==='pen'?<svg className="wb-stroke"><polyline points={i.points?.map(p=>p.join(',')).join(' ')} fill="none" stroke={i.color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg> : editing===i.id?<WhiteboardTextEditor text={i.text} runs={i.runs||[]} align={i.align||'center'} placeholder={i.kind==='text'?'Add your text…':'Write an idea…'} onChange={text=>patch(i.id,{text,runs:adjustTextRuns(i.text,text,i.runs||[])},false)} onSelection={(start,end)=>setTextSelection(previous=>previous?.id===i.id&&previous.start===start&&previous.end===end?previous:{id:i.id,start,end})} onBlur={target=>{if(!formattingFocus.current && !(target instanceof HTMLElement&&target.closest('.wb-context')))endEdit();}} onEscape={endEdit}/>:<span className={!i.text?'wb-placeholder':''}>{i.text?textLines(i.text,i.runs,i.align||'center').map((line,n)=><span className="wb-text-line" key={n} style={{textAlign:line.align}}>{line.pieces.length?line.pieces.map((s,k)=><span key={k} style={{color:s.textColor,fontSize:s.font,fontWeight:s.bold===undefined?undefined:s.bold?700:400,fontStyle:s.italic===undefined?undefined:s.italic?'italic':'normal'}}>{s.text}</span>):'\u200b'}</span>):(i.kind==='note'?'Double-click to write':'Double-click to add text')}</span>}
 
 
             {selected===i.id && i.kind!=='pen' && <button className="wb-resize" aria-label="Resize selected item" onPointerDown={e=>startItem(e,i,true)}/>}
           </div>)}
+          {marquee&&<div style={{position:'absolute',left:marquee.x,top:marquee.y,width:marquee.w,height:marquee.h,border:'1px solid #6d5efc',background:'rgba(109,94,252,.1)',pointerEvents:'none',zIndex:2147483647}}/>}
         </div>
+        {selectedItems.length>1&&<div className="wb-context" style={{left:90,top:18}} onPointerDown={e=>e.stopPropagation()}><span>{selectedItems.length} selected</span><button aria-label="Duplicate selected items" onClick={duplicate}><Copy size={17}/></button><button aria-label="Delete selected items" onClick={remove}><Trash2 size={17}/></button></div>}
         <div className="wb-tools" onPointerDown={e=>e.stopPropagation()} role="toolbar" aria-label="Whiteboard tools">
           {([{id:'select',icon:MousePointer2,label:'Select & move'},{id:'hand',icon:Hand,label:'Pan canvas'},{id:'note',icon:StickyNote,label:'Sticky note'},{id:'text',icon:Type,label:'Text'},{id:'rectangle',icon:Square,label:'Rectangle'},{id:'circle',icon:Circle,label:'Circle'},{id:'pen',icon:Pencil,label:'Draw'}] as const).map(t=><button key={t.id} disabled={!loaded} title={t.label} aria-label={t.label} aria-pressed={tool===t.id} onClick={()=>{setTool(t.id);endEdit();setSelected(null);setContextDismissed(false);}}><t.icon size={21} strokeWidth={1.8}/></button>)}
           <button title="Stickers" aria-label="Stickers" aria-pressed={stickersOpen} disabled={!loaded} onClick={()=>{endEdit();setSelected(null);setTool('select');setStickersOpen(value=>!value);}}><Sticker size={21}/></button><button title="Add image" aria-label="Add image" disabled={!loaded} onClick={()=>file.current?.click()}><ImagePlus size={21}/></button><div className="wb-divider"/><button title="Undo" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={19}/></button><button title="Redo" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={19}/></button>
@@ -297,7 +352,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
         </div>}
         {templates && <div className="wb-templates" onPointerDown={e=>e.stopPropagation()}><strong>Start with a little structure</strong><p>Add a prompt and make room for ideas.</p>{['Brainstorm: What could we do better?','Retrospective: What went well?','Planning: What’s our next big goal?'].map(prompt=><button key={prompt} onClick={()=>{add('text',undefined,undefined,prompt);setTemplates(false);}}><LayoutTemplate size={16}/>{prompt}</button>)}</div>}
         {!board.items.length && loaded && <div className="wb-empty"><StickyNote size={40}/><h2>Make room for your ideas</h2><p>Choose a sticky note, then click anywhere to begin.</p><button onPointerDown={e=>e.stopPropagation()} onClick={()=>add('note')}>Add your first note <Plus size={16}/></button></div>}
-        <div className="wb-hint" onPointerDown={e=>e.stopPropagation()}>{tool==='select'?'Drag to move · Double-click to edit':tool==='hand'?'Drag anywhere to explore':tool==='pen'?'Drag to draw on the canvas':`Click anywhere to add ${tool==='note'?'a sticky note':tool==='text'?'text':`a ${tool}`}`}</div>
+        <div className="wb-hint" onPointerDown={e=>e.stopPropagation()}>{tool==='select'?'Drag to select · Shift-click to select more · Double-click to edit':tool==='hand'?'Drag anywhere to explore':tool==='pen'?'Drag to draw on the canvas':`Click anywhere to add ${tool==='note'?'a sticky note':tool==='text'?'text':`a ${tool}`}`}</div>
         <div className="wb-zoom" onPointerDown={e=>e.stopPropagation()}><button aria-label="Zoom out" onClick={()=>zoom(view.scale-.1)}><Minus size={17}/></button><button title="Reset zoom" onClick={()=>zoom(1)}>{Math.round(view.scale*100)}%</button><button aria-label="Zoom in" onClick={()=>zoom(view.scale+.1)}><Plus size={17}/></button><i/><button aria-label="Fit board to view" title="Fit to view" onClick={fit}><Maximize2 size={17}/></button><button aria-label="Reset canvas position" title="Reset view" onClick={()=>setView({x:0,y:0,scale:1})}><RotateCcw size={17}/></button></div>
       </div>
       <footer className="wb-footer"><span><span className="wb-status-dot"/> Shared admin whiteboard</span><span>{board.items.length} objects · {connected?'Live collaboration':'Reconnecting'}</span></footer>
