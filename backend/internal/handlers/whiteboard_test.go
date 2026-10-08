@@ -392,3 +392,11 @@ func TestWhiteboardStickersPersistAndRejectUnknownAssets(t *testing.T) {
 		}
 	}
 }
+
+func TestPracticalWhiteboardStickers(t *testing.T) {
+	for _, id := range []string{"work-brainstorm", "work-discussion", "work-focus-group", "work-feedback", "work-training", "work-mentoring", "work-master-class", "work-new-learning", "work-audit", "work-review", "work-recognition", "work-trophy", "work-reward", "work-photo", "work-lanyard", "work-community", "work-catchup", "work-workspace", "work-concept-day", "work-third-eye", "work-hackathon", "work-game-jam", "work-spin-the-wheel", "work-challenge", "work-project-day", "work-switch-project", "work-problem-solving", "work-escalation", "work-decision", "work-action-item", "work-priority", "work-parking-lot"} {
+		if !validWhiteboardSticker(id) {
+			t.Fatalf("Approved sticker missing: %s", id)
+		}
+	}
+}

@@ -96,7 +96,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   const [history, setHistory] = useState<{ past: {before:Board;after:Board}[]; future: {before:Board;after:Board}[] }>({ past: [], future: [] });
   const [full, setFull] = useState(false);
   const [stickersOpen,setStickersOpen]=useState(false);
-  const [stickerGroup,setStickerGroup]=useState<StickerGroup>('Cute');
+  const [stickerGroup,setStickerGroup]=useState<StickerGroup>('Work & ideas');
   const [templates, setTemplates] = useState(false);
   const editorBefore = useRef<{board:Board;id:string} | null>(null);
   const canvas = useRef<HTMLDivElement>(null);
@@ -244,7 +244,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   }
   async function exportBoard() {
     try {
-    const sheets=[...new Set(board.items.filter(i=>i.kind==='sticker').map(i=>getWhiteboardSticker(i.stickerId)?.sheet).filter((s):s is 'cute'|'helpers'=>!!s))];
+    const sheets=[...new Set(board.items.filter(i=>i.kind==='sticker').map(i=>getWhiteboardSticker(i.stickerId)?.sheet).filter((s):s is keyof typeof stickerSheets=>!!s))];
     const data=await Promise.all(sheets.map(async name=>({name,uri:await stickerSheetData(name)})));
     const defs=data.map(({name,uri})=>`<image id="sticker-sheet-${name}" href="${uri}" width="${stickerSheets[name].width}" height="${stickerSheets[name].height}"/>`).join('');
     const escape = (s: string) => s.replace(/[<>&"]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[c]!));
@@ -330,8 +330,8 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
           <button title="Stickers" aria-label="Stickers" aria-pressed={stickersOpen} disabled={!loaded} onClick={()=>{endEdit();setSelected(null);setTool('select');setStickersOpen(value=>!value);}}><Sticker size={21}/></button><button title="Add image" aria-label="Add image" disabled={!loaded} onClick={()=>file.current?.click()}><ImagePlus size={21}/></button><div className="wb-divider"/><button title="Undo" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={19}/></button><button title="Redo" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={19}/></button>
         </div>
         {stickersOpen && <section className="wb-sticker-picker" onPointerDown={e=>e.stopPropagation()} aria-label="Sticker library">
-          <header><div><strong>A little joy for your board</strong><p>Pick a sticker. Make it yours.</p></div><button aria-label="Close stickers" onClick={()=>setStickersOpen(false)}><X size={16}/></button></header>
-          <div className="wb-sticker-tabs" role="tablist" aria-label="Sticker categories">{(['Cute','Board helpers','Tech symbols'] as const).map(group=><button key={group} role="tab" aria-selected={group===stickerGroup} onClick={()=>setStickerGroup(group)}>{group}</button>)}</div>
+          <header><div><strong>Stickers for your board</strong><p>Ideas, activities, and useful board helpers.</p></div><button aria-label="Close stickers" onClick={()=>setStickersOpen(false)}><X size={16}/></button></header>
+          <div className="wb-sticker-tabs" role="tablist" aria-label="Sticker categories">{(['Work & ideas','Board helpers','Tech symbols','Cute'] as const).map(group=><button key={group} role="tab" aria-selected={group===stickerGroup} onClick={()=>setStickerGroup(group)}>{group}</button>)}</div>
           <div className="wb-sticker-grid" role="tabpanel" aria-label={stickerGroup}>{whiteboardStickers.filter(s=>s.group===stickerGroup).map(sticker=><button key={sticker.id} title={sticker.name} aria-label={`Add ${sticker.name} sticker`} onClick={()=>addSticker(sticker.id)}><WhiteboardSticker id={sticker.id}/><span>{sticker.name}</span></button>)}</div>
           <footer>Drag to move · Resize from the corner</footer>
         </section>}

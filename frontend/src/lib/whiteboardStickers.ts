@@ -1,6 +1,8 @@
-export type StickerGroup = 'Cute' | 'Board helpers' | 'Tech symbols';
-export type WhiteboardSticker = {id:string;name:string;group:StickerGroup;sheet:'cute'|'helpers';x:number;y:number;width:number;height:number};
-export const stickerSheets = {cute:{url:'/stickers/cute-atlas.png',width:1448,height:1086},helpers:{url:'/stickers/helpers-atlas.png',width:1278,height:1230}};
+export type StickerGroup = 'Work & ideas' | 'Cute' | 'Board helpers' | 'Tech symbols';
+export type WhiteboardSticker = {id:string;name:string;group:StickerGroup;sheet:'cute'|'helpers'|'work';x:number;y:number;width:number;height:number};
+export const stickerSheets = {work:{url:'/stickers/work-atlas.png',width:1024,height:1536},cute:{url:'/stickers/cute-atlas.png',width:1448,height:1086},helpers:{url:'/stickers/helpers-atlas.png',width:1278,height:1230}};
+const work=[["brainstorm", "Brainstorm"], ["discussion", "Discussion"], ["focus-group", "Focus group"], ["feedback", "Feedback"], ["training", "Training"], ["mentoring", "Mentoring"], ["master-class", "Master class"], ["new-learning", "New learning"], ["audit", "Audit"], ["review", "Review"], ["recognition", "Recognition"], ["trophy", "Trophy"], ["reward", "Reward"], ["photo", "Photo"], ["lanyard", "Lanyard"], ["community", "Community"], ["catchup", "Catchup"], ["workspace", "Workspace"], ["concept-day", "Concept day"], ["third-eye", "Third eye"], ["hackathon", "Hackathon"], ["game-jam", "Game jam"], ["spin-the-wheel", "Spin the wheel"], ["challenge", "Challenge"], ["project-day", "Project day"], ["switch-project", "Switch project"], ["problem-solving", "Problem solving"], ["escalation", "Escalation"], ["decision", "Decision"], ["action-item", "Action item"], ["priority", "Priority"], ["parking-lot", "Parking lot"]];
+const workBounds=[[66, 53, 163, 138], [307, 57, 168, 124], [560, 40, 148, 150], [798, 53, 162, 125], [61, 215, 185, 127], [306, 208, 172, 131], [560, 199, 162, 144], [794, 201, 173, 144], [78, 360, 154, 152], [328, 368, 133, 143], [567, 361, 132, 150], [801, 365, 157, 145], [74, 531, 155, 152], [309, 532, 165, 145], [561, 532, 145, 157], [777, 540, 202, 132], [44, 710, 213, 160], [297, 715, 200, 158], [538, 713, 201, 155], [787, 713, 195, 148], [49, 914, 201, 128], [302, 894, 183, 152], [560, 893, 149, 155], [791, 890, 178, 154], [59, 1078, 180, 136], [287, 1074, 222, 156], [562, 1070, 159, 159], [786, 1068, 181, 158], [58, 1259, 182, 170], [327, 1253, 135, 173], [569, 1264, 139, 161], [795, 1256, 159, 166]];
 const cute=[['star','Star'],['cloud','Cloud'],['coffee-cat','Coffee cat'],['heart','Heart'],['flower','Flower'],['coffee','Coffee'],['plant','Plant'],['rocket','Rocket'],['idea','Idea'],['laptop','Laptop'],['checklist','Checklist'],['moon','Moon']];
 const helpers=[['comment','Comment'],['question','Question'],['idea','Idea'],['important','Important'],['todo','To do'],['progress','In progress'],['done','Done'],['blocked','Blocked'],['deadline','Deadline'],['decision','Decision'],['connect','Connect'],['reminder','Reminder'],['code','Code </>'],['braces','Braces { }'],['brackets','Brackets [ ]'],['syntax','Syntax ; /']];
 // Individual artwork bounds, including the die-cut borders. Grid cells overlap adjacent artwork.
@@ -17,11 +19,12 @@ const helperBounds=[
 ];
 function artworkBounds(bounds:number[]){const [x,y,width,height]=bounds;return{x:x-2,y:y-2,width:width+4,height:height+4};}
 export const whiteboardStickers:WhiteboardSticker[]=[
+ ...work.map(([id,name],n):WhiteboardSticker=>({id:`work-${id}`,name,group:'Work & ideas',sheet:'work',...artworkBounds(workBounds[n])})),
  ...cute.map(([id,name],n):WhiteboardSticker=>({id:`cute-${id}`,name,group:'Cute',sheet:'cute',...artworkBounds(cuteBounds[n])})),
  ...helpers.map(([id,name],n):WhiteboardSticker=>({id:`helper-${id}`,name,group:n>=12?'Tech symbols':'Board helpers',sheet:'helpers',...artworkBounds(helperBounds[n])})),
 ];
 export function getWhiteboardSticker(id?:string){return whiteboardStickers.find(sticker=>sticker.id===id);}
 const exportSheets=new Map<string,Promise<string>>();
-export function stickerSheetData(sheet:'cute'|'helpers'){
+export function stickerSheetData(sheet:'cute'|'helpers'|'work'){
  let result=exportSheets.get(sheet);if(!result){result=fetch(stickerSheets[sheet].url).then(response=>{if(!response.ok)throw new Error('Could not load stickers for export. Please try again.');return response.blob();}).then(blob=>new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Could not export stickers'));reader.readAsDataURL(blob);}));exportSheets.set(sheet,result);result.catch(()=>exportSheets.delete(sheet));}return result;
 }
