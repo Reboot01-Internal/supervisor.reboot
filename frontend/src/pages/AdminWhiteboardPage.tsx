@@ -249,7 +249,7 @@ function WhiteboardEditor({boardID,navigation}:{boardID:string;navigation:ReactN
   return <AdminLayout active="whiteboard" title="Whiteboard" subtitle="One shared space for your admin team’s next big idea.">
     {navigation}
     <section className={`wb-shell ${full ? 'wb-full' : ''}`} aria-label="Admin whiteboard" onKeyDown={e => {
-      if (!loaded || (e.target instanceof HTMLElement && ['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))) return;
+      if (!loaded || (e.target instanceof HTMLElement && (e.target.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)))) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicate(); }
       else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(); }
