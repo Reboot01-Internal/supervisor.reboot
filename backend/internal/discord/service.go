@@ -21,6 +21,8 @@ const (
 	permissionViewChannel        int64 = 1024
 	permissionSendMessages       int64 = 2048
 	permissionManageMessages     int64 = 8192
+	permissionEmbedLinks         int64 = 16384
+	permissionAttachFiles        int64 = 32768
 	permissionReadMessageHistory int64 = 65536
 	permissionPinMessages        int64 = 1 << 51
 )
@@ -97,7 +99,10 @@ type updateChannelRequest struct {
 }
 
 type messageRequest struct {
-	Content string `json:"content"`
+	Content         string           `json:"content,omitempty"`
+	Embeds          []Embed          `json:"embeds,omitempty"`
+	AllowedMentions *allowedMentions `json:"allowed_mentions,omitempty"`
+	Attachments     []attachment     `json:"attachments,omitempty"`
 }
 
 type messageResponse struct {
@@ -351,7 +356,7 @@ func (s *Service) GetChannelPermissionOverwrites(ctx context.Context, channelID 
 func (s *Service) permissionOverwrites(members []MemberAccess) []permissionOverwrite {
 	viewAndChat := fmt.Sprintf("%d", permissionViewChannel+permissionSendMessages+permissionReadMessageHistory)
 	viewOnly := fmt.Sprintf("%d", permissionViewChannel+permissionReadMessageHistory)
-	botAllow := fmt.Sprintf("%d", permissionViewChannel+permissionSendMessages+permissionManageMessages+permissionReadMessageHistory+permissionManageChannels+permissionPinMessages)
+	botAllow := fmt.Sprintf("%d", permissionViewChannel+permissionSendMessages+permissionManageMessages+permissionReadMessageHistory+permissionManageChannels+permissionPinMessages+permissionEmbedLinks+permissionAttachFiles)
 
 	seen := map[string]bool{}
 	overwrites := []permissionOverwrite{
@@ -431,6 +436,10 @@ func (s *Service) doJSON(ctx context.Context, method, url string, payload any, o
 		}
 	}
 
+	return s.doRequest(ctx, method, url, raw, "application/json", out)
+}
+
+func (s *Service) doRequest(ctx context.Context, method, url string, raw []byte, contentType string, out any) error {
 	for attempt := 0; attempt < 2; attempt++ {
 		var body io.Reader
 		if raw != nil {
@@ -442,7 +451,7 @@ func (s *Service) doJSON(ctx context.Context, method, url string, payload any, o
 			return err
 		}
 		req.Header.Set("Authorization", "Bot "+s.token)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", contentType)
 
 		resp, err := s.httpClient.Do(req)
 		if err != nil {

@@ -256,15 +256,20 @@ func (a *API) notifyCardAssigned(cardID, userID, actorID int64) bool {
 	}
 	assigneeMention := a.resolveDiscordMention(userID, assigneeName)
 
-	message := fmt.Sprintf("%s assigned %s to **%s** in **%s**.", actorMention, assigneeMention, card.Title, board.Name)
-	if strings.TrimSpace(card.DueDate) != "" {
-		message += fmt.Sprintf(" Deadline: `%s`.", strings.TrimSpace(card.DueDate))
+	message := fmt.Sprintf("%s this one’s yours 👇", assigneeMention)
+	fields := []discord.EmbedField{
+		{Name: "Board", Value: board.Name, Inline: true},
+		{Name: "Assigned by", Value: actorMention, Inline: true},
 	}
+	if strings.TrimSpace(card.DueDate) != "" {
+		fields = append(fields, discord.DeadlineField(card.DueDate))
+	}
+	embed := discord.NewEmbed("📌 New assignment · "+card.Title, "A new task is ready for you. Let’s make it happen!", board.Name, discord.ColorAssignment, fields...)
 
 	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	defer cancel()
 
-	if err := a.discord.SendChannelMessage(ctx, channelID, message); err != nil {
+	if err := a.discord.SendNotification(ctx, channelID, message, embed, false, false); err != nil {
 		log.Printf("discord assignment notify failed for card %d user %d: %v", cardID, userID, err)
 		return false
 	}
@@ -314,16 +319,19 @@ func (a *API) notifyCardCompleted(cardID, actorID int64) bool {
 	}
 
 	messages := []string{
-		fmt.Sprintf("%s completed **%s** in **%s**. Great work, keep the momentum going.", actorMention, card.Title, board.Name),
-		fmt.Sprintf("%s finished **%s** in **%s**. Strong progress, keep pushing.", actorMention, card.Title, board.Name),
-		fmt.Sprintf("%s wrapped up **%s** in **%s**. Nice job, one more step forward.", actorMention, card.Title, board.Name),
+		"One more win in the books. Keep the momentum going!",
+		"Strong progress. You’ve earned a little celebration!",
+		"Nice work — one more step forward!",
 	}
-	message := messages[(int(cardID)+int(actorID))%len(messages)]
+	message := fmt.Sprintf("%s just completed a task! 🎉", actorMention)
+	embed := discord.NewEmbed("✅ Task completed · "+card.Title, messages[(cardID+actorID)%int64(len(messages))], board.Name, discord.ColorSuccess,
+		discord.EmbedField{Name: "Board", Value: board.Name, Inline: true},
+		discord.EmbedField{Name: "Completed by", Value: actorMention, Inline: true})
 
 	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	defer cancel()
 
-	if err := a.discord.SendChannelMessage(ctx, channelID, message); err != nil {
+	if err := a.discord.SendNotification(ctx, channelID, message, embed, true, false); err != nil {
 		log.Printf("discord completion notify failed for card %d actor %d (%s): %v", cardID, actorID, actorName, err)
 		return false
 	}
@@ -404,23 +412,19 @@ func (a *API) notifyMeetingBooked(meetingID, actorID int64) bool {
 	}
 	location := meetingLocation()
 
-	message := fmt.Sprintf(
-		"%s booked a new meeting for **%s** in **%s**.\nLocation: **%s**\nTime: `%s - %s`",
-		actorMention,
-		meeting.Title,
-		meeting.BoardName,
-		meeting.Location,
-		startAt.In(location).Format("02 Jan 2006 03:04 PM"),
-		endAt.In(location).Format("03:04 PM"),
-	)
+	message := fmt.Sprintf("%s booked a new meeting 📅", actorMention)
+	description := "Your next catch-up is on the calendar."
 	if strings.TrimSpace(meeting.Notes) != "" {
-		message += "\nNotes: " + strings.TrimSpace(meeting.Notes)
+		description += "\n\n" + strings.TrimSpace(meeting.Notes)
 	}
+	embed := discord.NewEmbed("📅 Meeting booked · "+meeting.Title, description, meeting.BoardName, discord.ColorMeeting,
+		discord.EmbedField{Name: "Location", Value: meeting.Location, Inline: true},
+		discord.EmbedField{Name: "When (Bahrain)", Value: startAt.In(location).Format("2 Jan 2006 · 3:04 PM") + " – " + endAt.In(location).Format("3:04 PM"), Inline: true})
 
 	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	defer cancel()
 
-	if err := a.discord.SendChannelMessagePinned(ctx, channelID, message); err != nil {
+	if err := a.discord.SendNotification(ctx, channelID, message, embed, false, true); err != nil {
 		log.Printf("discord meeting notify failed for meeting %d: %v", meetingID, err)
 		return false
 	}
@@ -448,19 +452,14 @@ func (a *API) notifyMeetingChanged(meeting models.Meeting, verb string) bool {
 	}
 	location := meetingLocation()
 
-	message := fmt.Sprintf(
-		"Meeting update: **%s** was %s in **%s**.\nLocation: **%s**\nTime: `%s - %s`",
-		meeting.Title,
-		verb,
-		meeting.BoardName,
-		meeting.Location,
-		startAt.In(location).Format("02 Jan 2006 03:04 PM"),
-		endAt.In(location).Format("03:04 PM"),
-	)
+	embed := discord.NewEmbed("📅 Meeting "+verb+" · "+meeting.Title, "The meeting details have been updated.", meeting.BoardName, discord.ColorMeeting,
+		discord.EmbedField{Name: "Status", Value: verb, Inline: true},
+		discord.EmbedField{Name: "Location", Value: meeting.Location, Inline: true},
+		discord.EmbedField{Name: "When (Bahrain)", Value: startAt.In(location).Format("2 Jan 2006 · 3:04 PM") + " – " + endAt.In(location).Format("3:04 PM"), Inline: true})
 
 	ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
 	defer cancel()
-	return a.discord.SendChannelMessage(ctx, channelID, message) == nil
+	return a.discord.SendNotification(ctx, channelID, "", embed, false, false) == nil
 }
 
 func formatRoomTime(t time.Time) string {
@@ -706,20 +705,22 @@ func (a *API) runDiscordDueReminderSweep() {
 			mention = "<@" + strings.TrimSpace(item.DiscordUserID) + ">"
 		}
 
-		var message string
-		switch daysBefore {
-		case 2:
-			message = fmt.Sprintf("%s reminder: **%s** in **%s** is due in 2 days. Deadline: `%s`.", mention, item.CardTitle, item.BoardName, item.DueDate)
-		case 1:
-			message = fmt.Sprintf("%s reminder: **%s** in **%s** is due tomorrow. Deadline: `%s`.", mention, item.CardTitle, item.BoardName, item.DueDate)
-		case 0:
-			message = fmt.Sprintf("%s last-day reminder: **%s** in **%s** is due today. Deadline: `%s`.", mention, item.CardTitle, item.BoardName, item.DueDate)
-		default:
-			continue
+		status := "Due in 2 days"
+		description := "A little time to plan ahead. You’ve got this!"
+		if daysBefore == 1 {
+			status = "Due tomorrow"
+			description = "Almost time! A quick nudge to finish strong."
 		}
+		if daysBefore == 0 {
+			status = "Due today"
+			description = "You’ve got this. Let’s get it across the finish line!"
+		}
+		message := fmt.Sprintf("%s a little nudge for you 👋", mention)
+		embed := discord.NewEmbed("⏰ "+status+" · "+item.CardTitle, description, item.BoardName, discord.ColorReminder,
+			discord.EmbedField{Name: "Board", Value: item.BoardName, Inline: true}, discord.DeadlineField(item.DueDate))
 
 		ctx, cancel := context.WithTimeout(context.Background(), discordSyncTimeout)
-		err = a.discord.SendChannelMessage(ctx, item.ChannelID, message)
+		err = a.discord.SendNotification(ctx, item.ChannelID, message, embed, false, false)
 		cancel()
 		if err != nil {
 			log.Printf("discord due reminder send failed for card %d user %d: %v", item.CardID, item.UserID, err)
