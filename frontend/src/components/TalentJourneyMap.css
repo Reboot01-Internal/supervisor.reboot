@@ -32,3 +32,5 @@
 .talent-load-progress::-webkit-progress-bar{background:#eee9fa;border-radius:8px}
 .talent-load-progress::-webkit-progress-value{background:#6d5efc;border-radius:8px;transition:width .2s}
 .talent-load-progress::-moz-progress-bar{background:#6d5efc;border-radius:8px}
+
+.talent-map-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-left:auto;flex-wrap:wrap}.talent-map-header-actions>button{flex-shrink:0}.talent-map-header-actions .talent-map-milestone{white-space:nowrap}@media(max-width:600px){.talent-map-header-actions{margin-left:0;justify-content:flex-start;gap:8px}}
