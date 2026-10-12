@@ -40,6 +40,13 @@ export const landingTeam = [
     "group": "tech"
   },
   {
+    "name": "Noora Qasim",
+    "username": "nqasim",
+    "photo": "/team/nqasim.png",
+    "role": "Tech Mentor",
+    "group": "tech"
+  },
+  {
     "name": "Abdelrahman Ahmed",
     "username": "abdeahmed",
     "photo": "/team/abdeahmed.png",
