@@ -12,7 +12,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_URL, apiFetch } from "./api";
 import { useAuth } from "./auth";
-import { getNotificationTone } from "./notificationTheme";
+import NotificationToast from "../components/NotificationToast";
 
 export type NotificationItem = {
   id: number;
@@ -158,22 +158,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
             return [nextItem, ...rest];
           });
 
-          const tone = getNotificationTone(item);
           toast(
-            <div className="flex items-start gap-3">
-              <div className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border ${tone.iconWrap}`}>
-                {tone.icon}
-              </div>
-              <div className="min-w-0">
-                <div className={`text-[11px] font-black uppercase tracking-[0.14em] ${tone.accent}`}>{tone.label}</div>
-                <div className="mt-1 text-[14px] font-black text-slate-900">{item.title}</div>
-                <div className="mt-1 line-clamp-2 text-[12px] font-semibold leading-5 text-slate-600">{item.body}</div>
-              </div>
-            </div>,
+            <NotificationToast item={item}/>,
             {
             toastId: `notification-${item.id}`,
             autoClose: 4000,
-            className: `rounded-[20px] border shadow-[0_18px_40px_rgba(15,23,42,0.08)] ${tone.toast}`,
+            className: "notification-popup-shell",
             icon: false,
             onClick: () => navigate(item.link || "/notifications"),
             },

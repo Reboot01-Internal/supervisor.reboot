@@ -1,0 +1,14 @@
+.Toastify__toast.notification-popup-shell{padding:18px 26px 18px 16px;background:#fff;color:#302a49;border:1px solid #e7dfef;border-radius:12px;box-shadow:0 8px 28px #30264112;min-height:0;font-family:inherit}
+.notification-popup{display:flex;gap:12px;align-items:flex-start;--event-color:#b18115;--event-bg:#fff7df}
+.notification-popup[data-status=completed]{--event-color:#16845f;--event-bg:#eaf8f0}
+.notification-popup[data-status=canceled],.notification-popup[data-status=attendance]{--event-color:#d14761;--event-bg:#fff0f3}
+.notification-popup[data-status=rescheduled]{--event-color:#437ac4;--event-bg:#edf4ff}
+.notification-popup[data-status=starting]{--event-color:#8a5bd2;--event-bg:#f3edff}
+.notification-popup-symbol{display:grid;place-items:center;width:38px;height:38px;flex-shrink:0;border-radius:50%;background:var(--event-bg);color:var(--event-color)}
+.notification-popup-content{min-width:0;flex:1}
+.notification-popup-meta{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--event-color);margin-bottom:6px}
+.notification-popup-meta>span{margin-left:auto;color:#a093ac;font-size:9px;font-weight:400}
+.notification-popup-content strong{display:block;font-size:13px;font-weight:600;letter-spacing:-.02em;line-height:1.5}
+.notification-popup-content p{margin:5px 0 0;font-size:11px;font-weight:400;line-height:1.7;color:#8c8099;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.notification-popup-actor{display:block;font-size:10px;color:#8c8099;margin-bottom:3px}
+.notification-popup-shell .Toastify__close-button{color:#a093ac;opacity:.7}
