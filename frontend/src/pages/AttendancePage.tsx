@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useConfirm } from "../lib/useConfirm";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, X, ArrowUpRight } from "lucide-react";
 import AttendanceWeek from "../components/AttendanceWeek";
@@ -17,6 +18,7 @@ import { loadRebootProfile } from "./ProfilePage";
 type Member = RebootCandidate & {id:number;user_id:number;role:string;is_active:boolean;enrolled:boolean;created_at:string};
 export default function AttendancePage() {
  const nav=useNavigate();
+ const {confirm,dialog:confirmDialog}=useConfirm();
  const [members,setMembers]=useState<Member[]>([]);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
@@ -66,6 +68,7 @@ export default function AttendancePage() {
   if(failed.length)setError("Some members could not be added. They remain selected so you can retry.");else {setOpen(false);setLookup("");}
  }
  async function toggle(member:Member) {
+  if(member.enrolled && !await confirm({title:"Archive membership?",message:`Archive ${member.full_name}'s attendance membership? Their existing attendance records will be kept. You can restore the membership later.`,confirmLabel:"Archive membership",danger:false})) return;
   setSaving(true);setError("");
   try {await apiFetch("/admin/attendance/members",{method:"POST",body:JSON.stringify({id:member.id,enrolled:!member.enrolled})});await load();setDetail({...member,enrolled:!member.enrolled});}
   catch(e){setError(e instanceof Error?e.message:"Could not update membership");}finally{setSaving(false);}
@@ -73,6 +76,7 @@ export default function AttendancePage() {
  const visible=members.filter(m=>(status==="all" || m.enrolled===(status==="enrolled")) && [m.full_name,m.nickname,m.email,m.cohort].join(" ").toLowerCase().includes(query.toLowerCase()));
  function person(user:RebootCandidate) {return <div className="attendance-person"><UserAvatar src={avatars[user.nickname]} alt={user.full_name} fallback={user.full_name.slice(0,1)} sizeClass="h-10 w-10"/><div><strong>{user.full_name}</strong><span>@{user.nickname}</span></div></div>;}
  if(detail && !profileOnly) return <AdminLayout active="attendance" title="Manage attendance" subtitle={detail.full_name+" · @"+detail.nickname} right={<button className="attendance-secondary" onClick={()=>setDetail(null)}>Back to members</button>}>
+ {confirmDialog}
  <div className="attendance-page attendance-manage">
  {error&&<div role="alert" className="attendance-error">{error}</div>}
  <div className="attendance-manage-top">
@@ -87,6 +91,7 @@ export default function AttendancePage() {
  <section className="attendance-manage-card"><AttendanceRequirements key={detail.id} memberID={detail.id}/></section>
  </div></AdminLayout>;
  return <AdminLayout active="attendance" title="Mandatory Attendance" subtitle="Manage attendance members and their Reboot profiles." right={<button className="attendance-primary" onClick={()=>{setOpen(true);setError("");}}><Plus size={17}/>Add members</button>}>
+ {confirmDialog}
  <div className="attendance-page">
  {error && <div role="alert" className="attendance-error">{error}</div>}
  <section className="attendance-directory">
