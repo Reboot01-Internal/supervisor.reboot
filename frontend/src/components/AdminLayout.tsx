@@ -16,6 +16,7 @@ type Props = {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   hideHeader?: boolean;
+  backgroundLanguage?: "js" | "rust" | "go" | "custom";
   right?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -78,6 +79,7 @@ export default function AdminLayout({
   title,
   subtitle,
   hideHeader = false,
+  backgroundLanguage,
   right,
   children,
 }: Props) {
@@ -242,7 +244,7 @@ export default function AdminLayout({
 
   return (
     <div className={cn(darkMode && "admin-dark", "app-frame min-h-screen bg-[#f4f6fb] text-slate-900")}>
-      <WorkspaceBackground/>
+      <WorkspaceBackground language={backgroundLanguage}/>
       <div
         className={cn(
           "grid min-h-screen min-w-0",

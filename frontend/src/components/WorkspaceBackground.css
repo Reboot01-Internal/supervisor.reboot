@@ -14,3 +14,13 @@
 .admin-dark .workspace-background-symbol{color:#c0aafa;opacity:.2}
 @media(max-width:1050px){.symbol-position-3{left:8px}.symbol-position-0{right:12%;top:26px}.symbol-position-4{left:65%}}
 @media(max-width:600px){.workspace-background-symbol{font-size:24px}.symbol-position-3,.symbol-position-4,.symbol-position-5{display:none}.symbol-position-0{right:8%;opacity:.16}.symbol-position-2{bottom:20px;right:9%;font-size:28px}.workspace-background::before{background-size:36px 36px}}
+
+/* Language colors apply only to the decorative code symbols. */
+.workspace-background[data-language=js]{--code-color:#b99a20;--code-glow:#e8c84870}
+.workspace-background[data-language=rust]{--code-color:#c55a67;--code-glow:#e4717670}
+.workspace-background[data-language=go]{--code-color:#3789c2;--code-glow:#4fa8ed70}
+.workspace-background-symbol{animation:workspace-symbol-float 11s ease-in-out infinite;text-shadow:0 0 12px var(--code-glow,#a390f545),0 0 24px var(--code-glow,#a390f52a)}
+.workspace-background:is([data-language=js],[data-language=rust],[data-language=go]) .workspace-background-symbol{color:var(--code-color);opacity:.38}
+.symbol-position-0{animation-delay:-2s}.symbol-position-1{animation-delay:-5s}.symbol-position-2{animation-delay:-8s}.symbol-position-3{animation-delay:-4s}.symbol-position-4{animation-delay:-7s}.symbol-position-5{animation-delay:-10s}
+@keyframes workspace-symbol-float{0%,100%{translate:0 0}50%{translate:3px -7px}}
+@media(prefers-reduced-motion:reduce){.workspace-background-symbol{animation:none}}

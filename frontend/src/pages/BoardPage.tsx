@@ -1456,6 +1456,7 @@ export default function BoardPage() {
     <>
     {confirmDialog}
     <AdminLayout
+      backgroundLanguage={boardLanguage}
       active={layoutActive}
       title={
         isEditingBoardTitle ? (
