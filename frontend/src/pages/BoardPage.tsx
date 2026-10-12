@@ -12,6 +12,7 @@ import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useConfirm } from "../lib/useConfirm";
+import { celebrateCompletion } from "../lib/confetti";
 import { playDoneSound } from "../lib/sound";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 import { fetchRebootPhones } from "../lib/rebootPhones";
@@ -436,16 +437,13 @@ function CardItem({
               type="button"
               onClick={() => onToggleDone(card.id, !isDone)}
               onDoubleClick={(e) => e.stopPropagation()}
-              className={[
-                "h-7 px-2.5 inline-flex items-center gap-1.5 rounded-full border text-xs font-extrabold transition",
-                isDone
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 animDone"
-                  : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100",
-              ].join(" ")}
+              className="card-completion-action"
+              data-completion-card={card.id}
+              aria-pressed={isDone}
               title={isDone ? "Mark as not done" : "Mark as done"}
             >
-              <CircleCheckIcon size={12} />
-              {isDone ? "Done" : "Mark done"}
+              <span className="card-completion-box" aria-hidden="true">{isDone && <Check size={12} strokeWidth={2.5}/>}</span>
+              <span>{isDone ? "Completed" : "Mark done"}</span>
             </button>
             <span
               className={[
@@ -1308,6 +1306,7 @@ export default function BoardPage() {
           priority: current.priority || "medium",
         }),
       });
+      if (nextDone) celebrateCompletion(document.querySelector<HTMLElement>(`[data-completion-card="${cardId}"]`));
     } catch (e: any) {
       setErr(e?.message || "Failed to update card");
       await load();

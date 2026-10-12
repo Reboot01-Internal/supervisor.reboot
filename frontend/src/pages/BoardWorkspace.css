@@ -104,3 +104,11 @@
 .workspace-header-actions > button:focus-visible { outline-color:#6d5efc; }
 .admin-dark .board-detail-page .board-new-list,
 .admin-dark .board-detail-page .board-list-composer > button[type="submit"] { background:#2d263a; color:#b6adff; border-color:#6d5efc60; }
+
+/* Completion is an inline task action, not a status pill. */
+.card-completion-action{display:inline-flex;align-items:center;gap:7px;min-height:28px;padding:3px 4px 3px 0;border:0;border-radius:4px;background:transparent;color:#64748b;font-family:inherit;font-size:11px;font-weight:500;line-height:1.4;cursor:pointer;transition:color .15s}
+.card-completion-box{display:grid;place-items:center;width:17px;height:17px;border:1.5px solid #aab4c2;border-radius:4px;background:#fff;flex-shrink:0;transition:background .15s,border-color .15s;color:white}
+.card-completion-action:hover{color:#475569}.card-completion-action:hover .card-completion-box{border-color:#64748b;background:#f1f5f9}
+.card-completion-action[aria-pressed=true]{color:#238b68}.card-completion-action[aria-pressed=true] .card-completion-box{background:#279d76;border-color:#279d76}
+.card-completion-action:focus-visible{outline:2px solid #6d5efc;outline-offset:3px}
+.admin-dark .card-completion-action{color:#bbaeC8}.admin-dark .card-completion-box{background:#30263e;border-color:#766384}
