@@ -158,7 +158,7 @@ func (a *API) attendanceRecordsForMember(w http.ResponseWriter, r *http.Request,
 		writeErr(w, 400, "Choose a valid date range of up to 366 days")
 		return
 	}
-	days, fetchedAt, err := fetchBioAttendanceSnapshot(r.Context(), login, start, end)
+	days, fetchedAt, err := fetchBioAttendanceSnapshot(r.Context(), login, start, end, r.URL.Query().Get("sync") == "1")
 	if err != nil {
 		writeErr(w, 502, err.Error())
 		return

@@ -95,7 +95,7 @@ func fetchBioAttendance(ctx context.Context, login, start, end string) ([]attend
 }
 
 // Cache whole months so a weekly card and monthly calendar share provider requests.
-func fetchBioAttendanceSnapshot(ctx context.Context, login, start, end string) ([]attendanceDay, time.Time, error) {
+func fetchBioAttendanceSnapshot(ctx context.Context, login, start, end string, force ...bool) ([]attendanceDay, time.Time, error) {
 	first, err := time.Parse("2006-01-02", start)
 	if err != nil {
 		return nil, time.Time{}, err
@@ -110,6 +110,14 @@ func fetchBioAttendanceSnapshot(ctx context.Context, login, start, end string) (
 		lower := month.Format("2006-01-02")
 		upper := month.AddDate(0, 1, -1).Format("2006-01-02")
 		key := bioConfigurationKey() + ":" + strings.ToLower(strings.TrimSpace(login)) + ":" + lower
+		if len(force) > 0 && force[0] {
+			attendanceMonthCache.mu.Lock()
+			// Share an in-flight sync rather than launch duplicate provider requests.
+			if entry := attendanceMonthCache.entries[key]; entry != nil && entry.done == nil {
+				delete(attendanceMonthCache.entries, key)
+			}
+			attendanceMonthCache.mu.Unlock()
+		}
 		days, at, e := attendanceMonthCache.get(ctx, key, func() ([]attendanceDay, error) { return fetchBioAttendanceUncached(ctx, login, lower, upper) })
 		if e != nil {
 			return nil, time.Time{}, e

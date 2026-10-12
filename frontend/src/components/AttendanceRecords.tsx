@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Clock3, Siren, ArrowRight } from "lucide-react";
 import { statusLabel, type DateRequirement } from "./AttendanceRequirements";
 import { apiFetch } from "../lib/api";
@@ -26,13 +26,15 @@ export default function AttendanceRecords({memberID=0,self=false}:{memberID?:num
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
  const [revision,setRevision]=useState(0);
+ const forceSync=useRef(false);
  useEffect(()=>{const refresh=()=>setRevision(n=>n+1);window.addEventListener("attendance:requirements",refresh);const timer=window.setInterval(refresh,300000);return()=>{window.removeEventListener("attendance:requirements",refresh);window.clearInterval(timer)}},[]);
  const start=month+"-01";
  const end=dateKey(new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)));
  useEffect(()=>{
   const controller=new AbortController();
-  setLoading(true);setError("");setData(null);
-  apiFetch((self?"/admin/attendance/me/records?":"/admin/attendance/records?")+new URLSearchParams({member_id:String(memberID),startDate:start,endDate:end}),{
+  const sync=forceSync.current;forceSync.current=false;
+  setLoading(true);setError("");
+  apiFetch((self?"/admin/attendance/me/records?":"/admin/attendance/records?")+new URLSearchParams({member_id:String(memberID),startDate:start,endDate:end,...(sync?{sync:"1"}:{})}),{
    signal:controller.signal,headers:{Authorization:"Bearer "+(localStorage.getItem("jwt")||"")},
   }).then(result=>{if(!controller.signal.aborted)setData(result);})
    .catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Could not load attendance.");})
@@ -55,7 +57,7 @@ export default function AttendanceRecords({memberID=0,self=false}:{memberID?:num
  return <section className="attendance-records">
  <div className="attendance-calendar-toolbar">
   <div className="attendance-month-nav"><button aria-label="Previous month" onClick={()=>changeMonth(-1)}><ChevronLeft size={18}/></button><h3>{new Date(start+"T00:00:00Z").toLocaleDateString(undefined,{month:"long",year:"numeric",timeZone:"UTC"})}</h3><button aria-label="Next month" onClick={()=>changeMonth(1)}><ChevronRight size={18}/></button></div>
-  <div className="attendance-calendar-tools"><button className="attendance-secondary" onClick={()=>{setMonth(today.slice(0,7));setSelected(today);}}>Today</button><button className="attendance-secondary" disabled={loading} onClick={()=>setRevision(n=>n+1)}><RefreshCw size={14}/>{loading?"Loading…":"Refresh"}</button></div>
+  <div className="attendance-calendar-tools"><button className="attendance-secondary" onClick={()=>{setMonth(today.slice(0,7));setSelected(today);}}>Today</button><button className="attendance-secondary" disabled={loading} onClick={()=>{forceSync.current=true;setRevision(n=>n+1);}}><RefreshCw size={14}/>{loading?"Syncing…":"Sync again"}</button></div>
  </div>
  {error&&<div role="alert" className="attendance-error">{error}</div>}
  <div className="attendance-record-metrics" aria-live="polite">
@@ -86,7 +88,7 @@ export default function AttendanceRecords({memberID=0,self=false}:{memberID?:num
  <span className="attendance-day-eyebrow">SELECTED DAY</span>
  <h4>{new Date(selected+"T00:00:00Z").toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"long",timeZone:"UTC"})}</h4>
  {requirement&&<div className={"attendance-target-detail status-"+requirement.status}><strong>{statusLabel[requirement.status||""]}</strong><p>{requirement.required_minutes/60}h required · {requirement.recorded_minutes===null?"Hours unverified":hours(requirement.recorded_minutes)+" reported"}</p></div>}
- {loading?<p role="status">Loading BioTime records…</p>:error?<p>Records could not be loaded. Refresh to retry.</p>:!day?<div className="attendance-day-empty"><CalendarDays size={24}/><p>{selected>today?"This date is in the future.":"No attendance record returned for this date."}</p></div>:<>
+ {loading?<p role="status">Loading BioTime records…</p>:error?<p>Records could not be loaded. Sync again to retry.</p>:!day?<div className="attendance-day-empty"><CalendarDays size={24}/><p>{selected>today?"This date is in the future.":"No attendance record returned for this date."}</p></div>:<>
  <span className={day.status==="incomplete"?"attendance-badge attendance-incomplete":"attendance-badge"}>{day.status==="incomplete"?"Incomplete":"Recorded"}</span>
  <div className="attendance-day-hours"><Clock3 size={17}/><strong>{day.minutes===null?"Hours unavailable":hours(day.minutes)}</strong></div>
  {day.note&&<p>{day.note}</p>}
