@@ -63,7 +63,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const pollTimerRef = useRef<number | null>(null);
   const failureCountRef = useRef(0);
   const loadRef = useRef<() => Promise<void>>(async () => {});
-  const isNotificationsPage = location.pathname.startsWith("/notifications");
+  const isNotificationsPage = /^\/(?:admin\/)?notifications(?:\/|$)/.test(location.pathname);
+  const seenKey = `notifications:last-seen:${login || email}`;
+  const [lastSeen, setLastSeen] = useState(() => Number(localStorage.getItem(seenKey)) || 0);
+  useEffect(() => { setLastSeen(Number(localStorage.getItem(seenKey)) || 0); }, [seenKey]);
+  useEffect(() => {
+    if (!authenticated || !isNotificationsPage || !items.length) return;
+    const latest = Math.max(...items.map(item => item.id));
+    setLastSeen(previous => Math.max(previous, latest));
+    localStorage.setItem(seenKey, String(Math.max(Number(localStorage.getItem(seenKey)) || 0, latest)));
+  }, [authenticated, isNotificationsPage, items, seenKey]);
 
   async function load() {
     if (!authenticated) {
@@ -208,7 +217,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, [authenticated, email, login, role, isAdmin, isNotificationsPage, navigate]);
 
   const value = useMemo<NotificationsContextValue>(() => {
-    const unreadCount = items.filter((item) => !item.is_read).length;
+    const unreadCount = items.filter((item) => !item.is_read && item.id > lastSeen).length;
     return {
       items,
       loading,
@@ -219,7 +228,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       reload: load,
       markAllRead,
     };
-  }, [items, loading, error]);
+  }, [items, loading, error, lastSeen]);
 
   return (
     <NotificationsContext.Provider value={value}>
