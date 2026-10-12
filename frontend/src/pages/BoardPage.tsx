@@ -447,7 +447,7 @@ function CardItem({
             </button>
             <span
               className={[
-                "h-7 px-2.5 inline-flex items-center rounded-full border text-xs font-extrabold",
+                "card-priority-label h-7 px-2.5 inline-flex items-center rounded-full border text-xs font-extrabold",
                 priorityPillClass(priority),
               ].join(" ")}
               title="Priority"
@@ -472,7 +472,7 @@ function CardItem({
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {preview && preview.total > 0 && (
-                <span className="h-7 px-2.5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-700">
+                <span className="card-progress-label h-7 px-2.5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-700">
                   {preview.done}/{preview.total}
                 </span>
               )}
@@ -480,7 +480,7 @@ function CardItem({
               {due && (
                 <span
                   className={[
-                    "h-7 shrink-0 whitespace-nowrap px-2.5 inline-flex items-center gap-2 rounded-full border text-xs font-extrabold [&>svg]:shrink-0",
+                    "card-due-label h-7 shrink-0 whitespace-nowrap px-2.5 inline-flex items-center gap-2 rounded-full border text-xs font-extrabold [&>svg]:shrink-0",
                     dueClass,
                   ].join(" ")}
                   title={`Due ${due}`}

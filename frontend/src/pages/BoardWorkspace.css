@@ -112,3 +112,10 @@
 .card-completion-action[aria-pressed=true]{color:#238b68}.card-completion-action[aria-pressed=true] .card-completion-box{background:#279d76;border-color:#279d76}
 .card-completion-action:focus-visible{outline:2px solid #6d5efc;outline-offset:3px}
 .admin-dark .card-completion-action{color:#bbaeC8}.admin-dark .card-completion-box{background:#30263e;border-color:#766384}
+
+/* Card metadata shares a single compact scale. */
+.card-completion-action{font-size:12px;min-height:26px;gap:6px}
+.card-completion-box{width:17px;height:17px}
+.card-priority-label,.card-due-label,.card-progress-label{font-size:12px;font-weight:500;height:26px;padding:0 9px;line-height:1.4}
+.card-due-label{gap:6px}
+.card-due-label>svg{width:13px;height:13px}
