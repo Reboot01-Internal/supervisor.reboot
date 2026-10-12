@@ -1,14 +1,16 @@
-.workspace-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;user-select:none;contain:paint}
-.workspace-background-glow{position:absolute;inset:0;background:radial-gradient(ellipse 650px 330px at 85% 0%,#b5a5fa15,transparent 75%),radial-gradient(ellipse 480px 400px at 45% 100%,#a797ef13,transparent 75%)}
-.workspace-background-symbol{position:absolute;color:#9583db;font:400 36px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.18;text-shadow:0 0 15px #a390f56b,0 0 32px #b8a6fa38;animation:workspace-symbol-glow 9s ease-in-out infinite;will-change:opacity}
-.symbol-position-0{top:44px;right:8%;transform:rotate(12deg)}
-.symbol-position-1{top:32%;right:9px;transform:rotate(-12deg);font-size:28px;animation-delay:-3s}
-.symbol-position-2{bottom:44px;right:13%;transform:rotate(-9deg);font-size:42px;animation-delay:-6s}
-.symbol-position-3{top:60%;left:251px;font-size:48px;animation-delay:-2s}
-.symbol-position-4{top:20px;left:56%;transform:rotate(18deg);font-size:32px;animation-delay:-5s}
-.symbol-position-5{bottom:28px;left:32%;font-size:24px;transform:rotate(8deg);animation-delay:-7s}
-.admin-dark .workspace-background-symbol{color:#b09cf5;opacity:.15;text-shadow:0 0 18px #a18be84d}
-@keyframes workspace-symbol-glow{0%,100%{opacity:.12}50%{opacity:.25}}
+/* Floating Code: soft color, a fine grid, and quiet symbols at the edges. */
+.workspace-background{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;user-select:none;contain:paint;background:linear-gradient(115deg,#f5f2fd 0%,#f3f5fd 48%,#effafa 100%)}
+.workspace-background-glow{position:absolute;inset:0;background:linear-gradient(180deg,#ffffff35,transparent 45%,#ffffff55)}
+.workspace-background::before{content:'';position:absolute;inset:0;background-image:linear-gradient(#9384c80c 1px,transparent 1px),linear-gradient(90deg,#9384c80c 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(90deg,transparent 10%,#000 38%,#000 100%)}
+.workspace-background-symbol{position:absolute;color:#9381cc;font:400 32px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.06em;opacity:.23}
+.symbol-position-0{top:38px;right:15%;transform:rotate(-8deg);font-size:36px}
+.symbol-position-1{top:35%;right:22px;transform:rotate(8deg);font-size:28px}
+.symbol-position-2{bottom:65px;right:12%;transform:rotate(-7deg);font-size:38px}
+.symbol-position-3{top:66%;left:256px;font-size:34px;transform:rotate(6deg)}
+.symbol-position-4{top:28px;left:54%;transform:rotate(12deg);font-size:26px;opacity:.16}
+.symbol-position-5{bottom:36px;left:34%;font-size:28px;transform:rotate(6deg)}
+.admin-dark .workspace-background{background:linear-gradient(115deg,#272134 0%,#242737 48%,#203236 100%)}
+.admin-dark .workspace-background-glow{opacity:.04}
+.admin-dark .workspace-background-symbol{color:#c0aafa;opacity:.2}
 @media(max-width:1050px){.symbol-position-3{left:8px}.symbol-position-0{right:12%;top:26px}.symbol-position-4{left:65%}}
-@media(max-width:600px){.workspace-background-symbol{font-size:24px}.symbol-position-3,.symbol-position-4{display:none}.symbol-position-2{bottom:20px;right:9%}}
-@media(prefers-reduced-motion:reduce){.workspace-background-symbol{animation:none;will-change:auto;opacity:.16}}
+@media(max-width:600px){.workspace-background-symbol{font-size:24px}.symbol-position-3,.symbol-position-4,.symbol-position-5{display:none}.symbol-position-0{right:8%;opacity:.16}.symbol-position-2{bottom:20px;right:9%;font-size:28px}.workspace-background::before{background-size:36px 36px}}
