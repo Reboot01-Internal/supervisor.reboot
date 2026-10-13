@@ -128,6 +128,8 @@ func main() {
 		ar.Post("/reports/piscine", api.MarkPiscineExclusion)
 		ar.Get("/dashboard/task-completion", api.AdminTaskCompletionStats)
 		ar.Post("/boards", api.AdminCreateBoard)
+		ar.Post("/boards/duplicate", api.AdminDuplicateBoard)
+		ar.Get("/boards/duplicate-name", api.AdminDuplicateBoardName)
 		ar.Get("/boards", api.AdminListBoardsByFile)
 		ar.Post("/boards/update", api.AdminUpdateBoard)
 		ar.Post("/boards/status", api.AdminUpdateBoardStatus)
