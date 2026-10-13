@@ -2,13 +2,14 @@ import "../components/ReassignDialog.css";
 import { projectForBoard } from "../lib/boardProjects";
 import ImagePreview from "../components/ImagePreview";
 import WorkspaceCalendar from "../components/WorkspaceCalendar";
-import { CalendarDays, X } from "lucide-react";
+import { CalendarDays, Copy, X } from "lucide-react";
 import "../components/WorkspaceViews.css";
 import "../components/ViewNavigation.css";
 import "./AdminBoardsPage.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
+import DuplicateBoardDialog from "../components/DuplicateBoardDialog";
 import Modal, { useEscClose } from "../components/Modal";
 import UserAvatar from "../components/UserAvatar";
 import { apiFetch } from "../lib/api";
@@ -695,6 +696,7 @@ export default function AdminBoardsPage() {
     };
   }, [createOpen, selectedSupervisorID]);
   const { confirm, dialog: confirmDialog } = useConfirm();
+  const [duplicateBoard, setDuplicateBoard] = useState<BoardRow | null>(null);
   const canManageMembers = isAdmin || isSupervisor;
   const canDeleteBoards = isAdmin || isSupervisor;
   const closeMembersModal = useCallback(() => {
@@ -1427,7 +1429,13 @@ export default function AdminBoardsPage() {
                         </div>
                       </div>
 
-                      <div className="language-board-actions flex flex-none items-center gap-2">
+                      <div className="language-board-actions board-actions-square">
+                        {canManageMembers ? (
+                          <button type="button" className="board-action-duplicate h-8 w-8 grid place-items-center rounded-full border border-violet-200 bg-violet-50 text-[#6d5efc] transition hover:bg-violet-100" title="Duplicate board" aria-label="Duplicate board" onClick={(e) => { e.stopPropagation(); setDuplicateBoard(b); }}>
+                            <Copy size={14} />
+                          </button>
+                        ) : null}
+
                         {canManageMembers ? (
                           <BoardStatusIconButton
                             status={status}
@@ -1652,6 +1660,13 @@ export default function AdminBoardsPage() {
                     </div>
 
                     <div className="language-list-actions flex items-center justify-end gap-2 max-[920px]:justify-start">
+                      <div className="board-actions-square">
+                        {canManageMembers ? (
+                          <button type="button" className="board-action-duplicate h-8 w-8 grid place-items-center rounded-full border border-violet-200 bg-violet-50 text-[#6d5efc] transition hover:bg-violet-100" title="Duplicate board" aria-label="Duplicate board" onClick={(e) => { e.stopPropagation(); setDuplicateBoard(b); }}>
+                            <Copy size={14} />
+                          </button>
+                        ) : null}
+
                       {canManageMembers ? (
                         <BoardStatusIconButton
                           status={status}
@@ -1690,6 +1705,7 @@ export default function AdminBoardsPage() {
                         </button>
                       ) : null}
 
+                      </div>
                       <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-black text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
                         Open <ArrowIcon size={14} />
                       </span>
@@ -1824,6 +1840,7 @@ export default function AdminBoardsPage() {
           </div>
         </div>
       )}
+      {duplicateBoard && <DuplicateBoardDialog boardID={duplicateBoard.id} boardName={duplicateBoard.name} onClose={() => setDuplicateBoard(null)} onDuplicated={() => { void load(); }} />}
       {previewAvatar ? <ImagePreview src={previewAvatar.src} title={previewAvatar.name} onClose={() => setPreviewAvatar(null)} /> : null}
       <Modal
         className="board-create-dialog"

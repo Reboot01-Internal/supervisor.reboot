@@ -230,3 +230,6 @@
 .board-create-dialog > div > div > div:last-child button:last-child:not(:disabled) { background:#6d5efc; border-color:#6d5efc; }
 .board-create-dialog input[type="checkbox"] { accent-color:#6d5efc; }
 .board-create-dialog .create-board-member:has(input:checked) { background:#6d5efc08; border-color:#6d5efc60; }
+
+/* Keep board actions in a compact two-by-two group. */
+.boards-page .board-actions-square { display:grid; grid-template-columns:repeat(2,32px); gap:4px; flex:none; align-items:center; justify-items:center; }
