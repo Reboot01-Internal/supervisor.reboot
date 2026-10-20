@@ -8,7 +8,7 @@ import (
 )
 
 // Cards
-func CreateCard(conn *sql.DB, listID int64, title, description string) (int64, error) {
+func CreateCard(conn *sql.DB, listID int64, title, description string, creatorRole string) (int64, error) {
 	title = strings.TrimSpace(title)
 	description = strings.TrimSpace(description)
 
@@ -16,9 +16,9 @@ func CreateCard(conn *sql.DB, listID int64, title, description string) (int64, e
 	_ = conn.QueryRow(`SELECT COALESCE(MAX(position), -1) + 1 FROM cards WHERE list_id = ?`, listID).Scan(&nextPos)
 
 	res, err := conn.Exec(`
-		INSERT INTO cards (list_id, title, description, position)
-		VALUES (?, ?, ?, ?)
-	`, listID, title, description, nextPos)
+		INSERT INTO cards (list_id, title, description, position, created_by_role)
+		VALUES (?, ?, ?, ?, ?)
+	`, listID, title, description, nextPos, creatorRole)
 	if err != nil {
 		return 0, err
 	}
@@ -36,7 +36,7 @@ func ListCardsByBoard(conn *sql.DB, boardID int64) ([]models.Card, error) {
 			c.created_at,
 			COALESCE(c.due_date, ''),
 			COALESCE(c.status, 'todo'),
-			COALESCE(c.priority, 'medium')
+			COALESCE(c.priority, 'medium'), c.created_by_role
 		FROM cards c
 		JOIN lists l ON l.id = c.list_id
 		WHERE l.board_id = ?
@@ -60,6 +60,7 @@ func ListCardsByBoard(conn *sql.DB, boardID int64) ([]models.Card, error) {
 			&c.DueDate,
 			&c.Status,
 			&c.Priority,
+			&c.CreatedByRole,
 		); err != nil {
 			return nil, err
 		}

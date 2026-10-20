@@ -13,7 +13,7 @@ func TestListColorPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close()
-	_, err = conn.Exec(`CREATE TABLE lists(id INTEGER PRIMARY KEY, board_id INTEGER, title TEXT, position INTEGER, created_at TEXT); INSERT INTO lists VALUES(1,2,'Sessions',0,'2026-09-19')`)
+	_, err = conn.Exec(`CREATE TABLE lists(id INTEGER PRIMARY KEY, board_id INTEGER, title TEXT, position INTEGER, created_at TEXT, created_by_role TEXT NOT NULL DEFAULT ''); INSERT INTO lists(id,board_id,title,position,created_at) VALUES(1,2,'Sessions',0,'2026-09-19')`)
 	if err != nil {
 		t.Fatal(err)
 	}

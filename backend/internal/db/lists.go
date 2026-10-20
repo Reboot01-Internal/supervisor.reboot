@@ -8,16 +8,16 @@ import (
 )
 
 // Lists
-func CreateList(conn *sql.DB, boardID int64, title string) (int64, error) {
+func CreateList(conn *sql.DB, boardID int64, title string, creatorRole string) (int64, error) {
 	title = strings.TrimSpace(title)
 
 	var nextPos int64
 	_ = conn.QueryRow(`SELECT COALESCE(MAX(position), -1) + 1 FROM lists WHERE board_id = ?`, boardID).Scan(&nextPos)
 
 	res, err := conn.Exec(`
-		INSERT INTO lists (board_id, title, position)
-		VALUES (?, ?, ?)
-	`, boardID, title, nextPos)
+		INSERT INTO lists (board_id, title, position, created_by_role)
+		VALUES (?, ?, ?, ?)
+	`, boardID, title, nextPos, creatorRole)
 	if err != nil {
 		return 0, err
 	}
@@ -26,7 +26,7 @@ func CreateList(conn *sql.DB, boardID int64, title string) (int64, error) {
 
 func ListLists(conn *sql.DB, boardID int64) ([]models.List, error) {
 	rows, err := conn.Query(`
-		SELECT l.id, l.board_id, l.title, l.position, l.created_at, COALESCE(lc.color,'')
+		SELECT l.id, l.board_id, l.title, l.position, l.created_at, COALESCE(lc.color,''), l.created_by_role
 		FROM lists l LEFT JOIN list_colors lc ON lc.list_id = l.id
 		WHERE board_id = ?
 		ORDER BY position ASC
@@ -39,7 +39,7 @@ func ListLists(conn *sql.DB, boardID int64) ([]models.List, error) {
 	out := []models.List{}
 	for rows.Next() {
 		var l models.List
-		if err := rows.Scan(&l.ID, &l.BoardID, &l.Title, &l.Position, &l.CreatedAt, &l.Color); err != nil {
+		if err := rows.Scan(&l.ID, &l.BoardID, &l.Title, &l.Position, &l.CreatedAt, &l.Color, &l.CreatedByRole); err != nil {
 			return nil, err
 		}
 		out = append(out, l)

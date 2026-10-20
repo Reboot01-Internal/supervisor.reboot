@@ -116,12 +116,11 @@ func (a *API) AdminCreateList(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can create list")
+	if !a.allowBoardContentWrite(w, r, req.BoardID, "", 0) {
 		return
 	}
 
-	id, err := db.CreateList(a.conn, req.BoardID, req.Title)
+	id, err := db.CreateList(a.conn, req.BoardID, req.Title, role)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to create list")
 		return
@@ -160,8 +159,7 @@ func (a *API) AdminUpdateList(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can update list")
+	if !a.allowBoardContentWrite(w, r, 0, "list", req.ListID) {
 		return
 	}
 
@@ -207,8 +205,7 @@ func (a *API) AdminDeleteList(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can delete list")
+	if !a.allowBoardContentWrite(w, r, 0, "list", req.ListID) {
 		return
 	}
 
@@ -229,6 +226,28 @@ func (a *API) AdminDeleteList(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, http.StatusForbidden, "not your board")
 			return
 		}
+	}
+
+	if role == "student" {
+		// Check the children and delete in one statement so a concurrent staff
+		// card creation cannot slip between the permission check and cascade.
+		result, err := a.conn.Exec(`DELETE FROM lists WHERE id=? AND created_by_role='student'
+            AND NOT EXISTS(SELECT 1 FROM cards WHERE list_id=lists.id AND created_by_role!='student')`, req.ListID)
+		if err != nil {
+			writeErr(w, 500, "failed to delete list")
+			return
+		}
+		count, err := result.RowsAffected()
+		if err != nil {
+			writeErr(w, 500, "failed to delete list")
+			return
+		}
+		if count == 0 {
+			writeErr(w, 403, "this list contains supervisor or admin cards")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		return
 	}
 
 	if err := db.DeleteList(a.conn, req.ListID); err != nil {
@@ -263,12 +282,11 @@ func (a *API) AdminCreateCard(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can create card")
+	if !a.allowBoardContentWrite(w, r, 0, "list-create-card", req.ListID) {
 		return
 	}
 
-	id, err := db.CreateCard(a.conn, req.ListID, req.Title, req.Description)
+	id, err := db.CreateCard(a.conn, req.ListID, req.Title, req.Description, role)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "failed to create card")
 		return
@@ -301,8 +319,14 @@ func (a *API) AdminMoveCard(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can move cards")
+	if !a.allowBoardContentWrite(w, r, 0, "card", req.CardID) {
+		return
+	}
+
+	source, err := db.GetBoardIDByCardID(a.conn, req.CardID)
+	target, targetErr := db.GetBoardIDByListID(a.conn, req.ToListID)
+	if err != nil || targetErr != nil || source != target {
+		writeErr(w, 403, "cards must stay in the same board")
 		return
 	}
 
@@ -338,8 +362,11 @@ func (a *API) AdminReorderCards(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can reorder cards")
+	if !a.allowBoardContentWrite(w, r, 0, "list-create-card", req.ListID) {
+		return
+	}
+
+	if role == "student" && !a.allowTalentReorder(w, req.ListID, req.IDs) {
 		return
 	}
 
@@ -413,38 +440,27 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actor := actorID(r, a.conn)
+	completionOnly := false
+	permissionKind := "card"
 	if role == "student" {
-		boardID, err := db.GetBoardIDByCardID(a.conn, req.CardID)
-		if err != nil || boardID == 0 {
-			writeErr(w, http.StatusBadRequest, "invalid card")
-			return
-		}
-		ok, err := db.IsBoardMember(a.conn, boardID, actor)
-		if err != nil {
-			writeErr(w, http.StatusInternalServerError, "db error")
-			return
-		}
-		if !ok {
-			writeErr(w, http.StatusForbidden, "not a member of this board")
-			return
-		}
-		// student can only toggle card done/open
-		if req.Status != "done" && req.Status != "todo" {
-			writeErr(w, http.StatusForbidden, "students can only mark done/open")
-			return
-		}
 		current, err := db.GetCardWithDue(a.conn, req.CardID)
 		if err != nil {
-			writeErr(w, http.StatusNotFound, "card not found")
+			writeErr(w, 404, "card not found")
 			return
 		}
-		if req.Title != strings.TrimSpace(current.Title) ||
-			req.Description != strings.TrimSpace(current.Description) ||
-			req.DueDate != strings.TrimSpace(current.DueDate) ||
-			req.Priority != strings.TrimSpace(strings.ToLower(current.Priority)) {
-			writeErr(w, http.StatusForbidden, "students cannot edit card fields")
-			return
+		if current.CreatedByRole != "student" {
+			if (req.Status != "done" && req.Status != "todo") ||
+				req.Title != strings.TrimSpace(current.Title) || req.Description != strings.TrimSpace(current.Description) ||
+				req.DueDate != strings.TrimSpace(current.DueDate) || req.Priority != strings.ToLower(strings.TrimSpace(current.Priority)) {
+				writeErr(w, 403, "you can only mark this card done or open")
+				return
+			}
+			completionOnly = true
+			permissionKind = "card-completion"
 		}
+	}
+	if !a.allowBoardContentWrite(w, r, 0, permissionKind, req.CardID) {
+		return
 	}
 
 	okStatus := map[string]bool{"todo": true, "doing": true, "blocked": true, "done": true}
@@ -470,10 +486,16 @@ func (a *API) AdminUpdateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	if err := db.UpdateCardAll(tx, req.CardID, req.Title, req.Description, req.DueDate, req.Status, req.Priority); err != nil {
+	if completionOnly {
+		_, err = tx.Exec("UPDATE cards SET status=? WHERE id=?", req.Status, req.CardID)
+	} else {
+		err = db.UpdateCardAll(tx, req.CardID, req.Title, req.Description, req.DueDate, req.Status, req.Priority)
+	}
+	if err != nil {
 		writeErr(w, 500, "failed to update card")
 		return
 	}
+
 	if err := db.InsertCardActivity(tx, req.CardID, actor, "card_updated", "Card updated"); err != nil {
 		writeErr(w, 500, "failed to record card activity")
 		return
@@ -519,8 +541,7 @@ func (a *API) AdminDeleteCard(w http.ResponseWriter, r *http.Request) {
 	if role == "" {
 		role = "admin"
 	}
-	if role != "admin" && role != "supervisor" {
-		writeErr(w, http.StatusForbidden, "only admin or supervisor can delete card")
+	if !a.allowBoardContentWrite(w, r, 0, "card", req.CardID) {
 		return
 	}
 

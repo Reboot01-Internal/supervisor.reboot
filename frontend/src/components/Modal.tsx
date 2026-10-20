@@ -23,7 +23,7 @@ export default function Modal({
 }: {
   className?: string;
   open: boolean;
-  title: string;
+  title: React.ReactNode;
   onClose: () => void;
   footer?: React.ReactNode;
   children: React.ReactNode;

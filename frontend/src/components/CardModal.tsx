@@ -1,4 +1,4 @@
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, LockKeyhole } from "lucide-react";
 import "./CardModal.css";
 import ImagePreview from "./ImagePreview";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -11,6 +11,7 @@ import UserAvatar from "./UserAvatar";
 import { fetchRebootAvatars } from "../lib/rebootAvatars";
 
 type Card = {
+  created_by_role?: string;
   id: number;
   list_id: number;
   title: string;
@@ -392,7 +393,7 @@ export default function CardModal({
     total?: number;
   }) => void;
 }) {
-  const { isAdmin, isSupervisor, login, displayName } = useAuth();
+  const { isAdmin, isSupervisor, isStudent, login, displayName } = useAuth();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -602,7 +603,7 @@ export default function CardModal({
   }, [assigneeOpen]);
 
   async function saveCard() {
-    if (!card) return;
+    if (!card || !canManageCard) return;
 
     setErr("");
     setMsg("");
@@ -1073,7 +1074,8 @@ export default function CardModal({
   const cardDueKind: "overdue" | "soon" | "none" =
     isOverdue ? "overdue" : card?.due_date ? "soon" : "none";
   const dueBadgeText = isOverdue ? "Overdue" : card?.due_date ? "Scheduled" : "None";
-  const canManageCard = isAdmin || isSupervisor;
+  const canManageBoard = isAdmin || isSupervisor;
+  const canManageCard = canManageBoard || (isStudent && card?.created_by_role === 'student');
   const canDeleteCard = canManageCard;
 
   function emitLiveUpdate(nextCard?: Card | null, nextSubtasks?: Subtask[]) {
@@ -1099,7 +1101,7 @@ export default function CardModal({
     <Modal
       className="card-editor-modal"
       open={open}
-      title={card?.title?.trim() || (cardId ? `Card #${cardId}` : "Card")}
+      title={<span className="card-modal-heading"><span>{card?.title?.trim() || (cardId ? `Card #${cardId}` : "Card")}</span>{!loading && card && !canManageCard && <span className="card-view-only" title="You can mark this card and its checklist done. Other changes require a supervisor or admin."><LockKeyhole size={12} aria-hidden="true" />Protected</span>}</span>}
       onClose={onClose}
       footer={
         <>
@@ -1114,9 +1116,9 @@ export default function CardModal({
               <TrashIcon size={18} />
             </button>
           )}
-          <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
+          {canManageCard ? <button className={btnPrimary} onClick={saveCard} disabled={saving || deleting || loading || !card?.title?.trim()}>
             {saving ? "Saving..." : "Save changes"}
-          </button>
+          </button> : <button className={btnGhost} onClick={onClose}>Close</button>}
         </>
       }
     >
@@ -1140,6 +1142,7 @@ export default function CardModal({
           ) : (
             <>
               <div className="dropdownAnim card-editor-scroll">
+
                 <div className="card-editor-layout">
                   <div className="grid gap-2.5">
                     <div className="card-editor-properties">
@@ -1149,6 +1152,7 @@ export default function CardModal({
                         </div>
                         <input
                           className={inputBase}
+                          disabled={!canManageCard}
                           value={card.title}
                           onChange={(e) => setCard({ ...card, title: e.target.value })}
                           placeholder="Card title"
@@ -1173,12 +1177,14 @@ export default function CardModal({
                               " h-10 text-[15px] [color-scheme:light] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70"
                             }
                             type="date"
-                            value={card.due_date || ""}
+                            disabled={!canManageCard}
+                          value={card.due_date || ""}
                             onChange={(e) => setCard({ ...card, due_date: e.target.value })}
                           />
                           <button
                             className="h-9 rounded-[10px] border border-slate-300 bg-white px-3 text-[13px] font-extrabold text-slate-700 hover:bg-slate-50"
                             type="button"
+                            disabled={!canManageCard}
                             onClick={() => setCard({ ...card, due_date: "" })}
                           >
                             Clear
@@ -1193,6 +1199,7 @@ export default function CardModal({
                         </div>
                         <select
                           className={inputBase}
+                          disabled={!canManageCard}
                           value={card.priority}
                           onChange={(e) => setCard({ ...card, priority: e.target.value as Card["priority"] })}
                           title="Priority"
@@ -1212,7 +1219,8 @@ export default function CardModal({
                       </div>
                       <textarea
                         className={inputBase + " h-auto min-h-[100px] py-2.5"}
-                        value={card.description}
+                        disabled={!canManageCard}
+                          value={card.description}
                         onChange={(e) => setCard({ ...card, description: e.target.value })}
                         placeholder="Notes, requirements, links..."
                         rows={4}
@@ -1231,7 +1239,7 @@ export default function CardModal({
                           type="button"
                           className="card-image-upload"
                           onClick={() => attachmentInputRef.current?.click()}
-                          disabled={uploadingAttachment}
+                          disabled={!canManageCard || uploadingAttachment}
                         >
                           <ImagePlus size={16} /> {uploadingAttachment ? `Uploading ${uploadProgress.current} of ${uploadProgress.total}…` : "Add images"}
                         </button>
@@ -1449,6 +1457,7 @@ export default function CardModal({
                                   <input
                                     type="checkbox"
                                     checked={s.is_done}
+                                    disabled={!canManageCard && !isStudent}
                                     onChange={(e) => toggleSubtask(s.id, e.target.checked)}
                                   />
                                   {isEditing && canManageCard ? (
@@ -1655,7 +1664,7 @@ export default function CardModal({
                           )}
                         </div>
 
-                        {canManageCard ? (
+                        {canManageBoard ? (
                         <div className="rounded-[12px] border border-slate-200 bg-white p-2.5">
                           <div className="mb-2 text-[12px] font-extrabold text-slate-700">
                             {labelTool === "edit" ? "Edit label" : labelTool === "delete" ? "Delete label" : "Create a new label"}
@@ -1831,12 +1840,13 @@ export default function CardModal({
                             <textarea
                               className={inputBase + " h-auto py-2.5"}
                               placeholder="Write a comment..."
+                              disabled={!canManageCard}
                               value={commentBody}
                               onChange={(e) => setCommentBody(e.target.value)}
                               rows={2}
                             />
                             <div className="flex justify-end">
-                              <button className={btnPrimary} type="button" onClick={addComment} disabled={!commentBody.trim()}>
+                              <button className={btnPrimary} type="button" onClick={addComment} disabled={!canManageCard || !commentBody.trim()}>
                                 Add comment
                               </button>
                             </div>
@@ -1860,7 +1870,7 @@ export default function CardModal({
                                       <div className="shrink-0 text-[11px] font-semibold text-slate-500">{c.created_at}</div>
                                     </div>
 
-                                {editingCommentId === c.id && canManageCard ? (
+                                {editingCommentId === c.id && canManageBoard ? (
                                   <div className="mt-2 grid gap-2">
                                         <textarea
                                           className={inputBase + " h-auto py-2.5"}
@@ -1895,7 +1905,7 @@ export default function CardModal({
                                       </div>
                                     )}
 
-                                {editingCommentId !== c.id && canManageCard && (
+                                {editingCommentId !== c.id && canManageBoard && (
                                   <div className="mt-2 flex gap-2">
                                         <button
                                           className={btnEditIcon}

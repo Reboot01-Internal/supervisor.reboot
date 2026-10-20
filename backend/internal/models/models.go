@@ -59,24 +59,26 @@ type BoardDiscordMember struct {
 }
 
 type List struct {
-	Color     string `json:"color"`
-	ID        int64  `json:"id"`
-	BoardID   int64  `json:"board_id"`
-	Title     string `json:"title"`
-	Position  int64  `json:"position"`
-	CreatedAt string `json:"created_at"`
+	CreatedByRole string `json:"created_by_role"`
+	Color         string `json:"color"`
+	ID            int64  `json:"id"`
+	BoardID       int64  `json:"board_id"`
+	Title         string `json:"title"`
+	Position      int64  `json:"position"`
+	CreatedAt     string `json:"created_at"`
 }
 
 type Card struct {
-	ID          int64  `json:"id"`
-	ListID      int64  `json:"list_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	DueDate     string `json:"due_date"`
-	Status      string `json:"status"`   // todo|doing|blocked|done
-	Priority    string `json:"priority"` // low|medium|high|urgent
-	Position    int64  `json:"position"`
-	CreatedAt   string `json:"created_at"`
+	CreatedByRole string `json:"created_by_role"`
+	ID            int64  `json:"id"`
+	ListID        int64  `json:"list_id"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	DueDate       string `json:"due_date"`
+	Status        string `json:"status"`   // todo|doing|blocked|done
+	Priority      string `json:"priority"` // low|medium|high|urgent
+	Position      int64  `json:"position"`
+	CreatedAt     string `json:"created_at"`
 }
 
 type Label struct {

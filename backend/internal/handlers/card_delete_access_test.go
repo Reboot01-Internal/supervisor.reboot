@@ -25,7 +25,7 @@ func TestDeleteCardOnSharedBoard(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer conn.Close()
-			_, err = conn.Exec(`CREATE TABLE supervisor_files(id INTEGER,supervisor_user_id INTEGER); CREATE TABLE boards(id INTEGER,supervisor_file_id INTEGER); CREATE TABLE board_members(board_id INTEGER,user_id INTEGER); CREATE TABLE lists(id INTEGER,board_id INTEGER); CREATE TABLE cards(id INTEGER,list_id INTEGER); INSERT INTO supervisor_files VALUES(1,2); INSERT INTO boards VALUES(10,1); INSERT INTO lists VALUES(20,10); INSERT INTO cards VALUES(30,20);`)
+			_, err = conn.Exec(`CREATE TABLE supervisor_files(id INTEGER,supervisor_user_id INTEGER); CREATE TABLE boards(id INTEGER,supervisor_file_id INTEGER); CREATE TABLE board_members(board_id INTEGER,user_id INTEGER); CREATE TABLE lists(id INTEGER,board_id INTEGER); CREATE TABLE cards(id INTEGER,list_id INTEGER,created_by_role TEXT NOT NULL DEFAULT ''); INSERT INTO supervisor_files VALUES(1,2); INSERT INTO boards VALUES(10,1); INSERT INTO lists VALUES(20,10); INSERT INTO cards(id,list_id) VALUES(30,20);`)
 			if err != nil {
 				t.Fatal(err)
 			}

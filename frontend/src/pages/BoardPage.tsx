@@ -40,11 +40,12 @@ import { CSS } from "@dnd-kit/utilities";
 import BoardCalendar from "../components/BoardCalendar";
 import CardModal from "../components/CardModal";
 
-type List = { id: number; board_id: number; title: string; position: number; color?: string };
+type List = { created_by_role?: string; id: number; board_id: number; title: string; position: number; color?: string };
 type Label = { id: number; board_id: number; name: string; color: string };
 type CardLabel = { label_id: number; name: string; color: string };
 
 type Card = {
+  created_by_role?: string;
   id: number;
   list_id: number;
   title: string;
@@ -324,6 +325,7 @@ function CardItem({
   index = 0,
   isOverlay = false,
   canDrag = true,
+  canMarkDone = true,
 }: {
   card: Card;
   preview?: CardPreview;
@@ -333,6 +335,7 @@ function CardItem({
   index?: number;
   isOverlay?: boolean;
   canDrag?: boolean;
+  canMarkDone?: boolean;
 }) {
   const sortable = useSortable({
     id: `card:${card.id}`,
@@ -436,6 +439,7 @@ function CardItem({
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
+              disabled={isOverlay || !canMarkDone}
               onClick={() => onToggleDone(card.id, !isDone)}
               onDoubleClick={(e) => e.stopPropagation()}
               className="card-completion-action"
@@ -546,6 +550,9 @@ function ListColumn({
   onToggleDone,
   columnIndex,
   canManage,
+  canAddCard,
+  canEditCard,
+  canDeleteList,
 }: {
   list: List;
   cards: Card[];
@@ -559,6 +566,9 @@ function ListColumn({
   onToggleDone: (cardId: number, nextDone: boolean) => void;
   columnIndex: number;
   canManage: boolean;
+  canAddCard: boolean;
+  canEditCard: (card: Card) => boolean;
+  canDeleteList: boolean;
 }) {
   const drop = useDroppable({
     id: `list:${list.id}`,
@@ -704,7 +714,7 @@ function ListColumn({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {canManage && (
+          {canAddCard && (
             <>
               <button
             type="button"
@@ -722,7 +732,7 @@ function ListColumn({
           >
             <PlusIcon size={16} />
               </button>
-              <button
+              {canDeleteList && <button
             type="button"
             onClick={() => onDeleteList(list.id, list.title)}
             className={[
@@ -736,7 +746,7 @@ function ListColumn({
             aria-label="Delete list"
               >
                 <BinIcon />
-              </button>
+              </button>}
             </>
           )}
         </div>
@@ -764,7 +774,8 @@ function ListColumn({
               onOpen={onOpenCard}
               onToggleDone={onToggleDone}
               index={idx}
-              canDrag={canManage}
+              canDrag={canEditCard(c)}
+              canMarkDone={canAddCard}
             />
           ))}
         </SortableContext>
@@ -783,7 +794,7 @@ export default function BoardPage() {
   const { boardId } = useParams();
   const boardID = Number(boardId);
   const { confirm, dialog: confirmDialog } = useConfirm();
-  const { isAdmin, isSupervisor } = useAuth();
+  const { isAdmin, isSupervisor, isStudent } = useAuth();
 
   const [view, setView] = useState<"board" | "calendar">("board");
   const [data, setData] = useState<BoardFull | null>(null);
@@ -969,7 +980,7 @@ export default function BoardPage() {
 
   async function createList(e: React.FormEvent) {
     e.preventDefault();
-    if (!canManage) return;
+    if (!canContribute) return;
     const title = newListTitle.trim();
     if (!title) return;
 
@@ -990,7 +1001,7 @@ export default function BoardPage() {
   }
 
   async function createCard(listId: number) {
-    if (!canManage) return;
+    if (!canContribute) return;
     setErr("");
     try {
       const res = await apiFetch("/admin/cards", {
@@ -1007,7 +1018,7 @@ export default function BoardPage() {
   }
 
   async function deleteList(listId: number, listTitle: string) {
-    if (!canManage) return;
+    if (!canEditList(listId)) return;
     const ok = await confirm({
       title: "Delete list",
       message: `Delete "${listTitle}" and all its cards? This cannot be undone.`,
@@ -1115,7 +1126,7 @@ export default function BoardPage() {
   }
 
   async function colorList(listId: number, color: string): Promise<boolean> {
-    if (!canManage) return false;
+    if (!canEditList(listId)) return false;
     try {
       await apiFetch('/admin/lists/update', { method: 'POST', body: JSON.stringify({ list_id: listId, color }) });
       setData(previous => previous ? { ...previous, lists: previous.lists.map(list => list.id === listId ? { ...list, color } : list) } : previous);
@@ -1124,7 +1135,7 @@ export default function BoardPage() {
   }
 
   async function renameList(listId: number, title: string): Promise<boolean> {
-    if (!canManage) return false;
+    if (!canEditList(listId)) return false;
     const previous = data;
     setData((d) =>
       d
@@ -1278,7 +1289,7 @@ export default function BoardPage() {
 
   async function toggleCardDone(cardId: number, nextDone: boolean) {
     const current = findCard(cardId);
-    if (!current) return;
+    if (!current || !canContribute) return;
 
     const nextStatus = nextDone ? "done" : "todo";
 
@@ -1316,7 +1327,7 @@ export default function BoardPage() {
   }
 
   function onDragStart(e: DragStartEvent) {
-    if (!canManage) return;
+    if (!canContribute) return;
     const id = String(e.active.id);
     if (id.startsWith("card:")) {
       const cid = Number(id.split(":")[1]);
@@ -1327,7 +1338,7 @@ export default function BoardPage() {
   }
 
   async function onDragEnd(e: DragEndEvent) {
-    if (!canManage) return;
+    if (!canContribute) return;
     setActiveCardId(null);
     setActiveCardSnapshot(null);
     if (!data) return;
@@ -1339,7 +1350,7 @@ export default function BoardPage() {
 
     const cardId = Number(activeId.split(":")[1]);
     const activeCard = findCard(cardId);
-    if (!activeCard) return;
+    if (!activeCard || !canEditCard(activeCard)) return;
 
     const fromListId = activeCard.list_id;
 
@@ -1356,7 +1367,11 @@ export default function BoardPage() {
         const toIndex = current.findIndex((c) => c.id === overCardId);
         if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
 
-        const ordered = arrayMove(current, fromIndex, toIndex).map((c) => c.id);
+        const movable = canManage ? current : current.filter(canEditCard);
+        if (!canManage && !canEditCard(overCard)) return;
+        const moved = arrayMove(movable, movable.findIndex(c=>c.id===cardId), movable.findIndex(c=>c.id===overCardId));
+        let next=0;
+        const ordered = current.map(c => canEditCard(c) ? moved[next++].id : c.id);
 
         await apiFetch("/admin/cards/reorder", {
           method: "POST",
@@ -1449,6 +1464,10 @@ export default function BoardPage() {
   }, [members]);
   const layoutActive = isAdmin ? (from === "boards" ? "boards" : "supervisors") : "boards";
   const canManage = isAdmin || isSupervisor;
+  const canContribute = canManage || isStudent;
+  function canEditCard(card: Card) { return canManage || (isStudent && card.created_by_role === 'student'); }
+  function canEditList(listId: number) { return canManage || (isStudent && data?.lists.find(l=>l.id===listId)?.created_by_role === 'student'); }
+
   const currentBoardStatus = boardStatus(data);
   const projectSlug = projectForBoard(data?.name || "")?.slug;
   const boardLanguage = !projectSlug ? "custom" : ["smart-road", "filler", "rt", "localhost", "multiplayer-fps", "0-shell"].includes(projectSlug) ? "rust" : ["make-your-game", "real-time-forum", "graphql", "social-network", "mini-framework", "bomberman-dom"].includes(projectSlug) ? "js" : "go";
@@ -1791,7 +1810,7 @@ export default function BoardPage() {
               </span>
             </div>
 
-            {canManage && (listComposerOpen ? <form onSubmit={createList} className="board-list-composer">
+            {canContribute && (listComposerOpen ? <form onSubmit={createList} className="board-list-composer">
               <input autoFocus aria-label="New list name" placeholder="List name…" value={newListTitle} onChange={e=>setNewListTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Escape'&&!creatingList)setListComposerOpen(false);}} disabled={creatingList}/>
               <button type="submit" disabled={creatingList||!newListTitle.trim()}>{creatingList?'Adding…':'Add list'}</button>
               <button type="button" className="composer-dismiss" aria-label="Cancel new list" disabled={creatingList} onClick={()=>setListComposerOpen(false)}><X size={16}/></button>
@@ -1802,8 +1821,8 @@ export default function BoardPage() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
-            onDragStart={canManage ? onDragStart : undefined}
-            onDragEnd={canManage ? onDragEnd : undefined}
+            onDragStart={canContribute ? onDragStart : undefined}
+            onDragEnd={canContribute ? onDragEnd : undefined}
           >
             <div className="board-canvas overflow-x-auto pb-2 rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#f7f8ff_0%,#eef1f8_100%)] p-3">
               <div className="flex gap-4 items-start min-h-[380px]">
@@ -1821,7 +1840,10 @@ export default function BoardPage() {
                     onOpenCard={onOpenCard}
                     onToggleDone={toggleCardDone}
                     columnIndex={colIdx}
-                    canManage={canManage}
+                    canManage={canEditList(l.id)}
+                    canAddCard={canContribute}
+                    canEditCard={canEditCard}
+                    canDeleteList={canEditList(l.id) && (canManage || !(cardsByList[l.id] ?? []).some(c=>!canEditCard(c)))}
                   />
                 ))}
 

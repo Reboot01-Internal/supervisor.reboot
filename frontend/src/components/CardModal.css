@@ -112,3 +112,29 @@
 .card-checklist-composer input { min-width: 0; padding: 0 8px; font-size: 12px; }
 @media(max-width: 760px) { .card-editor-properties { grid-template-columns: 1fr 1fr; } .card-editor-properties > :first-child { grid-column: 1 / -1; } }
 @media(max-width: 420px) { .card-checklist-composer { grid-template-columns: 1fr auto; } .card-checklist-composer > :first-child { grid-column: 1 / -1; } }
+
+.card-modal-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.card-modal-heading > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.card-view-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #f3f1f6;
+  color: #8a8195;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.card-view-close {
+  padding: 7px 14px;
+  border: 1px solid #e4ddef;
+  border-radius: 9px;
+  background: white;
+  color: #756b87;
+}
+.card-view-close:hover { background: #f3f1f6; }

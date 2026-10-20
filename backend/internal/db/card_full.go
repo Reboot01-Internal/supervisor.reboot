@@ -25,10 +25,10 @@ func GetCardWithDue(conn *sql.DB, cardID int64) (models.Card, error) {
 	var priority sql.NullString
 
 	err := conn.QueryRow(`
-		SELECT id, list_id, title, description, due_date, COALESCE(status,'todo'), COALESCE(priority,'medium'), position, created_at
+		SELECT id, list_id, title, description, due_date, COALESCE(status,'todo'), COALESCE(priority,'medium'), position, created_at, created_by_role
 		FROM cards
 		WHERE id = ?
-	`, cardID).Scan(&c.ID, &c.ListID, &c.Title, &c.Description, &due, &status, &priority, &c.Position, &c.CreatedAt)
+	`, cardID).Scan(&c.ID, &c.ListID, &c.Title, &c.Description, &due, &status, &priority, &c.Position, &c.CreatedAt, &c.CreatedByRole)
 
 	if err != nil {
 		return c, err
