@@ -1095,7 +1095,7 @@ export default function ProfilePage() {
 
             {canViewPiscineStatuses && localProfile.user.role === "student" && <LatestProject projects={localProfile.user.reboot_details?.projects ?? (rebootLoading ? undefined : null)}/>}
 
-            {isTargetUserView && canViewPiscineStatuses && localProfile.user.role === "student" && piscineStatuses.rust && piscineStatuses.js && !(piscineStatuses.rust[localProfile.user.nickname.toLowerCase()] === "passed" && piscineStatuses.js[localProfile.user.nickname.toLowerCase()] === "passed") && <ProfilePiscineControl key={localProfile.user.id} userId={localProfile.user.id}/>}
+            {isTargetUserView && canViewPiscineStatuses && localProfile.user.role === "student" && <ProfilePiscineControl key={localProfile.user.id} userId={localProfile.user.id}/>}
 
             <div className="profile-details">
               <Info label="Email" value={rebootProfile?.user?.email || localProfile.user.email} />

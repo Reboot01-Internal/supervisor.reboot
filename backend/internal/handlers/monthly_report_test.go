@@ -16,7 +16,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	defer conn.Close()
 	conn.SetMaxOpenConns(1)
 	_, err = conn.Exec(`
- CREATE TABLE users(id INTEGER,full_name TEXT,role TEXT,is_active INTEGER);
+ CREATE TABLE users(id INTEGER,full_name TEXT,role TEXT,is_active INTEGER,nickname TEXT DEFAULT '');
  CREATE TABLE user_roles(user_id INTEGER,role TEXT);
  CREATE TABLE supervisor_files(id INTEGER,supervisor_user_id INTEGER);
  CREATE TABLE boards(id INTEGER,supervisor_file_id INTEGER,name TEXT);
@@ -25,10 +25,10 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  CREATE TABLE card_activity(card_id INTEGER,action TEXT,created_at TEXT);
  CREATE TABLE meetings(id INTEGER,starts_at TEXT,board_id INTEGER);
  CREATE TABLE meeting_participants(meeting_id INTEGER,user_id INTEGER,attendance_status TEXT);
- CREATE TABLE piscine_report_exclusions(student_user_id INTEGER,month TEXT,marked_by INTEGER,marked_at TEXT DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(student_user_id,month));
- CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER);
+ CREATE TABLE piscine_report_exclusions(student_user_id INTEGER,month TEXT,marked_by INTEGER,marked_at TEXT DEFAULT CURRENT_TIMESTAMP,resumed_at TEXT NOT NULL DEFAULT '',PRIMARY KEY(student_user_id,month));
+ CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER,assigned_at TEXT DEFAULT '2020-01-01 00:00:00');
  CREATE TABLE board_members(board_id INTEGER,user_id INTEGER,added_at TEXT);
- INSERT INTO users VALUES(1,'Admin','admin',1),(2,'Supervisor','supervisor',1),(3,'Talent','student',1),(4,'Inactive talent','student',0);
+ INSERT INTO users(id,full_name,role,is_active) VALUES(1,'Admin','admin',1),(2,'Supervisor','supervisor',1),(3,'Talent','student',1),(4,'Inactive talent','student',0);
  INSERT INTO supervisor_files VALUES(1,2);
  INSERT INTO boards VALUES(10,1,'smart-road'),(11,1,'filler');
  INSERT INTO lists VALUES(20,10),(21,11);
@@ -36,7 +36,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
  INSERT INTO card_activity VALUES(30,'status_done','2025-02-10 10:00:00'),(30,'status_done','2025-02-15 10:00:00'),(31,'card_updated','2025-02-10 10:00:00'),(32,'status_done','2025-02-28 21:00:00');
  INSERT INTO meetings VALUES(40,'2025-01-31T21:00:00Z',10),(41,'2025-02-28T21:00:00Z',11);
  INSERT INTO meeting_participants VALUES(40,3,'attended'),(41,3,'unknown');
- INSERT INTO supervisor_students VALUES(2,3),(2,4);
+ INSERT INTO supervisor_students(supervisor_user_id,student_user_id) VALUES(2,3),(2,4);
  INSERT INTO board_members VALUES(10,3,'2025-01-20 10:00:00'),(11,3,'2025-02-15 10:00:00');
  `)
 	if err != nil {
@@ -109,7 +109,7 @@ func TestMonthlyReportBoundariesAndEvidence(t *testing.T) {
 	if _, err = conn.Exec(`UPDATE users SET role='supervisor' WHERE id=1;
  INSERT INTO supervisor_files VALUES(2,1);
  UPDATE boards SET supervisor_file_id=2 WHERE id=10;
- INSERT INTO supervisor_students VALUES(1,3),(1,4);
+ INSERT INTO supervisor_students(supervisor_user_id,student_user_id) VALUES(1,3),(1,4);
  INSERT INTO meetings VALUES(42,'2025-02-10T10:00:00Z',11);
  INSERT INTO meeting_participants VALUES(42,2,'attended');`); err != nil {
 		t.Fatal(err)

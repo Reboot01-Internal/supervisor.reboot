@@ -57,17 +57,29 @@ func (a *API) MarkPiscineExclusion(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if r.Method == http.MethodGet {
-		var markedBy, markedAt string
-		err = a.conn.QueryRow(`SELECT u.full_name,pe.marked_at FROM piscine_report_exclusions pe JOIN users u ON u.id=pe.marked_by WHERE pe.student_user_id=? AND pe.month=?`, req.UserID, req.Month).Scan(&markedBy, &markedAt)
+		scope := actor
+		if admin {
+			scope = 0
+		}
+		warning := ""
+		if err := a.syncPiscineExclusions(r.Context(), scope, req.UserID); err != nil {
+			warning = "Piscine pass dates could not be refreshed. Try again later."
+		}
+		var markedBy, markedAt, resumedAt string
+		err = a.conn.QueryRow(`SELECT u.full_name,pe.marked_at,pe.resumed_at FROM piscine_report_exclusions pe JOIN users u ON u.id=pe.marked_by WHERE pe.student_user_id=? AND pe.month=?`, req.UserID, req.Month).Scan(&markedBy, &markedAt, &resumedAt)
 		if err != nil && err != sql.ErrNoRows {
 			writeErr(w, 500, "could not load piscine mark")
 			return
 		}
-		writeJSON(w, 200, map[string]any{"in_piscine": err == nil, "marked_by": markedBy, "marked_at": markedAt})
+		excluded := err == nil
+		if resumed, ok := reportTimestamp(resumedAt); ok && resumed.Before(start.AddDate(0, 1, 0)) {
+			excluded = false
+		}
+		writeJSON(w, 200, map[string]any{"in_piscine": excluded, "marked_by": markedBy, "marked_at": markedAt, "resumed_at": resumedAt, "warning": warning})
 		return
 	}
 	if *req.InPiscine {
-		_, err = a.conn.Exec(`INSERT INTO piscine_report_exclusions(student_user_id,month,marked_by) VALUES(?,?,?) ON CONFLICT(student_user_id,month) DO UPDATE SET marked_by=excluded.marked_by,marked_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')`, req.UserID, req.Month, actor)
+		_, err = a.conn.Exec(`INSERT INTO piscine_report_exclusions(student_user_id,month,marked_by) VALUES(?,?,?) ON CONFLICT(student_user_id,month) DO UPDATE SET resumed_at='',marked_by=excluded.marked_by,marked_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')`, req.UserID, req.Month, actor)
 	} else {
 		_, err = a.conn.Exec("DELETE FROM piscine_report_exclusions WHERE student_user_id=? AND month=?", req.UserID, req.Month)
 	}

@@ -280,10 +280,17 @@ func runMigrations(conn *sql.DB) error {
 		"migrations/023_attendance_dates.sql",
 		"migrations/024_piscine_report_exclusions.sql",
 		"migrations/025_board_content_roles.sql",
+		"migrations/026_piscine_resume_dates.sql",
 		// "migrations/006_users_nickname_cohort.sql",
 	}
 
 	for _, f := range files {
+		if f == "migrations/026_piscine_resume_dates.sql" {
+			if err := db.EnsurePiscineResumeDates(conn); err != nil {
+				return err
+			}
+			continue
+		}
 		if f == "migrations/025_board_content_roles.sql" {
 			if err := db.EnsureBoardContentRoles(conn); err != nil {
 				return err

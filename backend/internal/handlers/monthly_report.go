@@ -31,6 +31,10 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	end := start.AddDate(0, 1, 0)
+	piscineWarning := ""
+	if err := a.syncPiscineExclusions(r.Context(), scope, 0); err != nil {
+		piscineWarning = "Piscine pass dates could not be refreshed. Unresolved marks remain excluded; try Refresh again."
+	}
 	from, to := start.UTC().Format(time.RFC3339), end.UTC().Format(time.RFC3339)
 	type Evidence struct {
 		SupervisorID int64 `json:"supervisor_id"`
@@ -90,30 +94,35 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type Journey struct {
-		SupervisorID int64  `json:"supervisor_id"`
-		ID           int64  `json:"id"`
-		Name         string `json:"name"`
-		Start        string `json:"start"`
-		End          string `json:"end"`
-		InPiscine    bool   `json:"in_piscine"`
-		MarkedBy     string `json:"marked_by"`
-		MarkedAt     string `json:"marked_at"`
+		AssignedAt       string `json:"assigned_at"`
+		PiscineResumedAt string `json:"piscine_resumed_at"`
+		EligibleFrom     string `json:"eligible_from"`
+		MeetingTarget    int    `json:"meeting_target"`
+		SupervisorID     int64  `json:"supervisor_id"`
+		ID               int64  `json:"id"`
+		Name             string `json:"name"`
+		Start            string `json:"start"`
+		End              string `json:"end"`
+		InPiscine        bool   `json:"in_piscine"`
+		MarkedBy         string `json:"marked_by"`
+		MarkedAt         string `json:"marked_at"`
 	}
 	journeys := []Journey{}
 	rows, err = a.conn.Query(`SELECT ss.supervisor_user_id,u.id,u.full_name,
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),''),
  COALESCE((SELECT b.name FROM board_members bm JOIN boards b ON b.id=bm.board_id WHERE bm.user_id=u.id AND datetime(bm.added_at)<datetime(?) ORDER BY datetime(bm.added_at) DESC,b.id DESC LIMIT 1),'')
-  , pe.student_user_id IS NOT NULL,COALESCE(marker.full_name,''),COALESCE(pe.marked_at,'')
- FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id LEFT JOIN piscine_report_exclusions pe ON pe.student_user_id=u.id AND pe.month=? LEFT JOIN users marker ON marker.id=pe.marked_by WHERE u.is_active=1 AND (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, start.Format("2006-01"), scope, scope)
+  , pe.student_user_id IS NOT NULL AND (pe.resumed_at='' OR datetime(pe.resumed_at)>=datetime(?)),COALESCE(marker.full_name,''),COALESCE(pe.marked_at,''),ss.assigned_at,COALESCE(pe.resumed_at,'')
+ FROM supervisor_students ss JOIN users u ON u.id=ss.student_user_id LEFT JOIN piscine_report_exclusions pe ON pe.student_user_id=u.id AND pe.month=? LEFT JOIN users marker ON marker.id=pe.marked_by WHERE u.is_active=1 AND datetime(ss.assigned_at)<datetime(?) AND (?=0 OR ss.supervisor_user_id=?) ORDER BY u.full_name`, from, to, to, start.Format("2006-01"), to, scope, scope)
 	if err != nil {
 		writeErr(w, 500, "could not load talent journey")
 		return
 	}
 	for rows.Next() {
 		var j Journey
-		if err = rows.Scan(&j.SupervisorID, &j.ID, &j.Name, &j.Start, &j.End, &j.InPiscine, &j.MarkedBy, &j.MarkedAt); err != nil {
+		if err = rows.Scan(&j.SupervisorID, &j.ID, &j.Name, &j.Start, &j.End, &j.InPiscine, &j.MarkedBy, &j.MarkedAt, &j.AssignedAt, &j.PiscineResumedAt); err != nil {
 			break
 		}
+		j.EligibleFrom, j.MeetingTarget = meetingEligibility(start, end, j.AssignedAt, j.PiscineResumedAt, j.InPiscine)
 		journeys = append(journeys, j)
 	}
 	if err == nil {
@@ -124,5 +133,5 @@ func (a *API) AdminMonthlyReport(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, "could not read talent journey")
 		return
 	}
-	writeJSON(w, 200, map[string]any{"tasks": evidence, "participants": participants, "journeys": journeys})
+	writeJSON(w, 200, map[string]any{"tasks": evidence, "participants": participants, "journeys": journeys, "eligibility_warning": piscineWarning})
 }

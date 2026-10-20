@@ -14,7 +14,7 @@ func TestPiscineExclusionPermissionsAndMonth(t *testing.T) {
 	}
 	defer conn.Close()
 	conn.SetMaxOpenConns(1)
-	_, err = conn.Exec(`CREATE TABLE users(id INTEGER,role TEXT,is_active INTEGER);CREATE TABLE user_roles(user_id INTEGER,role TEXT);CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER);CREATE TABLE piscine_report_exclusions(student_user_id INTEGER,month TEXT,marked_by INTEGER,marked_at TEXT DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(student_user_id,month));INSERT INTO users VALUES(1,'supervisor',1),(2,'student',1),(3,'student',1);INSERT INTO supervisor_students VALUES(1,2);`)
+	_, err = conn.Exec(`CREATE TABLE users(id INTEGER,role TEXT,is_active INTEGER,nickname TEXT DEFAULT '');CREATE TABLE user_roles(user_id INTEGER,role TEXT);CREATE TABLE supervisor_students(supervisor_user_id INTEGER,student_user_id INTEGER);CREATE TABLE piscine_report_exclusions(student_user_id INTEGER,month TEXT,marked_by INTEGER,marked_at TEXT DEFAULT CURRENT_TIMESTAMP,resumed_at TEXT NOT NULL DEFAULT '',PRIMARY KEY(student_user_id,month));INSERT INTO users(id,role,is_active) VALUES(1,'supervisor',1),(2,'student',1),(3,'student',1);INSERT INTO supervisor_students VALUES(1,2);`)
 	if err != nil {
 		t.Fatal(err)
 	}
