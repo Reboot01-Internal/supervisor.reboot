@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
-import { ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Search, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Download, Printer, Check, ChevronDown, ChevronLeft, ChevronRight, Search, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { superviseeMeetingProgress } from '../lib/superviseeMeetingProgress';
 import UserAvatar from './UserAvatar';
+import { buildMonthlyReport, downloadMonthlyReport, type ReportMeeting } from '../lib/monthlyReportExport';
 import './SupervisorMonthlyMatrix.css';
 
 type Person = { supervisor_user_id: number; full_name: string; nickname: string };
 type Board = { id: number; name: string; supervisor_user_id: number; created_at: string; inactive_at?: string; status?: string };
-type Meeting = { id: number; board_id: number; supervisor_id: number; title: string; starts_at: string; status: string };
+type Meeting = ReportMeeting;
 type Evidence = { eligibility_warning?: string; tasks: { board_id: number; supervisor_id: number; added: number; done: number }[]; participants: { user_id: number; meeting_id: number; name: string; attendance: string }[]; journeys: { supervisor_id: number; id: number; name: string; start: string; end: string; in_piscine?:boolean; meeting_target?:number; eligible_from?:string; piscine_resumed_at?:string; marked_by?:string; marked_at?:string }[] };
 const date = (value: string) => Date.parse(value.includes('T') ? value : value.replace(' ', 'T') + 'Z');
 const currentMonth = () => new Date(Date.now() + 10800000).toISOString().slice(0, 7);
@@ -17,6 +18,7 @@ function shiftMonth(month: string, offset: number) { const d = new Date(`${month
 export default function SupervisorMonthlyMatrix({ people, boards, avatars, loading, sourceError, revision, personal = false, compact = false }: { people: Person[]; boards: Board[]; avatars: Record<string, string>; loading: boolean; sourceError: string; revision: number; personal?: boolean; compact?: boolean }) {
  const [month, setMonth] = useState(currentMonth), [query, setQuery] = useState(''), [filter, setFilter] = useState('all'), [expanded, setExpanded] = useState<number | null>(personal ? people[0]?.supervisor_user_id ?? null : null);
  const [data, setData] = useState<Evidence | null>(null), [meetings, setMeetings] = useState<Meeting[]>([]), [loadedKey, setLoadedKey] = useState(''), [loadError, setLoadError] = useState('');
+ const [exportError, setExportError] = useState('');
  const requestKey = `${month}:${revision}`, busy = loadedKey !== requestKey, error = busy ? '' : loadError;
  useEffect(() => { let alive = true;
   Promise.all([apiFetch(`/admin/reports/monthly?month=${month}`), apiFetch('/admin/meetings')]).then(([report, all]) => { if (alive) { setData(report); setMeetings(all); setLoadError(''); } }).catch(() => { if (alive) setLoadError('Monthly evidence could not load. Use Refresh to try again.'); }).finally(() => { if (alive) setLoadedKey(requestKey); });
@@ -68,6 +70,8 @@ export default function SupervisorMonthlyMatrix({ people, boards, avatars, loadi
  }
  return <section className="monthly-matrix" aria-label="Monthly supervisor performance">
   <header className="mm-header"><div><span className="mm-eyebrow"><ShieldCheck size={14}/> MONTHLY ACCOUNTABILITY</span><h2>{personal ? 'Your monthly report' : 'Supervisor performance'}</h2><p>{personal ? 'Your check-ins, board activity, and the next steps for each project.' : 'A clear view of the check-ins, work, and people behind every project.'}</p></div><div className="mm-month"><button aria-label="Previous report month" onClick={() => setMonth(shiftMonth(month, -1))}><ChevronLeft size={17}/></button><label><CalendarDays size={16}/><input type="month" aria-label="Report month" value={month} max={currentMonth()} onChange={e => { if (/^\d{4}-\d{2}$/.test(e.target.value) && e.target.value <= currentMonth()) setMonth(e.target.value); }}/></label><button aria-label="Next report month" disabled={isCurrent} onClick={() => setMonth(shiftMonth(month, 1))}><ChevronRight size={17}/></button></div></header>
+  <div className="mm-export-toolbar"><span>Full report for the selected month · {personal ? 'Your performance' : 'Matches search and status filter'} · Includes all details</span><div><button disabled={unavailable || !visible.length} onClick={() => { setExportError(''); downloadMonthlyReport(buildMonthlyReport(month, visible, meetings, data?.participants || [], data?.eligibility_warning), month); }}><Download size={15}/> Export report</button><button disabled={unavailable || !visible.length} onClick={() => { const report = window.open('', '_blank'); if (!report) { setExportError('Allow pop-ups to open the printable report, or export and open the downloaded report to save as PDF.'); return; } report.opener = null; report.document.write(buildMonthlyReport(month, visible, meetings, data?.participants || [], data?.eligibility_warning)); report.document.close(); setExportError(''); }}><Printer size={15}/> Print / PDF</button></div><small>Export downloads an HTML report. Open it to read, print, or save as PDF.</small></div>
+  {exportError && <p className="mm-empty" role="alert">{exportError}</p>}
   {data?.eligibility_warning && <p className="mm-empty" role="status">{data.eligibility_warning}</p>}
   <div className="mm-period"><span>{isCurrent ? 'MONTH IN PROGRESS' : 'MONTHLY REVIEW'}</span> Bahrain time · {isCurrent ? 'Results so far; targets apply to the full month.' : 'Based on retained records; later edits can affect results.'}</div>
   <div className="mm-stats">{[[personal ? 'Your project boards' : 'Supervisors', personal ? rows[0]?.projects.length || 0 : people.length, 'In this review'], ['Meeting target met', rows.filter(r => r.meets).length, '1–4 per eligible supervisee'], ['Completed meetings', totalMeetings, 'Across this month'], ['Boards closed', rows.reduce((n, r) => n + r.closed, 0), 'Marked inactive this month']].map(([label, value, note]) => <div key={label}><span>{label}</span><strong>{unavailable ? '—' : value}</strong><small>{note}</small></div>)}</div>

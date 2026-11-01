@@ -58,3 +58,5 @@
 .admin-dark .mm-piscine-toggle>summary{color:#c6a5e6}
 @media(max-width:800px){.mm-piscine-toggle{margin:0 20px 18px}}
 @media(max-width:480px){.mm-piscine-toggle .mm-piscine-group ul{grid-template-columns:1fr}}
+
+.mm-export-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:0 28px 20px;color:var(--rp-muted);font-size:11px}.mm-export-toolbar>div{display:flex;gap:8px}.mm-export-toolbar button{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border:1px solid var(--rp-line);border-radius:8px;color:var(--rp-ink);background:var(--rp-paper);font-size:12px}.mm-export-toolbar button:first-child{background:#7954a2;color:white;border-color:#7954a2}.mm-export-toolbar button:disabled{opacity:.45;cursor:not-allowed}.mm-export-toolbar small{flex-basis:100%;font-size:10px}@media(max-width:800px){.mm-export-toolbar{padding:0 20px 18px}}
