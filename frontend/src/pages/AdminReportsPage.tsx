@@ -26,7 +26,9 @@ export default function AdminReportsPage(){
  const [week,setWeek]=useState(0),[activity,setActivity]=useState<Activity|null>(null),[activityError,setActivityError]=useState('');
  const [query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[expanded,setExpanded]=useState<number|null>(null);
  useEffect(()=>{let alive=true;setLoading(true);setError('');(async()=>{try{
-  const [b,s]=await Promise.all([apiFetch('/admin/all-boards'),isAdmin?apiFetch('/admin/supervisors'):Promise.resolve([])]);
+  const [boardResponse,supervisorResponse]=await Promise.all([apiFetch('/admin/all-boards'),isAdmin?apiFetch('/admin/supervisors'):Promise.resolve([])]);
+  const b: Board[] = boardResponse ?? [];
+  const s: Supervisor[] = supervisorResponse ?? [];
   if(!alive)return;setBoards(b);setPeople(s);
   if(!isAdmin){const p=await apiFetch("/admin/profile/summary");if(alive)setAssigned((p.supervisor?.assigned_students||[]).map((u:any)=>({...u,role:"student"})));}
   const results:Record<number,Card[]>={};let cursor=0;

@@ -9,8 +9,8 @@ export default function MyMonthlyReport({ compact = false, revision = 0 }: { com
  const [retry, setRetry] = useState(0);
  useEffect(() => {
   let alive = true;
-  Promise.all([apiFetch('/admin/profile/summary'), apiFetch('/admin/all-boards')]).then(([profile, boards]: [Profile, Board[]]) => {
-   if (alive) setResult({ revision, profile, boards: boards.filter(b => b.supervisor_user_id === profile.user.id) });
+  Promise.all([apiFetch('/admin/profile/summary'), apiFetch('/admin/all-boards')]).then(([profile, boards]: [Profile, Board[] | null]) => {
+   if (alive) setResult({ revision, profile, boards: (boards ?? []).filter(b => b.supervisor_user_id === profile.user.id) });
   }).catch(() => { if (alive) setResult({ revision, error: 'Your monthly report could not load.' }); });
   return () => { alive = false; };
  }, [revision, retry]);
